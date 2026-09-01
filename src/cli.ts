@@ -1,6 +1,15 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync, mkdirSync } from "node:fs";
-import { baseUrl, dataDir, pidPath, port, ROOT } from "./paths";
+import { unlinkSync } from "node:fs";
+import {
+  ensureDaemon,
+  health,
+  startDetach,
+  stopDaemon,
+  waitForHealth,
+  writePid,
+} from "./daemon";
+import { baseUrl, dataDir, pidPath, port } from "./paths";
 import { serve } from "./server";
+import { runTui } from "./tui";
 
 type Opts = {
   tags: string[];
@@ -15,7 +24,9 @@ function printJson(data: unknown): void {
   process.stdout.write(JSON.stringify(data, null, 2) + "\n");
 }
 
-function printHits(hits: Array<{ id: number; content: string; tags: string[]; created_at: string; score?: number }>): void {
+function printHits(
+  hits: Array<{ id: number; content: string; tags: string[]; created_at: string; score?: number }>,
+): void {
   if (!hits.length) {
     process.stdout.write("(none)\n");
     return;
@@ -28,7 +39,7 @@ function printHits(hits: Array<{ id: number; content: string; tags: string[]; cr
 
 function parse(argv: string[]): { cmd: string; opts: Opts } {
   const args = argv.slice(2);
-  const cmd = args.shift() ?? "help";
+  const cmd = args.shift() ?? "tui";
   const opts: Opts = { tags: [], rest: [] };
   while (args.length) {
     const a = args.shift()!;
@@ -52,36 +63,6 @@ function parse(argv: string[]): { cmd: string; opts: Opts } {
   return { cmd, opts };
 }
 
-async function health(): Promise<Record<string, unknown> | null> {
-  try {
-    const res = await fetch(`${baseUrl()}/health`);
-    if (!res.ok) return null;
-    return (await res.json()) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function writePid(pid: number): void {
-  mkdirSync(dataDir(), { recursive: true });
-  writeFileSync(pidPath(), String(pid));
-}
-
-function readPid(): number | null {
-  if (!existsSync(pidPath())) return null;
-  const n = Number(readFileSync(pidPath(), "utf8").trim());
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-function pidAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function api(
   path: string,
   init?: { method?: string; body?: unknown },
@@ -93,42 +74,21 @@ async function api(
   });
   const data = await res.json();
   if (!res.ok) {
-    const err = data && typeof data === "object" && "error" in data
-      ? String((data as { error: unknown }).error)
-      : res.statusText;
+    const err =
+      data && typeof data === "object" && "error" in data
+        ? String((data as { error: unknown }).error)
+        : res.statusText;
     throw new Error(err);
   }
   return data;
 }
 
-async function detachServe(): Promise<void> {
-  const child = Bun.spawn({
-    cmd: ["bun", `${ROOT}/src/index.ts`, "serve"],
-    cwd: ROOT,
-    stdin: "ignore",
-    stdout: "ignore",
-    stderr: "ignore",
-    env: process.env,
-  });
-  writePid(child.pid);
-  child.unref();
-}
-
-async function ensureDaemon(): Promise<void> {
-  if (await health()) return;
-  await detachServe();
-  for (let i = 0; i < 80; i++) {
-    await Bun.sleep(100);
-    if (await health()) return;
-  }
-  throw new Error("office daemon failed to start; try `office serve` in the foreground");
-}
-
 function help(): string {
   return `agent-office — local working memory for coding agents
 
+  office                      open the desk (status, sizes, start/stop/fix)
   office serve [--detach]     start the localhost daemon
-  office status               daemon health
+  office status               daemon health (JSON)
   office stop                 stop the daemon
 
   office context [query]      memories for this task (recent if no query)
@@ -137,7 +97,7 @@ function help(): string {
   office list [--limit n]
   office forget <id>
 
-JSON is the default. Pass --text for a short listing.
+JSON is the default for agent commands. Pass --text for a short listing.
 Daemon binds 127.0.0.1:${port()}. Data: ${dataDir()}
 `;
 }
@@ -146,9 +106,13 @@ export async function main(argv = process.argv): Promise<number> {
   const { cmd, opts } = parse(argv);
   const asText = Boolean(opts.text);
 
-  if (cmd === "help" || cmd === "--help" || cmd === "-h") {
+  if (cmd === "help") {
     process.stdout.write(help());
     return 0;
+  }
+
+  if (cmd === "tui" || cmd === "desk") {
+    return runTui();
   }
 
   if (cmd === "serve") {
@@ -157,14 +121,11 @@ export async function main(argv = process.argv): Promise<number> {
         printJson(await health());
         return 0;
       }
-      await detachServe();
-      for (let i = 0; i < 80; i++) {
-        await Bun.sleep(100);
-        const h = await health();
-        if (h) {
-          printJson(h);
-          return 0;
-        }
+      await startDetach();
+      const h = await waitForHealth();
+      if (h) {
+        printJson(h);
+        return 0;
       }
       throw new Error("detached office failed to become healthy");
     }
@@ -196,17 +157,8 @@ export async function main(argv = process.argv): Promise<number> {
   }
 
   if (cmd === "stop") {
-    const h = await health();
-    const pid = readPid();
-    if (pid && pidAlive(pid)) {
-      process.kill(pid, "SIGTERM");
-    }
-    try {
-      unlinkSync(pidPath());
-    } catch {
-      // ignore
-    }
-    printJson({ ok: true, was_running: Boolean(h) });
+    const was = await stopDaemon();
+    printJson({ ok: true, was_running: was });
     return 0;
   }
 
@@ -236,7 +188,15 @@ export async function main(argv = process.argv): Promise<number> {
     const data = (await api("/search", {
       method: "POST",
       body: { q, limit: opts.limit ?? 8 },
-    })) as { hits: Array<{ id: number; content: string; tags: string[]; created_at: string; score: number }> };
+    })) as {
+      hits: Array<{
+        id: number;
+        content: string;
+        tags: string[];
+        created_at: string;
+        score: number;
+      }>;
+    };
     if (asText) printHits(data.hits);
     else printJson(data);
     return 0;
@@ -247,7 +207,15 @@ export async function main(argv = process.argv): Promise<number> {
     const data = (await api("/context", {
       method: "POST",
       body: { q, limit: opts.limit ?? 8 },
-    })) as { memories: Array<{ id: number; content: string; tags: string[]; created_at: string; score?: number }> };
+    })) as {
+      memories: Array<{
+        id: number;
+        content: string;
+        tags: string[];
+        created_at: string;
+        score?: number;
+      }>;
+    };
     if (asText) printHits(data.memories);
     else printJson(data);
     return 0;

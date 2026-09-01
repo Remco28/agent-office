@@ -35,7 +35,7 @@ SKIP_VENV=1 ./install.sh
 
 The daemon binds `127.0.0.1:7701`. Data lives in `~/.local/share/agent-office/memory.db` — outside the git repo. Each machine has its own filing cabinet.
 
-Agents should read `AGENTS.md`.
+Type `office` with no arguments to open the desk: one screen with daemon/embedder status, database size, write volume, and warnings if the store is running away. `s` start/stop, `r` restart, `f` fix, `q` leave. Agents still use the CLI; see `AGENTS.md`.
 
 ## Copying the store
 

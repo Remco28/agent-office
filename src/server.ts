@@ -9,7 +9,8 @@ import {
   remember,
   search,
 } from "./memory";
-import { port } from "./paths";
+import { fileStats } from "./stats";
+import { dbPath, MODEL_NAME, port } from "./paths";
 
 export type Office = {
   stop: () => void;
@@ -35,6 +36,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   const db = openDb();
   const embedder = opts?.embedder ?? startSidecar();
   const listen = opts?.port ?? port();
+  const startedAt = new Date().toISOString();
 
   const backfill = async () => {
     try {
@@ -63,13 +65,33 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       const path = url.pathname;
 
       if (req.method === "GET" && (path === "/health" || path === "/status" || path === "/")) {
+        const files = fileStats(dbPath());
+        const missing = (
+          db.query("SELECT COUNT(*) AS n FROM memories WHERE embedding IS NULL").get() as {
+            n: number;
+          }
+        ).n;
+        const lastWrite =
+          (db.query("SELECT MAX(created_at) AS t FROM memories").get() as { t: string | null })
+            .t ?? null;
         return json({
           ok: true,
           name: "agent-office",
           memories: countMemories(db),
+          missing_embeddings: missing,
+          last_write: lastWrite,
           embedder: embedder.ready,
+          model: MODEL_NAME,
           port: listen,
+          pid: process.pid,
+          started_at: startedAt,
+          db: files,
         });
+      }
+
+      if (req.method === "POST" && path === "/checkpoint") {
+        db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+        return json({ ok: true, db: fileStats(dbPath()) });
       }
 
       if (req.method === "GET" && path === "/list") {

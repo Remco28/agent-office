@@ -6,13 +6,9 @@ Use it for decisions, conventions, pitfalls, and handoff notes that should survi
 
 ## Setup
 
-```bash
-office status
-# if the daemon is down:
-office serve --detach
-```
-
 The CLI starts the daemon on first use if needed. It listens on `127.0.0.1` only.
+
+Humans: type `office` to open the desk. Do not use the TUI from an agent session.
 
 ## Three verbs
 
