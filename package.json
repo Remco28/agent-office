@@ -1,0 +1,17 @@
+{
+  "name": "agent-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "office": "./bin/office"
+  },
+  "scripts": {
+    "office": "bun src/index.ts",
+    "serve": "bun src/index.ts serve",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0"
+  }
+}
