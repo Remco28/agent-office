@@ -21,7 +21,7 @@ office context "add rate limiting to checkout"
 When a decision lands:
 
 ```bash
-office remember --tag convention --source $AGENT_NAME "Checkout rate limit lives in src/server/checkout.ts; 60 req/min per IP."
+office remember --tag convention --source freebuff "Checkout rate limit lives in src/server/checkout.ts; 60 req/min per IP."
 ```
 
 When you need a specific fact:

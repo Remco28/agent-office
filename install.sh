@@ -32,10 +32,18 @@ mkdir -p "$HOME/.local/bin"
 ln -sfn "$root/bin/office" "$HOME/.local/bin/office"
 chmod +x "$root/bin/office"
 
-# Freebuff/Codebuff loads ~/.knowledge.md (else ~/.AGENTS.md / ~/.CLAUDE.md) in every project.
-if [[ ! -e "$HOME/.knowledge.md" && ! -e "$HOME/.AGENTS.md" && ! -e "$HOME/.CLAUDE.md" ]]; then
-  ln -sfn "$root/knowledge.md" "$HOME/.knowledge.md"
-  echo "linked ~/.knowledge.md so Freebuff sees the office on this machine"
+# Freebuff reads AGENTS.md (project root, and ~/.AGENTS.md if present).
+# It does not load ~/.knowledge.md on startup — we learned that the hard way.
+if [[ -L "$HOME/.knowledge.md" ]]; then
+  target="$(readlink "$HOME/.knowledge.md" || true)"
+  if [[ "$target" == *agent-office/knowledge.md ]]; then
+    rm -f "$HOME/.knowledge.md"
+    echo "removed stale ~/.knowledge.md symlink"
+  fi
+fi
+if [[ ! -e "$HOME/.AGENTS.md" ]]; then
+  ln -sfn "$root/AGENTS.md" "$HOME/.AGENTS.md"
+  echo "linked ~/.AGENTS.md so Freebuff can see the office on this machine"
 fi
 
 echo
