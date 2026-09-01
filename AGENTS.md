@@ -8,6 +8,8 @@ Use it for decisions, conventions, pitfalls, and handoff notes that should survi
 
 The CLI starts the daemon on first use if needed. It listens on `127.0.0.1` only.
 
+This file is meant to live only in the working directory of an agent that should use the office. Do not put it in `$HOME`.
+
 Humans: type `office` to open the desk. Do not use the TUI from an agent session.
 
 ## Three verbs

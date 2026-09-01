@@ -32,19 +32,17 @@ mkdir -p "$HOME/.local/bin"
 ln -sfn "$root/bin/office" "$HOME/.local/bin/office"
 chmod +x "$root/bin/office"
 
-# Freebuff reads AGENTS.md (project root, and ~/.AGENTS.md if present).
-# It does not load ~/.knowledge.md on startup — we learned that the hard way.
-if [[ -L "$HOME/.knowledge.md" ]]; then
-  target="$(readlink "$HOME/.knowledge.md" || true)"
-  if [[ "$target" == *agent-office/knowledge.md ]]; then
-    rm -f "$HOME/.knowledge.md"
-    echo "removed stale ~/.knowledge.md symlink"
+# Office instructions are opt-in per working directory, never global.
+# Remove home-directory links this installer used to create.
+for home_file in "$HOME/.knowledge.md" "$HOME/.AGENTS.md"; do
+  if [[ -L "$home_file" ]]; then
+    target="$(readlink "$home_file" || true)"
+    if [[ "$target" == *agent-office/* ]]; then
+      rm -f "$home_file"
+      echo "removed stale $home_file"
+    fi
   fi
-fi
-if [[ ! -e "$HOME/.AGENTS.md" ]]; then
-  ln -sfn "$root/AGENTS.md" "$HOME/.AGENTS.md"
-  echo "linked ~/.AGENTS.md so Freebuff can see the office on this machine"
-fi
+done
 
 echo
 echo "ok.  office -> $HOME/.local/bin/office"

@@ -37,7 +37,13 @@ The daemon binds `127.0.0.1:7701`. Data lives in `~/.local/share/agent-office/me
 
 Type `office` with no arguments to open the desk: one screen with daemon/embedder status, database size, write volume, and warnings if the store is running away. `s` start/stop, `r` restart, `f` fix, `q` leave.
 
-Agents still use the CLI. Freebuff reads `AGENTS.md` (confirmed live). It does **not** load `~/.knowledge.md` on startup — ignore older Codebuff docs that say otherwise. The installer links `~/.AGENTS.md` to this repo's `AGENTS.md`. For a project Freebuff is actually sitting in, put `AGENTS.md` in that repo root (or symlink this file) if the home copy is not picked up.
+Agents still use the CLI. Office instructions are **opt-in per working directory**, not global — no `~/.AGENTS.md`. To give Freebuff (or another agent) the office, put `AGENTS.md` only in the folder you start that agent in:
+
+```bash
+ln -s ~/Projects/agent-office/AGENTS.md /path/to/that/project/AGENTS.md
+```
+
+Leave it out of every other project.
 
 ## Copying the store
 
