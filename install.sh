@@ -32,6 +32,12 @@ mkdir -p "$HOME/.local/bin"
 ln -sfn "$root/bin/office" "$HOME/.local/bin/office"
 chmod +x "$root/bin/office"
 
+# Freebuff/Codebuff loads ~/.knowledge.md (else ~/.AGENTS.md / ~/.CLAUDE.md) in every project.
+if [[ ! -e "$HOME/.knowledge.md" && ! -e "$HOME/.AGENTS.md" && ! -e "$HOME/.CLAUDE.md" ]]; then
+  ln -sfn "$root/knowledge.md" "$HOME/.knowledge.md"
+  echo "linked ~/.knowledge.md so Freebuff sees the office on this machine"
+fi
+
 echo
 echo "ok.  office -> $HOME/.local/bin/office"
 echo "data stays on this machine: ~/.local/share/agent-office/"

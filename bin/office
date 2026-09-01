@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root="$(cd "$(dirname "$0")/.." && pwd)"
+src="${BASH_SOURCE[0]}"
+while [[ -L "$src" ]]; do
+  dir="$(cd "$(dirname "$src")" && pwd)"
+  link="$(readlink "$src")"
+  if [[ "$link" == /* ]]; then
+    src="$link"
+  else
+    src="$dir/$link"
+  fi
+done
+root="$(cd "$(dirname "$src")/.." && pwd)"
 exec bun "$root/src/index.ts" "$@"
