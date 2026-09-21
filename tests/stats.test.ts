@@ -37,7 +37,6 @@ function emptyDesk(over: Partial<DeskSnapshot> = {}): DeskSnapshot {
     daemon: { up: true, port: 7701, pid: 1, startedAt: new Date().toISOString() },
     embedder: "ready",
     model: "all-MiniLM-L6-v2",
-    store,
     warnings: [],
     ...over,
     store: { ...store, ...(over.store ?? {}) },

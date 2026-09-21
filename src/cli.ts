@@ -39,7 +39,9 @@ function printHits(
 
 function parse(argv: string[]): { cmd: string; opts: Opts } {
   const args = argv.slice(2);
-  const cmd = args.shift() ?? "tui";
+  let cmd = args.shift() ?? "tui";
+  // `office --help` is a request for help, not the name of a command.
+  if (cmd === "--help" || cmd === "-h") cmd = "help";
   const opts: Opts = { tags: [], rest: [] };
   while (args.length) {
     const a = args.shift()!;
@@ -233,7 +235,15 @@ export async function main(argv = process.argv): Promise<number> {
   if (cmd === "forget") {
     const id = Number(opts.rest[0]);
     if (!Number.isInteger(id) || id <= 0) throw new Error("usage: office forget <id>");
-    printJson(await api("/forget", { method: "POST", body: { id } }));
+    const data = (await api("/forget", { method: "POST", body: { id } })) as {
+      ok: boolean;
+      id: number;
+    };
+    printJson(data);
+    if (!data.ok) {
+      process.stderr.write(`no memory #${id}\n`);
+      return 1;
+    }
     return 0;
   }
 

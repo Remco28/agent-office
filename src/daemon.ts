@@ -40,6 +40,11 @@ export async function startDetach(): Promise<void> {
     stdout: "ignore",
     stderr: "ignore",
     env: process.env,
+    // setsid(): the daemon gets its own session/process group, so it is not
+    // killed when the shell that started it tears its process group down.
+    // Without this the daemon dies with every invoking shell and each call
+    // pays a full embedder reload.
+    detached: true,
   });
   writePid(child.pid);
   child.unref();

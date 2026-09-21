@@ -9,9 +9,11 @@
   "scripts": {
     "office": "bun src/index.ts",
     "serve": "bun src/index.ts serve",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.0"
+    "@types/bun": "^1.4.0",
+    "typescript": "^5.9.3"
   }
 }
