@@ -36,6 +36,11 @@ function warnColor(level: "warn" | "alert", text: string): string {
   return `${level === "alert" ? RED : YELLOW}${text}${RESET}`;
 }
 
+function formatChars(n: number | null): string {
+  if (n == null) return "";
+  return `${n.toLocaleString()} chars of log`;
+}
+
 async function snapshot(): Promise<DeskSnapshot> {
   const live = await health();
   const store = collectStoreStats();
@@ -44,6 +49,10 @@ async function snapshot(): Promise<DeskSnapshot> {
   const startedAt = typeof live?.started_at === "string" ? live.started_at : null;
   const pid = typeof live?.pid === "number" ? live.pid : null;
   const embedder = embedderState({ daemonUp, ready, startedAt });
+  const rawActive = live?.active as
+    | { project?: unknown; author?: unknown; since?: unknown }
+    | null
+    | undefined;
   const snap: DeskSnapshot = {
     daemon: {
       up: daemonUp,
@@ -53,6 +62,13 @@ async function snapshot(): Promise<DeskSnapshot> {
     },
     embedder,
     model: typeof live?.model === "string" ? live.model : MODEL_NAME,
+    active: rawActive
+      ? {
+          project: typeof rawActive.project === "string" ? rawActive.project : null,
+          author: typeof rawActive.author === "string" ? rawActive.author : null,
+          since: typeof rawActive.since === "string" ? rawActive.since : null,
+        }
+      : null,
     store,
     warnings: [],
   };
@@ -82,9 +98,14 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     `Embedder   ${embLabel}  ${snap.model ?? MODEL_NAME}`,
     `Python     ${DIM}${detectPython()}${RESET}`,
     "",
+    `Project    ${snap.active?.project ?? `${DIM}none declared${RESET}`}`,
+    `           ${DIM}${snap.active ? `by ${snap.active.author ?? "unknown"}  ${formatAgo(snap.active.since, now.getTime())}` : "agents name their target with: office begin --project <path>"}${RESET}`,
+    "",
     `Database   ${count} memories   ${formatBytes(store.totalBytes)}${missing}`,
     `           db ${formatBytes(store.bytes)}   wal ${formatBytes(store.walBytes)}   shm ${formatBytes(store.shmBytes)}`,
     `           ${DIM}${store.path}${RESET}`,
+    `Work       ${store.workOpen ?? "?"} open   ${store.workTotal ?? "?"} in the trail   ${formatChars(store.logChars)}`,
+    `Tools      ${store.tools ?? "?"}   ${DIM}always loaded, from the database${RESET}`,
     `Last write ${formatAgo(store.lastWrite, now.getTime())}`,
     `Writes     last hour ${store.lastHour ?? "?"}    today ${store.lastDay ?? "?"}`,
     store.maxChars ? `Largest    ${store.maxChars.toLocaleString()} chars` : `Largest    —`,

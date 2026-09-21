@@ -2,14 +2,16 @@ import { openDb } from "./db";
 import { startSidecar, type Embedder } from "./embed";
 import {
   backfillEmbeddings,
-  context,
   countMemories,
   forget,
   listMemories,
   remember,
-  search,
+  searchDetailed,
 } from "./memory";
-import { fileStats } from "./stats";
+import { briefing, getActive, resolveScope, setActive } from "./session";
+import { closeWork, getWork, listWork, noteWork, openWork } from "./work";
+import { listTools, removeTool, upsertTool } from "./tools";
+import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
 import { dbPath, MODEL_NAME, port } from "./paths";
 
 export type Office = {
@@ -23,6 +25,11 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function fail(err: unknown): Response {
+  const message = err instanceof Error ? err.message : String(err);
+  return json({ error: message }, 400);
+}
+
 async function readBody(req: Request): Promise<Record<string, unknown>> {
   try {
     const data = await req.json();
@@ -30,6 +37,10 @@ async function readBody(req: Request): Promise<Record<string, unknown>> {
   } catch {
     return {};
   }
+}
+
+function str(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
@@ -57,6 +68,19 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   };
   void waitReady();
 
+  const warnings = (): Warning[] => {
+    const state = embedderState({
+      daemonUp: true,
+      ready: embedder.ready,
+      startedAt,
+    });
+    return warningsFor({
+      daemonUp: true,
+      embedder: state,
+      store: { ...fileStats(dbPath()), ...queryStore(db) },
+    });
+  };
+
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port: listen,
@@ -66,20 +90,20 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
 
       if (req.method === "GET" && (path === "/health" || path === "/status" || path === "/")) {
         const files = fileStats(dbPath());
-        const missing = (
-          db.query("SELECT COUNT(*) AS n FROM memories WHERE embedding IS NULL").get() as {
-            n: number;
-          }
-        ).n;
-        const lastWrite =
-          (db.query("SELECT MAX(created_at) AS t FROM memories").get() as { t: string | null })
-            .t ?? null;
+        const stats = queryStore(db);
+        const active = getActive(db);
         return json({
           ok: true,
           name: "agent-office",
           memories: countMemories(db),
-          missing_embeddings: missing,
-          last_write: lastWrite,
+          missing_embeddings: stats.missingEmbeddings,
+          last_write: stats.lastWrite,
+          work: { open: stats.workOpen, total: stats.workTotal },
+          tools: stats.tools,
+          log_chars: stats.logChars,
+          active: active
+            ? { project: active.project, author: active.author, since: active.updated_at }
+            : null,
           embedder: embedder.ready,
           model: MODEL_NAME,
           port: listen,
@@ -96,34 +120,98 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
 
       if (req.method === "GET" && path === "/list") {
         const limit = Number(url.searchParams.get("limit") ?? 20);
-        return json({ memories: listMemories(db, limit) });
+        const project = url.searchParams.get("project");
+        return json({
+          memories: project
+            ? listMemories(db, limit, project)
+            : listMemories(db, limit),
+        });
+      }
+
+      if (req.method === "POST" && path === "/begin") {
+        const body = await readBody(req);
+        const project = str(body.project);
+        const author = str(body.author);
+        // Naming a target is the one declaration a session makes. Everything
+        // after this inherits it; nothing is inferred from the working dir.
+        if (project || author) setActive(db, { project, author });
+        const result = await briefing(db, embedder);
+        return json({
+          ...result,
+          // this call is what named them, so report it that way
+          project_source: project ? "declared" : result.project_source,
+          author_source: author ? "declared" : result.author_source,
+          warnings: warnings(),
+        });
       }
 
       if (req.method === "POST" && path === "/remember") {
         const body = await readBody(req);
         const content = String(body.content ?? "").trim();
         if (!content) return json({ error: "content required" }, 400);
-        const tags = Array.isArray(body.tags)
-          ? body.tags.map((t) => String(t))
-          : [];
-        const source = body.source != null ? String(body.source) : null;
-        const memory = await remember(db, embedder, { content, tags, source });
-        void backfill();
-        return json({ ok: true, memory });
+        const tags = Array.isArray(body.tags) ? body.tags.map((t) => String(t)) : [];
+        const scope = resolveScope(db, {
+          project: str(body.project),
+          author: str(body.author),
+        });
+        try {
+          const memory = await remember(db, embedder, {
+            content,
+            tags,
+            project: scope.project,
+            author: scope.author,
+            scope: str(body.scope),
+            source: str(body.source),
+          });
+          void backfill();
+          return json({
+            ok: true,
+            memory,
+            project_source: scope.project_source,
+            author_source: scope.author_source,
+          });
+        } catch (err) {
+          return fail(err);
+        }
       }
 
       if (req.method === "POST" && path === "/search") {
         const body = await readBody(req);
         const q = String(body.q ?? body.query ?? "");
         const limit = Number(body.limit ?? 8);
-        return json({ hits: await search(db, embedder, q, limit) });
+        const project = str(body.project);
+        const scope = resolveScope(db, { project });
+        const result = await searchDetailed(db, embedder, q, limit, {
+          project: scope.project,
+        });
+        return json({
+          ...result,
+          project_source: scope.project_source,
+          note: result.hits.length
+            ? null
+            : result.searched
+              ? `nothing relevant — ${result.searched} memories in scope`
+              : "nothing stored yet",
+        });
       }
 
       if (req.method === "POST" && path === "/context") {
         const body = await readBody(req);
         const q = String(body.q ?? body.query ?? "");
         const limit = Number(body.limit ?? 8);
-        return json({ memories: await context(db, embedder, q, limit) });
+        const scope = resolveScope(db, { project: str(body.project) });
+        const result = await searchDetailed(db, embedder, q, limit, {
+          project: scope.project,
+        });
+        return json({
+          ...result,
+          project_source: scope.project_source,
+          note: result.hits.length
+            ? null
+            : result.searched
+              ? `nothing relevant — ${result.searched} memories in scope`
+              : "nothing stored yet",
+        });
       }
 
       if (req.method === "POST" && path === "/forget") {
@@ -131,6 +219,92 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         const id = Number(body.id);
         if (!Number.isInteger(id) || id <= 0) return json({ error: "id required" }, 400);
         return json({ ok: forget(db, id), id });
+      }
+
+      if (req.method === "GET" && path === "/tools") {
+        return json({ tools: listTools(db) });
+      }
+
+      if (req.method === "POST" && path === "/tools") {
+        const body = await readBody(req);
+        try {
+          const tool = upsertTool(db, {
+            name: String(body.name ?? ""),
+            summary: String(body.summary ?? ""),
+            usage: str(body.usage),
+            notes: str(body.notes),
+          });
+          return json({ ok: true, tool });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && path === "/tools/remove") {
+        const body = await readBody(req);
+        return json({ ok: removeTool(db, String(body.name ?? "")), name: body.name });
+      }
+
+      if (req.method === "GET" && path === "/work") {
+        const scope = resolveScope(db, { project: url.searchParams.get("project") });
+        return json({
+          work: listWork(db, {
+            project: scope.project,
+            includeClosed: url.searchParams.get("all") === "1",
+            limit: Number(url.searchParams.get("limit") ?? 20),
+          }),
+          project: scope.project,
+          project_source: scope.project_source,
+        });
+      }
+
+      if (req.method === "POST" && path === "/work/open") {
+        const body = await readBody(req);
+        const scope = resolveScope(db, {
+          project: str(body.project),
+          author: str(body.author),
+        });
+        try {
+          const item = openWork(db, {
+            title: String(body.title ?? ""),
+            project: scope.project,
+            author: scope.author,
+          });
+          return json({ ok: true, work: item, project_source: scope.project_source });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && path === "/work/note") {
+        const body = await readBody(req);
+        try {
+          const item = noteWork(db, Number(body.id), {
+            text: String(body.text ?? ""),
+            author: str(body.author) ?? resolveScope(db, {}).author,
+          });
+          return json({ ok: true, work: item });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && path === "/work/close") {
+        const body = await readBody(req);
+        try {
+          const item = closeWork(db, Number(body.id), {
+            text: str(body.text) ?? undefined,
+            author: str(body.author) ?? resolveScope(db, {}).author,
+          });
+          return json({ ok: true, work: item });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && path === "/work/get") {
+        const body = await readBody(req);
+        return json({ work: getWork(db, Number(body.id)) });
       }
 
       return json({ error: "not found" }, 404);

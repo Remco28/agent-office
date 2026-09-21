@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { Database } from "bun:sqlite";
-import { dbPath } from "./paths";
+import { dbPath, logCap } from "./paths";
 
 export const WARN_BYTES = 50 * 1024 * 1024;
 export const ALERT_BYTES = 200 * 1024 * 1024;
@@ -10,6 +10,8 @@ export const WARN_HOUR = 80;
 export const ALERT_HOUR = 300;
 export const WARN_WAL = 8 * 1024 * 1024;
 export const WARN_MAX_CHARS = 20_000;
+export const WARN_OPEN_WORK = 20;
+export const ALERT_OPEN_WORK = 75;
 
 export type Warning = { level: "warn" | "alert"; text: string };
 
@@ -26,6 +28,11 @@ export type StoreStats = {
   lastHour: number | null;
   lastDay: number | null;
   maxChars: number | null;
+  unattributed: number | null;
+  workOpen: number | null;
+  workTotal: number | null;
+  logChars: number | null;
+  tools: number | null;
 };
 
 export type DeskSnapshot = {
@@ -37,6 +44,8 @@ export type DeskSnapshot = {
   };
   embedder: "ready" | "loading" | "stuck" | "down";
   model: string | null;
+  /** The project the office thinks this session is working on. */
+  active: { project: string | null; author: string | null; since: string | null } | null;
   store: StoreStats;
   warnings: Warning[];
 };
@@ -89,6 +98,15 @@ export function fileStats(path = dbPath()): Pick<
   };
 }
 
+/** Like a count query, but a store written by an older version scores null. */
+function countOr(db: Database, sql: string): number | null {
+  try {
+    return (db.query(sql).get() as { n: number }).n;
+  } catch {
+    return null;
+  }
+}
+
 export function queryStore(db: Database, now = new Date()): Omit<
   StoreStats,
   "path" | "exists" | "bytes" | "walBytes" | "shmBytes" | "totalBytes"
@@ -118,6 +136,22 @@ export function queryStore(db: Database, now = new Date()): Omit<
     lastHour,
     lastDay,
     maxChars,
+    unattributed: countOr(
+      db,
+      "SELECT COUNT(*) AS n FROM memories WHERE scope = 'project' AND project IS NULL",
+    ),
+    workOpen: countOr(
+      db,
+      `SELECT COUNT(*) AS n FROM work w WHERE NOT EXISTS (
+         SELECT 1 FROM work_events e WHERE e.work_id = w.id AND e.kind = 'close')`,
+    ),
+    workTotal: countOr(db, "SELECT COUNT(*) AS n FROM work"),
+    logChars: countOr(
+      db,
+      `SELECT (SELECT COALESCE(SUM(LENGTH(title)), 0) FROM work) +
+              (SELECT COALESCE(SUM(LENGTH(text)), 0) FROM work_events) AS n`,
+    ),
+    tools: countOr(db, "SELECT COUNT(*) AS n FROM tools"),
   };
 }
 
@@ -132,6 +166,11 @@ export function collectStoreStats(path = dbPath(), now = new Date()): StoreStats
       lastHour: 0,
       lastDay: 0,
       maxChars: 0,
+      unattributed: 0,
+      workOpen: 0,
+      workTotal: 0,
+      logChars: 0,
+      tools: 0,
     };
   }
   let queried: ReturnType<typeof queryStore> | null = null;
@@ -150,6 +189,11 @@ export function collectStoreStats(path = dbPath(), now = new Date()): StoreStats
       lastHour: null,
       lastDay: null,
       maxChars: null,
+      unattributed: null,
+      workOpen: null,
+      workTotal: null,
+      logChars: null,
+      tools: null,
     };
   }
   return { ...files, ...queried };
@@ -198,7 +242,10 @@ export function warningsFor(input: {
   if (store.memories != null && store.memories >= ALERT_COUNT) {
     out.push({ level: "alert", text: `${store.memories} memories — this looks runaway` });
   } else if (store.memories != null && store.memories >= WARN_COUNT) {
-    out.push({ level: "warn", text: `${store.memories} memories — larger than expected for v1` });
+    out.push({
+      level: "warn",
+      text: `${store.memories} memories — more than a curated store should hold`,
+    });
   }
 
   if (store.lastHour != null && store.lastHour >= ALERT_HOUR) {
@@ -214,6 +261,27 @@ export function warningsFor(input: {
     out.push({
       level: "warn",
       text: `a memory is ${store.maxChars.toLocaleString()} chars — source dumps do not belong here`,
+    });
+  }
+
+  // Open work is the handoff, so it is never pruned. It is also the one thing
+  // that goes stale silently, so it gets a health signal of its own.
+  if (store.workOpen != null && store.workOpen >= ALERT_OPEN_WORK) {
+    out.push({
+      level: "alert",
+      text: `${store.workOpen} pieces of work are open — the trail is not being closed`,
+    });
+  } else if (store.workOpen != null && store.workOpen >= WARN_OPEN_WORK) {
+    out.push({
+      level: "warn",
+      text: `${store.workOpen} pieces of work are open — close the ones that are done`,
+    });
+  }
+
+  if (store.logChars != null && store.logChars >= logCap() * 0.9) {
+    out.push({
+      level: "warn",
+      text: "the work log is at its size cap — oldest closed work is being dropped",
     });
   }
 
