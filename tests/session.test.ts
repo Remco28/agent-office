@@ -36,9 +36,10 @@ describe("session", () => {
     expect(result.open_work.map((w) => w.title)).toEqual(["alpha refactor"]);
 
     const contents = result.memories.map((m) => m.content);
-    expect(contents).toContain("always use tabs");
     expect(contents).toContain("alpha checkout limit");
     expect(contents).not.toContain("beta only note");
+    // an everywhere-note is delivered once, under preferences, not twice
+    expect(contents).not.toContain("always use tabs");
 
     expect(result.store.memories_in_scope).toBe(2);
     expect(result.store.work_open).toBe(2);

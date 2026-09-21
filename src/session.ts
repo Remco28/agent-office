@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { SessionRow } from "./db";
+import { SCOPE_GLOBAL, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
 import { normalizeProject } from "./scope";
 import {
@@ -128,8 +128,12 @@ export async function briefing(
   const result = await searchDetailed(db, embedder, "", BRIEFING_MEMORIES, {
     project: scope.project,
   });
+  // Memories that apply everywhere are handed over above, in `preferences`.
+  // Listing them again here would spend the agent's context twice on the same
+  // text, which is the thing a briefing exists to avoid.
+  const memories = result.hits.filter((hit) => hit.scope !== SCOPE_GLOBAL);
   let note: string | null = null;
-  if (!result.hits.length) {
+  if (!memories.length) {
     note = scope.project
       ? `nothing recorded for ${scope.project} yet`
       : "no project declared — name one with `office begin --project <path>`";
@@ -144,7 +148,7 @@ export async function briefing(
     tools: listTools(db),
     preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),
     open_work: listWork(db, { project: scope.project, limit: BRIEFING_WORK }),
-    memories: result.hits,
+    memories,
     store: {
       memories: countMemories(db),
       memories_in_scope: countInScope(db, scope.project),
