@@ -12,33 +12,72 @@ No identity layer, no account, no cloud. Not source control: code is git, memory
 ## Requirements
 
 - [Bun](https://bun.sh)
-- Python 3 (the installer creates a local `.venv` and downloads MiniLM)
+- Python 3 — the installer builds a virtualenv with sentence-transformers, and downloads MiniLM into it on first use
+
+Budget roughly 5 GB for that virtualenv (PyTorch is most of it). Word-matching search works without it; meaning-matching does not.
 
 ## Setup on a machine
 
-Code is git. Memory is not. Clone on each computer, run the installer, leave the database where it is.
+Code is git. Memory is not. Clone on each computer, run the installer, leave the database where it is. Each machine has its own filing cabinet — nothing syncs, and the installer never touches the store.
+
+The daemon binds `127.0.0.1:7701`. Data lives in `~/.local/share/agent-office/memory.db`, outside the git repo.
+
+### A machine with nothing on it
 
 ```bash
 git clone git@github.com:Remco28/agent-office.git ~/Projects/agent-office
 cd ~/Projects/agent-office
 ./install.sh
 office serve --detach
+office status                      # "embedder": true means meaning-search is live
 ```
 
-`install.sh` runs `bun install`, creates `./.venv` with sentence-transformers if needed, and symlinks `office` to `~/.local/bin/office`. First install is chunky (PyTorch + the model). Later updates:
+`install.sh` runs `bun install`, creates `./.venv` with sentence-transformers, and symlinks `office` into `~/.local/bin`. The virtualenv is large and the first query downloads MiniLM, so both steps need network once.
+
+If `office status` reports `"embedder": false`, search still works but only matches words. Expect it in three places:
+
+| where | what you see |
+|---|---|
+| `office status` | `"embedder": false` |
+| desk (bare `office`) | `Embedder  down`, plus a warning line |
+| daemon log | `office embedder: ...`, or nothing at all |
+
+### A machine that already has sentence-transformers
+
+If some Python on that machine can already import it, do not build a second 5 GB venv. Confirm the interpreter first — the model has to be in *this* one:
+
+```bash
+/path/to/python3 -c "import sentence_transformers; print('ok')"
+```
+
+Then skip the venv and point the office at it:
+
+```bash
+SKIP_VENV=1 ./install.sh
+export OFFICE_PYTHON=/path/to/python3
+office stop && office serve --detach
+office status
+```
+
+`OFFICE_PYTHON` has to be in the environment of whatever starts the daemon, because the daemon inherits that environment — passing it to `install.sh` alone does nothing. Put the `export` in your shell profile if you want it to stick, and restart the daemon after changing it, since a running one keeps the interpreter it started with. `OFFICE_MODEL` works the same way if that machine has a different embedding model cached.
+
+### How it picks a Python
+
+In order, and the first one that exists wins:
+
+1. `OFFICE_PYTHON`
+2. `./.venv/bin/python3` — what `install.sh` builds
+3. `~/callum/.venv/bin/python3` — from the machine this was first set up on; harmless elsewhere, but do not rely on it
+4. `python3` on `PATH` — only works if that interpreter already has sentence-transformers
+
+So on a new machine it is always one of two things: let `install.sh` build `./.venv`, or set `OFFICE_PYTHON` to a Python that has the library. Case 4 is the trap — a bare `python3` without sentence-transformers looks exactly like a broken install.
+
+### Updating an existing machine
 
 ```bash
 git pull
 ./install.sh
 ```
-
-If this machine already has MiniLM elsewhere and you do not want a second venv:
-
-```bash
-SKIP_VENV=1 ./install.sh
-```
-
-The daemon binds `127.0.0.1:7701`. Data lives in `~/.local/share/agent-office/memory.db` — outside the git repo. Each machine has its own filing cabinet.
 
 ## Starting a session
 
@@ -111,7 +150,9 @@ Leave it out of every other project.
 
 ## Copying the store
 
-The whole memory — and the work log — is that SQLite file. Stop the daemon, copy `memory.db` (and `-wal` / `-shm` if present), start it elsewhere. That is a fork, not a live sync. Do not commit the database.
+The whole memory — and the work log — is that SQLite file. Stop the daemon, copy `memory.db` (and `-wal` / `-shm` if present) into the same place on the other machine (`~/.local/share/agent-office/`), and start the daemon there. That is a fork, not a live sync. Do not commit the database.
+
+**Update the code first.** The schema migration is forward-only: a machine still running older code reads a newer store without complaint, then writes memories with no project and leaves the work log and tool list alone. `git pull` on the destination *before* you copy the file. The new store migrates itself the first time the daemon opens it.
 
 ## Env
 

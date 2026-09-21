@@ -57,6 +57,8 @@ Do not store secrets or `.env` contents, large source dumps, session transcripts
 
 An empty result is real: there is nothing above the relevance floor. Do not lower the floor to find something.
 
+If `begin` warns that the embedder is down, meaning-search is off for this session and only exact words match. Say so instead of concluding the store is empty.
+
 ## House rules
 
 - JSON is the default output. Parse it.
