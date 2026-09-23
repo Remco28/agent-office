@@ -203,21 +203,32 @@ export function warningsFor(input: {
   daemonUp: boolean;
   embedder: DeskSnapshot["embedder"];
   store: StoreStats;
+  /**
+   * The sidecar's own complaint, when it has one, quoted verbatim. On a new
+   * machine it is usually the whole answer ("No module named torch"), and a
+   * generic "embedder is down" would throw exactly that away.
+   */
+  embedderError?: string | null;
 }): Warning[] {
   const out: Warning[] = [];
   const { store } = input;
+  const why = input.embedderError ?? "MiniLM may be missing or the sidecar died";
   if (!input.daemonUp) {
     out.push({ level: "warn", text: "memory daemon is down — agents cannot remember or search" });
   }
   if (input.embedder === "stuck") {
-    out.push({
-      level: "alert",
-      text: "embedder did not become ready — MiniLM may be missing or the sidecar died",
-    });
+    out.push({ level: "alert", text: `embedder did not become ready — ${why}` });
   } else if (input.daemonUp && input.embedder === "loading") {
-    out.push({ level: "warn", text: "embedder still loading — search is FTS-only until it is ready" });
+    // The loading state is a grace period for the first model download, but a
+    // sidecar that has already spoken does not need the grace period: quote it
+    // now instead of making a broken machine wait 45 seconds to find out.
+    const quote = input.embedderError ? ` (sidecar: ${input.embedderError})` : "";
+    out.push({
+      level: "warn",
+      text: `embedder still loading — search is FTS-only until it is ready${quote}`,
+    });
   } else if (input.embedder === "down" && input.daemonUp) {
-    out.push({ level: "alert", text: "embedder is down while the daemon is up" });
+    out.push({ level: "alert", text: `embedder is down while the daemon is up — ${why}` });
   }
 
   if (store.totalBytes >= ALERT_BYTES) {

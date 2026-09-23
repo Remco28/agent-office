@@ -14,7 +14,7 @@ No identity layer, no account, no cloud. Not source control: code is git, memory
 - [Bun](https://bun.sh)
 - Python 3 — the installer builds a virtualenv with sentence-transformers, and downloads MiniLM into it on first use
 
-Budget roughly 5 GB for that virtualenv (PyTorch is most of it). Word-matching search works without it; meaning-matching does not.
+Budget ~1.4 GB for that virtualenv where there is no NVIDIA GPU (the CPU build of PyTorch), or ~5 GB where the CUDA build is installed. Word-matching search works without any of it; meaning-matching does not.
 
 ## Setup on a machine
 
@@ -25,22 +25,34 @@ The daemon binds `127.0.0.1:7701`. Data lives in `~/.local/share/agent-office/me
 ### A machine with nothing on it
 
 ```bash
-git clone git@github.com:Remco28/agent-office.git ~/Projects/agent-office
+git clone git@github.com:Remco28/agent-office.git ~/Projects/agent-office   # wherever you keep checkouts
 cd ~/Projects/agent-office
-./install.sh
-office serve --detach
-office status                      # "embedder": true means meaning-search is live
+./install.sh --verify
 ```
 
-`install.sh` runs `bun install`, creates `./.venv` with sentence-transformers, and symlinks `office` into `~/.local/bin`. The virtualenv is large and the first query downloads MiniLM, so both steps need network once.
+`install.sh` runs `bun install`, builds `./.venv`, symlinks `office` into `~/.local/bin`, and `--verify` starts the daemon and proves meaning-search came up. The first query downloads MiniLM, so that step needs network once.
+
+On a machine with no NVIDIA GPU it takes the **CPU build of PyTorch** rather than the default Linux wheel, which is the CUDA one: about 1.4 GB of venv instead of 5 GB, for a GPU this laptop does not have. `install.sh` decides that itself.
+
+### What breaks on a new machine
+
+Four things went wrong the second time this was set up. All four are handled by `install.sh` now, but they are worth knowing by name:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `office` works in your terminal, dies under an agent | bun's installer writes its PATH export to the end of `~/.bashrc`, past the "if not running interactively" guard, so agent shells never see `~/.bun/bin` | `install.sh` links bun into `~/.local/bin`; `bin/office` also falls back to the install locations rather than trusting PATH |
+| `embedder: false`, no reason anywhere | a detached daemon used to discard its own stderr, and the sidecar's failure is written there | the daemon's output now goes to `~/.local/share/agent-office/office.log`; `office status` carries `embedder_error`, the desk quotes it, `office logs` shows the rest |
+| the venv build fails or installs nothing usable | the system `python3` was newer than the PyTorch wheel chain | build with an older interpreter: `OFFICE_PYTHON_BUILD=~/.local/share/uv/python/cpython-3.12*/bin/python3 ./install.sh` |
+| ~5 GB of venv on a laptop with no NVIDIA GPU | pip takes the CUDA build of torch by default on Linux | `install.sh` uses the CPU index when `nvidia-smi` finds nothing |
 
 If `office status` reports `"embedder": false`, search still works but only matches words. Expect it in three places:
 
 | where | what you see |
 |---|---|
-| `office status` | `"embedder": false` |
-| desk (bare `office`) | `Embedder  down`, plus a warning line |
-| daemon log | `office embedder: ...`, or nothing at all |
+| `office status` | `"embedder": false`, plus `embedder_error` and the `python` it tried |
+| desk (bare `office`) | `Embedder  down`, and a warning line quoting the sidecar |
+| `office logs` | the daemon's own output — `office embedder: No module named torch` |
+| `~/.local/share/agent-office/office.log` | the same file `office logs` reads |
 
 ### A machine that already has sentence-transformers
 
@@ -65,12 +77,14 @@ office status
 
 In order, and the first one that exists wins:
 
-1. `OFFICE_PYTHON`
-2. `./.venv/bin/python3` — what `install.sh` builds
-3. `~/callum/.venv/bin/python3` — from the machine this was first set up on; harmless elsewhere, but do not rely on it
+1. `OFFICE_PYTHON` — explicit, and the only one that works from a process that was started with it in its environment
+2. the interpreter `install.sh` recorded in `~/.local/share/agent-office/python` — what it verified on *this* machine
+3. `./.venv/bin/python3` — what `install.sh` builds
 4. `python3` on `PATH` — only works if that interpreter already has sentence-transformers
 
-So on a new machine it is always one of two things: let `install.sh` build `./.venv`, or set `OFFICE_PYTHON` to a Python that has the library. Case 4 is the trap — a bare `python3` without sentence-transformers looks exactly like a broken install.
+So on a new machine it is one of two things: let `install.sh` build `./.venv`, or set `OFFICE_PYTHON` to a Python that has the library. Case 4 is the trap — a bare `python3` without sentence-transformers looks exactly like a broken install.
+
+Keeping the record in the data directory rather than the checkout means the venv can live outside the repo (safe from `git clean -xfd`) without an env var in every shell. `office status` reports the interpreter in use as `python`, so which one it picked is never a guess.
 
 ### Updating an existing machine
 
@@ -87,7 +101,7 @@ office begin --project ~/Projects/the-thing --by freebuff
 
 That records the target for the session and returns the tool list, the preferences that apply everywhere, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
 
-Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers; pass neither to just read.
+Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers; pass neither to just read — and note that reads without a project are scoped to the everywhere notes, not to the whole store (see [Retrieval](#retrieval)).
 
 ## Two records, one file
 
@@ -128,6 +142,10 @@ office tools remove ffmpeg
 
 `context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
 
+**Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too. `office list` is the human's view and the one read that shows the whole store.
+
+That is why an unrouted read is never ambiguous: an empty result is either "nothing relevant here", "nothing stored for this project yet", or "no project declared — only the everywhere notes were in scope", and the note says which.
+
 ```bash
 office context "add rate limiting to checkout"
 office search "checkout rate limit"
@@ -167,8 +185,18 @@ The whole memory — and the work log — is that SQLite file. Stop the daemon, 
 | `OFFICE_AUTHOR` | Default `--by` |
 | `OFFICE_MIN_SIM` | Relevance floor for meaning-only hits (default `0.30`) |
 | `OFFICE_LOG_CAP` | Characters of work trail to keep (default `1000000`) |
+| `OFFICE_PYTHON_BUILD` | Interpreter `install.sh` uses to build `./.venv` (default `python3`) |
 
 `--source` and `OFFICE_SOURCE` are the old names for `--project` and `OFFICE_PROJECT`; they still work.
+
+**The floor is absolute, so it belongs to the model.** `OFFICE_MIN_SIM` is a raw cosine cut-off, and models place unrelated text at very different scores — so "a better model" and "this model" cannot share one floor. Measured on 16 real notes from this machine with 14 answerable and 8 unanswerable queries, CPU, via the same `encode()` the sidecar uses:
+
+| model | right note scores | a question with no answer scores | usable floor |
+|---|---|---|---|
+| `all-MiniLM-L6-v2` (default) | 0.30 – 0.73 | ≤ 0.14 | **0.25 – 0.30** |
+| `BAAI/bge-small-en-v1.5` | 0.57 – 0.86 | up to 0.59 | ~0.59 |
+
+bge-small ranks no better here (12/14 first place against 13/14) and compresses *everything* upward, so at the default `0.30` it answered every nonsense query with eight confident vector hits — the "an empty result is real" contract inverted. A query-side instruction prefix does not restore the separation (it lowers the right note to 0.57 while nonsense stays at 0.59). If you do switch models, re-tune `OFFICE_MIN_SIM` in the same change and re-embed: embeddings carry no record of the model that made them, so a half-switched store compares two vector spaces and returns quietly wrong similarities rather than crashing.
 
 ## Tests
 

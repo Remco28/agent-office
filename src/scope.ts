@@ -22,6 +22,18 @@ function looksLikePath(value: string): boolean {
 }
 
 /** The part of a project key two different spellings can agree on. */
+/**
+ * What to tell a session that never named a project.
+ *
+ * Reads in that state resolve to the everywhere notes and nothing else, so the
+ * honest answer to "what do you know about this?" is "nothing yet" — never a
+ * list of other projects' notes. The note is what turns that silence into
+ * something an agent can act on instead of concluding the office is empty.
+ */
+export const NO_PROJECT_NOTE =
+  "no project declared — only the memories that apply everywhere are in scope; " +
+  "name one with `office begin --project <path>`";
+
 export function projectKey(raw: string): string {
   return basename(normalizeProject(raw)).toLowerCase();
 }
@@ -58,7 +70,14 @@ export function matchingProjects(db: Database, project: string): string[] {
   });
 }
 
-/** `AND (scope = 'global' OR project IN (...))`, or nothing when unscoped. */
+/**
+ * `AND (scope = 'global' OR project IN (...))`.
+ *
+ * An empty match list is the everywhere notes, not "no filter": the only way
+ * to reach the whole store is to ask for it by name (`listMemories`), never by
+ * leaving the project out. Keeping that rule here means scope is decided in
+ * exactly one place.
+ */
 export function scopeClause(matches: string[]): { sql: string; params: string[] } {
   if (!matches.length) return { sql: " AND scope = 'global'", params: [] };
   const placeholders = matches.map(() => "?").join(",");
