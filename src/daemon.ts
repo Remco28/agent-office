@@ -1,5 +1,40 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { baseUrl, dataDir, pidPath, ROOT } from "./paths";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { baseUrl, dataDir, logPath, pidPath, ROOT } from "./paths";
+
+/** The log is append-only, so it is capped rather than rotated. */
+const MAX_LOG_BYTES = 2 * 1024 * 1024;
+
+function openLog(): number {
+  mkdirSync(dataDir(), { recursive: true });
+  const path = logPath();
+  try {
+    if (statSync(path).size > MAX_LOG_BYTES) writeFileSync(path, "");
+  } catch {
+    // no log yet
+  }
+  return openSync(path, "a");
+}
+
+/** The daemon's own output, newest last. Empty when it has never written one. */
+export function logTail(limit = 40): string[] {
+  let text: string;
+  try {
+    text = readFileSync(logPath(), "utf8");
+  } catch {
+    return [];
+  }
+  const lines = text.split("\n").filter((line) => line.length > 0);
+  return lines.slice(-Math.max(1, Math.min(limit, 500)));
+}
 
 export async function health(): Promise<Record<string, unknown> | null> {
   try {
@@ -33,12 +68,16 @@ export function pidAlive(pid: number): boolean {
 
 export async function startDetach(): Promise<void> {
   if (await health()) return;
+  // A detached daemon has no terminal, so its output has to land somewhere. The
+  // embedder names a missing model or a dead sidecar on stderr, and that line is
+  // the whole difference between "search is word-only" and knowing why.
+  const fd = openLog();
   const child = Bun.spawn({
     cmd: ["bun", `${ROOT}/src/index.ts`, "serve"],
     cwd: ROOT,
     stdin: "ignore",
-    stdout: "ignore",
-    stderr: "ignore",
+    stdout: fd,
+    stderr: fd,
     env: process.env,
     // setsid(): the daemon gets its own session/process group, so it is not
     // killed when the shell that started it tears its process group down.
@@ -46,6 +85,8 @@ export async function startDetach(): Promise<void> {
     // pays a full embedder reload.
     detached: true,
   });
+  // The child holds its own copy of the descriptor now.
+  closeSync(fd);
   writePid(child.pid);
   child.unref();
 }

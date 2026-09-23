@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Run the office from a checkout. Resolve symlinks first: this file is what
+# ~/.local/bin/office points at.
 set -euo pipefail
 src="${BASH_SOURCE[0]}"
 while [[ -L "$src" ]]; do
@@ -11,4 +13,34 @@ while [[ -L "$src" ]]; do
   fi
 done
 root="$(cd "$(dirname "$src")/.." && pwd)"
-exec bun "$root/src/index.ts" "$@"
+
+# Asking PATH alone is not enough. Agents and user services run with a
+# non-interactive environment, where the bun installer's ~/.bashrc export never
+# runs — so `office` would work in a terminal and fail everywhere it matters.
+# Look where bun actually installs itself before giving up.
+find_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    command -v bun
+    return 0
+  fi
+  local candidate
+  for candidate in "${BUN_INSTALL:-$HOME/.bun}/bin/bun" "$HOME/.bun/bin/bun" "$HOME/.local/bin/bun"; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! bun_bin="$(find_bun)"; then
+  cat >&2 <<'MSG'
+office: cannot find bun.
+  install it:            curl -fsSL https://bun.sh/install | bash
+  then make it reachable from non-interactive shells too:
+                         ln -sfn "$HOME/.bun/bin/bun" "$HOME/.local/bin/bun"
+MSG
+  exit 127
+fi
+
+exec "$bun_bin" "$root/src/index.ts" "$@"

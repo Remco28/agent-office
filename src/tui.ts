@@ -76,7 +76,8 @@ async function snapshot(): Promise<DeskSnapshot> {
     store,
     warnings: [],
   };
-  snap.warnings = warningsFor({ daemonUp, embedder, store });
+  const embedderError = typeof live?.embedder_error === "string" ? live.embedder_error : null;
+  snap.warnings = warningsFor({ daemonUp, embedder, store, embedderError });
   return snap;
 }
 
@@ -131,6 +132,9 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     lines.push("Look at");
     for (const w of snap.warnings) {
       lines.push(`  ${warnColor(w.level, w.text)}`);
+    }
+    if (snap.warnings.some((w) => w.level === "alert")) {
+      lines.push(`  ${DIM}office logs — the daemon's own side of it${RESET}`);
     }
   } else {
     lines.push(`${GREEN}Look at${RESET}   nothing odd`);

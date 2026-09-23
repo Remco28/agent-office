@@ -18,6 +18,8 @@ If you do not name yourself you land in the **unnamed slot**: the office says so
 
 Nothing is inferred from the working directory — you are usually started in the office itself. If no project is declared, say so instead of guessing: `office begin` tells you.
 
+Scoping is a rule, not a default. With no project named, reads return only the memories marked as applying everywhere — never another project's notes, never its unfinished work. So an unscoped session gets empty answers plus a note explaining which kind of empty it is. Ask the human which project you are in, declare it, and read again.
+
 ## Tools
 
 `begin` returns the tool list. Treat it as the truth about what is installed here and how to call it, and prefer a listed tool over a built-in one.
@@ -61,7 +63,9 @@ Do not store secrets or `.env` contents, large source dumps, session transcripts
 
 An empty result is real: there is nothing above the relevance floor. Do not lower the floor to find something.
 
-If `begin` warns that the embedder is down, meaning-search is off for this session and only exact words match. Say so instead of concluding the store is empty.
+Read `scope` before you conclude anything. `"scope": "global"` with a `no project declared` note means nothing project-specific was ever in scope — that is not evidence the office is empty, it is evidence you never said where you are. Declare the project and search again; do not go looking for a wider read.
+
+If `begin` warns that the embedder is down, meaning-search is off for this session and only exact words match. Say so instead of concluding the store is empty. You cannot fix it from here — it is a missing library in the daemon's Python, not a setting. Name the cause from `office status` (`embedder_error`) or `office logs`, and tell the human.
 
 ## House rules
 
@@ -69,3 +73,4 @@ If `begin` warns that the embedder is down, meaning-search is off for this sessi
 - Humans open the desk with bare `office`. Do not run the desk from an agent session.
 - This file belongs only in folders that should use the office. Never in `$HOME`.
 - `office list --limit 20` and `office status` exist when you need them.
+- `office logs` names why an embedder is unwell. Read it to report a cause, not to review history.

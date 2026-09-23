@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { fakeEmbedder } from "../src/embed";
 import { remember } from "../src/memory";
-import { matchingProjects, normalizeProject, projectKey } from "../src/scope";
+import { matchingProjects, normalizeProject, projectKey, scopeClause } from "../src/scope";
 import { tempDb } from "./helpers";
 
 describe("project scope", () => {
@@ -34,6 +34,16 @@ describe("project scope", () => {
     expect(matchingProjects(db, "/work/api")).toEqual(["/work/api"]);
     expect(matchingProjects(db, "/home/api")).toEqual(["/home/api"]);
     db.close();
+  });
+
+  test("an empty match list is the everywhere notes, not an open filter", () => {
+    // This is the whole scoping rule in one place: a session with no project,
+    // and a project name nobody has heard of, both land here. Reading the
+    // whole store is something a caller has to ask for by name.
+    expect(scopeClause([])).toEqual({ sql: " AND scope = 'global'", params: [] });
+    const scoped = scopeClause(["alpha"]);
+    expect(scoped.sql).toContain("scope = 'global' OR project IN (?)");
+    expect(scoped.params).toEqual(["alpha"]);
   });
 
   test("a project only known from the log is still a known project", () => {

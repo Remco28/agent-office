@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { SCOPE_GLOBAL, UNNAMED_SESSION, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
-import { normalizeProject } from "./scope";
+import { NO_PROJECT_NOTE, normalizeProject } from "./scope";
 import {
   countInScope,
   countMemories,
@@ -331,7 +331,7 @@ export async function briefing(
   if (!memories.length) {
     note = scope.project
       ? `nothing recorded for ${scope.project} yet`
-      : "no project declared — name one with `office begin --project <path> --by <agent>`";
+      : NO_PROJECT_NOTE;
   }
   return {
     ok: true,
@@ -342,7 +342,12 @@ export async function briefing(
     active_since: scope.active_since,
     tools: listTools(db),
     preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),
-    open_work: listWork(db, { project: scope.project, limit: BRIEFING_WORK }),
+    // Unfinished work is project-specific in the same way memories are: with no
+    // project named, handing over every project's loose ends is the read the
+    // scope rule exists to prevent. The note above says why it is empty.
+    open_work: scope.project
+      ? listWork(db, { project: scope.project, limit: BRIEFING_WORK })
+      : [],
     memories,
     sessions: listSessions(db).map((session) => ({
       author: session.author,

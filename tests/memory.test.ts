@@ -32,7 +32,7 @@ describe("memory", () => {
       tags: ["secrets"],
     });
 
-    const hits = await search(db, embedder, "sqlite WAL", 5);
+    const hits = await search(db, embedder, "sqlite WAL", 5, { project: "test" });
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0].content).toContain("WAL");
     expect(hits[0].tags).toContain("sqlite");
@@ -44,7 +44,7 @@ describe("memory", () => {
     const embedder = fakeEmbedder();
     const row = await remember(db, embedder, { content: "temporary note" });
     expect(forget(db, row.id)).toBe(true);
-    const hits = await search(db, embedder, "temporary note", 5);
+    const hits = await search(db, embedder, "temporary note", 5, { project: "test" });
     expect(hits.length).toBe(0);
     expect(listMemories(db)).toHaveLength(0);
   });
@@ -53,9 +53,9 @@ describe("memory", () => {
     const db = tempDb();
     dbs.push(db);
     const embedder = fakeEmbedder();
-    await remember(db, embedder, { content: "first" });
-    await remember(db, embedder, { content: "second" });
-    const hits = await search(db, embedder, "", 8);
+    await remember(db, embedder, { content: "first", project: "test" });
+    await remember(db, embedder, { content: "second", project: "test" });
+    const hits = await search(db, embedder, "", 8, { project: "test" });
     expect(hits.map((h) => h.content)).toEqual(["second", "first"]);
   });
 

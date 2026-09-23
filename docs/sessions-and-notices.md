@@ -171,7 +171,9 @@ Both follow from treating the unnamed slot as if it were a person. It is not: it
 is where work without a name goes. The rules are now:
 
 - An undeclared caller belongs to the unnamed slot if it exists, holding the
-  project that caller last declared, with a null author and a warning.
+  project that caller last declared, with a null author and a warning. That
+  project is then scope like any other; with no project at all, reads are the
+  everywhere notes and nothing else, per the retrieval rule.
 - Ambiguity requires two or more *named* sessions and no name declared. That is
   the case where the office genuinely cannot tell which person you are, and it
   still inherits nothing and says so.

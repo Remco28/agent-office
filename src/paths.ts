@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 export const ROOT = join(import.meta.dir, "..");
 export const SIDECAR = join(ROOT, "sidecar", "embed.py");
@@ -17,6 +17,25 @@ export function dbPath(): string {
 
 export function pidPath(): string {
   return join(dataDir(), "office.pid");
+}
+
+/**
+ * Where a detached daemon's output goes. Its stdio is pointed here for one
+ * reason: when the embedder cannot start, that file is the only place the
+ * reason is ever written down.
+ */
+export function logPath(): string {
+  return join(dataDir(), "office.log");
+}
+
+/**
+ * The interpreter `install.sh` last verified, recorded under the data dir.
+ * Machine state belongs there rather than in the checkout: the venv may live
+ * outside the repo, and OFFICE_PYTHON only reaches a process that was started
+ * with it in the environment.
+ */
+export function recordedPythonPath(): string {
+  return join(dataDir(), "python");
 }
 
 export function port(): number {
@@ -49,15 +68,34 @@ export function minSimilarity(): number {
   return Math.max(0, Math.min(n, 1));
 }
 
-export function detectPython(): string {
-  const candidates = [
+/**
+ * Interpreters to try, best first: what the machine declares, then the venv
+ * `install.sh` builds, then whatever it recorded, then plain `python3`.
+ *
+ * This list used to carry a hardcoded `~/callum/.venv` -- the home directory of
+ * the machine this was first set up on. A path that exists on exactly one
+ * computer is the one candidate that can never help a new one, so it is gone.
+ */
+export function pythonCandidates(): string[] {
+  let recorded: string | null = null;
+  try {
+    recorded = readFileSync(recordedPythonPath(), "utf8").trim() || null;
+  } catch {
+    recorded = null;
+  }
+  // The record outranks the checkout's own venv: it is the interpreter an
+  // install actually verified on this machine, which is what lets the venv live
+  // outside the repo (and survive a `git clean -xfd`) without an env var.
+  return [
     process.env.OFFICE_PYTHON,
+    recorded,
     join(ROOT, ".venv", "bin", "python3"),
-    join(homedir(), "callum", ".venv", "bin", "python3"),
     "python3",
-  ].filter((x): x is string => Boolean(x));
+  ].filter((candidate): candidate is string => Boolean(candidate));
+}
 
-  for (const candidate of candidates) {
+export function detectPython(): string {
+  for (const candidate of pythonCandidates()) {
     if (candidate === "python3" || existsSync(candidate)) return candidate;
   }
   return "python3";

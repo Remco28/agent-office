@@ -2,12 +2,13 @@ import { unlinkSync } from "node:fs";
 import {
   ensureDaemon,
   health,
+  logTail,
   startDetach,
   stopDaemon,
   waitForHealth,
   writePid,
 } from "./daemon";
-import { baseUrl, dataDir, pidPath, port } from "./paths";
+import { baseUrl, dataDir, logPath, pidPath, port } from "./paths";
 import { serve } from "./server";
 import { formatAgo } from "./stats";
 import { runTui } from "./tui";
@@ -32,9 +33,13 @@ function printJson(data: unknown): void {
 
 function printHits(
   hits: Array<{ id: number; content: string; tags: string[]; created_at: string; score?: number }>,
+  /** Why there is nothing, when there is nothing. */
+  note?: string | null,
 ): void {
   if (!hits.length) {
-    process.stdout.write("(none)\n");
+    // An empty read is the moment the reason matters most, so it is printed
+    // rather than left for the JSON caller to notice.
+    process.stdout.write(note ? `(none) — ${note}\n` : "(none)\n");
     return;
   }
   for (const hit of hits) {
@@ -135,6 +140,7 @@ function help(): string {
 
   office serve [--detach]     start the localhost daemon
   office status               daemon health (JSON)
+  office logs [-n <lines>]    the daemon's own output, for when it is unwell
   office stop                 stop the daemon
   office                      open the desk (humans)
 
@@ -182,6 +188,7 @@ type BriefingView = {
   }>;
   notices_since?: string | null;
   author_warnings?: Array<{ level: string; text: string }>;
+  note?: string | null;
 };
 
 function printBriefing(data: BriefingView): void {
@@ -228,6 +235,7 @@ function printBriefing(data: BriefingView): void {
   for (const memory of data.memories) {
     out.push(`  #${memory.id}  ${memory.content}`);
   }
+  if (data.note) out.push("", `note     ${data.note}`);
   process.stdout.write(out.join("\n") + "\n");
 }
 
@@ -295,6 +303,16 @@ export async function main(argv = process.argv): Promise<number> {
     return 0;
   }
 
+  if (cmd === "logs") {
+    const lines = logTail(opts.limit ?? 40);
+    if (!lines.length) {
+      process.stdout.write(`(nothing in ${logPath()} yet)\n`);
+      return 0;
+    }
+    process.stdout.write(lines.join("\n") + "\n");
+    return 0;
+  }
+
   if (cmd === "stop") {
     const was = await stopDaemon();
     printJson({ ok: true, was_running: was });
@@ -346,8 +364,8 @@ export async function main(argv = process.argv): Promise<number> {
         limit: opts.limit ?? 8,
         project: declaredProject(opts),
       },
-    })) as { hits: Hit[] };
-    if (asText) printHits(data.hits);
+    })) as { hits: Hit[]; note?: string | null };
+    if (asText) printHits(data.hits, data.note);
     else printJson(data);
     return 0;
   }

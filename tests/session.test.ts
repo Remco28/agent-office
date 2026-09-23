@@ -64,6 +64,27 @@ describe("session", () => {
     expect(result.note).toContain("nothing recorded");
   });
 
+  test("a briefing with no project hands over nothing project-specific", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    const embedder = fakeEmbedder();
+    await remember(db, embedder, { content: "alpha checkout limit", project: "alpha" });
+    await remember(db, embedder, { content: "beta only note", project: "beta" });
+    openWork(db, { title: "alpha refactor", project: "alpha" });
+
+    const result = await briefing(db, embedder);
+    expect(result.project).toBeNull();
+    expect(result.note).toContain("no project declared");
+    // another project's notes and loose ends are not handed over on the way to
+    // finding that out
+    expect(result.memories).toEqual([]);
+    expect(result.open_work).toEqual([]);
+    // but the office still reports the store it is holding back
+    expect(result.store.memories).toBe(2);
+    expect(result.store.memories_in_scope).toBe(0);
+    expect(result.store.work_open).toBe(1);
+  });
+
   test("naming a target replaces what the office remembered, for that author", () => {
     const db = tempDb();
     dbs.push(db);

@@ -5,14 +5,17 @@ import {
   countMemories,
   forget,
   listMemories,
+  listMemoriesInScope,
   remember,
   searchDetailed,
+  type SearchResult,
 } from "./memory";
 import { beginSession, briefing, getActive, listSessions, resolveScope } from "./session";
 import { closeWork, getWork, listWork, noteWork, openWork } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
+import { NO_PROJECT_NOTE } from "./scope";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
-import { dbPath, MODEL_NAME, port } from "./paths";
+import { dbPath, detectPython, logPath, MODEL_NAME, port } from "./paths";
 
 export type Office = {
   stop: () => void;
@@ -28,6 +31,17 @@ function json(data: unknown, status = 200): Response {
 function fail(err: unknown): Response {
   const message = err instanceof Error ? err.message : String(err);
   return json({ error: message }, 400);
+}
+
+/**
+ * Why a read came back empty. "Nothing relevant here" and "you never said where
+ * you are" are different answers, and an agent that cannot tell them apart
+ * will conclude the office is empty when it is only unscoped.
+ */
+function emptyNote(result: SearchResult, project: string | null): string {
+  if (!project) return NO_PROJECT_NOTE;
+  if (result.searched) return `nothing relevant — ${result.searched} memories in scope`;
+  return "nothing stored yet";
 }
 
 async function readBody(req: Request): Promise<Record<string, unknown>> {
@@ -77,6 +91,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
     return warningsFor({
       daemonUp: true,
       embedder: state,
+      embedderError: embedder.lastError,
       store: { ...fileStats(dbPath()), ...queryStore(db) },
     });
   };
@@ -112,7 +127,10 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
             since: session.updated_at,
           })),
           embedder: embedder.ready,
+          embedder_error: embedder.lastError,
           model: MODEL_NAME,
+          python: detectPython(),
+          log_path: logPath(),
           port: listen,
           pid: process.pid,
           started_at: startedAt,
@@ -130,7 +148,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         const project = url.searchParams.get("project");
         return json({
           memories: project
-            ? listMemories(db, limit, project)
+            ? listMemoriesInScope(db, limit, project)
             : listMemories(db, limit),
         });
       }
@@ -194,11 +212,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         return json({
           ...result,
           project_source: scope.project_source,
-          note: result.hits.length
-            ? null
-            : result.searched
-              ? `nothing relevant — ${result.searched} memories in scope`
-              : "nothing stored yet",
+          note: result.hits.length ? null : emptyNote(result, scope.project),
         });
       }
 
@@ -213,11 +227,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         return json({
           ...result,
           project_source: scope.project_source,
-          note: result.hits.length
-            ? null
-            : result.searched
-              ? `nothing relevant — ${result.searched} memories in scope`
-              : "nothing stored yet",
+          note: result.hits.length ? null : emptyNote(result, scope.project),
         });
       }
 

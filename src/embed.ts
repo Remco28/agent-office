@@ -3,6 +3,12 @@ import { detectPython, MODEL_NAME, SIDECAR } from "./paths";
 export type Embedder = {
   ready: boolean;
   dim: number;
+  /**
+   * Why the sidecar is not ready, in its own words. Null once it is healthy.
+   * A new machine's most likely failure is a missing import inside the venv,
+   * and the sidecar reports it on the same line it would report success on.
+   */
+  lastError: string | null;
   encode(text: string): Promise<Float32Array | null>;
   close(): void;
 };
@@ -16,6 +22,7 @@ export function fakeEmbedder(dim = 384): Embedder {
   return {
     ready: true,
     dim,
+    lastError: null,
     async encode(text: string) {
       const vector = new Float32Array(dim);
       let hash = 2166136261;
@@ -46,6 +53,8 @@ export function startSidecar(): Embedder {
   let dim = 384;
   let proc: Bun.Subprocess<"pipe", "pipe", "inherit"> | null = null;
   let closed = false;
+  let lastError: string | null = null;
+  let restarts = 0;
 
   const spawn = () => {
     proc = Bun.spawn({
@@ -59,8 +68,17 @@ export function startSidecar(): Embedder {
     void proc.exited.then((code) => {
       if (closed) return;
       ready = false;
-      failAll(new Error(`embedder exited (${code})`));
-      setTimeout(spawn, 500);
+      // Keep the specific reason if the sidecar gave one before dying: a
+      // missing import is worth more than "exited (1)", and it is the whole
+      // answer on a machine whose venv was never built properly.
+      lastError ??= `embedder exited (${code})`;
+      failAll(new Error(lastError));
+      // A broken venv fails identically every time. Without a backoff that is a
+      // fresh Python every half second, forever, on a machine that is already
+      // telling you exactly what is wrong.
+      const delay = Math.min(500 * 2 ** restarts, 60_000);
+      restarts += 1;
+      setTimeout(spawn, delay);
     });
   };
 
@@ -79,9 +97,12 @@ export function startSidecar(): Embedder {
     if (!ready && "ok" in msg) {
       if (msg.ok) {
         ready = true;
+        lastError = null;
+        restarts = 0;
         if (typeof msg.dim === "number" && msg.dim > 0) dim = msg.dim;
       } else {
-        console.error(`office embedder: ${String(msg.error ?? "failed to start")}`);
+        lastError = String(msg.error ?? "failed to start");
+        console.error(`office embedder: ${lastError}`);
       }
       return;
     }
@@ -132,6 +153,9 @@ export function startSidecar(): Embedder {
     get dim() {
       return dim;
     },
+    get lastError() {
+      return lastError;
+    },
     encode(text: string) {
       const trimmed = text.trim();
       if (!trimmed || !proc?.stdin) return Promise.resolve(null);
@@ -139,6 +163,10 @@ export function startSidecar(): Embedder {
       return new Promise<Float32Array | null>((resolve, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id);
+          // A request that never comes back is the shape a missing model takes
+          // on a new machine: the sidecar never got far enough to read stdin.
+          // Record it instead of pretending the question was answered.
+          lastError ??= "no answer in 30s — the sidecar may still be loading its model";
           resolve(null);
         }, 30_000);
         pending.set(id, {

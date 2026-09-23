@@ -28,6 +28,7 @@ export function groupedEmbedder(
   return {
     ready: true,
     dim: AXES + 1,
+    lastError: null,
     async encode(text: string) {
       const lower = text.toLowerCase();
       const vector = new Float32Array(AXES + 1);

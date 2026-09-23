@@ -104,6 +104,20 @@ describe("stats", () => {
     expect(texts).toContain("chars");
   });
 
+  test("an unwell embedder reports the sidecar's own words", () => {
+    const quoted = warningsFor({
+      daemonUp: true,
+      embedder: "stuck",
+      embedderError: "No module named 'torch'",
+      store: emptyDesk().store,
+    });
+    expect(quoted.map((w) => w.text).join("\n")).toContain("No module named 'torch'");
+
+    // With nothing to quote it keeps the old hint instead of a dangling dash.
+    const generic = warningsFor({ daemonUp: true, embedder: "stuck", store: emptyDesk().store });
+    expect(generic[0].text).toContain("MiniLM may be missing");
+  });
+
   test("decideFix", () => {
     expect(decideFix(emptyDesk({ daemon: { up: false, port: 7701, pid: null, startedAt: null } })).action).toBe(
       "start",

@@ -27,7 +27,8 @@ export type SearchResult = {
   searched: number;
   floor: number;
   project: string | null;
-  scope: "project" | "all";
+  /** "project" = that project plus the everywhere notes; "global" = everywhere only. */
+  scope: "project" | "global";
 };
 
 export type SearchOptions = {
@@ -66,17 +67,29 @@ function publicMemory(row: MemoryRow): Memory {
   };
 }
 
-/** The `WHERE` fragment for a scope, or nothing when the project is unknown. */
+/**
+ * The `WHERE` fragment for a scope. Every state has a definite answer.
+ *
+ * No project is *not* "everything": it means this session never named a
+ * target, so only the notes that apply everywhere are in scope. `scopeClause`
+ * already states that rule for the empty match list, and a project name the
+ * office has never heard of lands on the same rule — an unanswered read is
+ * empty, never the whole store. A session that declares nothing therefore gets
+ * the same answer in every store, which is what makes it a rule rather than an
+ * accident.
+ */
 function scopeFragment(
   db: Database,
   project: string | null | undefined,
 ): { sql: string; params: string[] } {
-  if (!project) return { sql: "", params: [] };
-  return scopeClause(matchingProjects(db, project));
+  return scopeClause(project ? matchingProjects(db, project) : []);
 }
 
-function scopedIds(db: Database, project: string | null | undefined): Set<number> | null {
-  if (!project) return null;
+/**
+ * The ids a read in this scope may touch — always a set, never "no filter",
+ * so the ranking stages below cannot leak a memory from outside the scope.
+ */
+function scopedIds(db: Database, project: string | null | undefined): Set<number> {
   const { sql, params } = scopeFragment(db, project);
   const rows = db
     .query(`SELECT id FROM memories WHERE 1=1${sql}`)
@@ -137,7 +150,32 @@ export function forget(db: Database, id: number): boolean {
   return result.changes > 0;
 }
 
-export function listMemories(db: Database, limit = 20, project?: string | null): Memory[] {
+/**
+ * Every memory, newest first, whatever it belongs to. This is the human's view
+ * — `office list` — not a read an agent gets by accident: the reads a session
+ * makes (`search`, `context`, `begin`) go through `listMemoriesInScope`.
+ */
+export function listMemories(db: Database, limit = 20): Memory[] {
+  const rows = db
+    .query(
+      `SELECT ${COLUMNS} FROM memories
+       ORDER BY id DESC
+       LIMIT ?`,
+    )
+    .all(Math.max(1, Math.min(limit, 200))) as MemoryRow[];
+  return rows.map(publicMemory);
+}
+
+/**
+ * Recent memories inside a scope, newest first. With no project that is the
+ * notes that apply everywhere, so an unscoped session cannot read across
+ * projects through the recent-list path either.
+ */
+export function listMemoriesInScope(
+  db: Database,
+  limit: number,
+  project: string | null | undefined,
+): Memory[] {
   const { sql, params } = scopeFragment(db, project);
   const rows = db
     .query(
@@ -267,11 +305,11 @@ export async function searchDetailed(
   const project = opts.project ? normalizeProject(opts.project) : null;
   const floor = opts.minSimilarity ?? minSimilarity();
   const allowed = scopedIds(db, project);
-  const searched = allowed ? allowed.size : countMemories(db);
-  const base = { searched, floor, project, scope: project ? "project" : "all" } as const;
+  const searched = allowed.size;
+  const base = { searched, floor, project, scope: project ? "project" : "global" } as const;
 
   if (!q) {
-    const recent = listMemories(db, cap, project);
+    const recent = listMemoriesInScope(db, cap, project);
     return {
       ...base,
       hits: recent.map((memory, index) => ({
@@ -283,7 +321,7 @@ export async function searchDetailed(
     };
   }
 
-  const fts = ftsRank(db, q, cap * 3).filter((id) => !allowed || allowed.has(id));
+  const fts = ftsRank(db, q, cap * 3).filter((id) => allowed.has(id));
   let vec: number[] = [];
   let sims = new Map<number, number>();
   if (embedder) {
@@ -292,7 +330,7 @@ export async function searchDetailed(
       if (encoded) {
         const ranked = vectorRank(db, encoded, cap * 3);
         sims = ranked.sims;
-        vec = ranked.ranked.filter((id) => !allowed || allowed.has(id));
+        vec = ranked.ranked.filter((id) => allowed.has(id));
       }
     } catch {
       vec = [];
