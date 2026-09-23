@@ -15,6 +15,12 @@ export type WorkItem = {
   events: number;
   last_at: string;
   last_note: string | null;
+  /**
+   * Who wrote that last note. Stored since the log existed and dropped by this
+   * query until now — which is how a misattributed item stayed invisible:
+   * the note was signed and the signature was discarded before anyone read it.
+   */
+  last_note_author: string | null;
 };
 
 const ITEMS_SQL = `
@@ -24,6 +30,9 @@ const ITEMS_SQL = `
          (SELECT e.text FROM work_events e
            WHERE e.work_id = w.id AND e.kind = 'note'
            ORDER BY e.id DESC LIMIT 1) AS last_note,
+         (SELECT e.author FROM work_events e
+           WHERE e.work_id = w.id AND e.kind = 'note'
+           ORDER BY e.id DESC LIMIT 1) AS last_note_author,
          (SELECT MAX(e.created_at) FROM work_events e
            WHERE e.work_id = w.id AND e.kind = 'close') AS closed_at
   FROM work w
@@ -38,6 +47,7 @@ type RawItem = {
   events: number;
   last_at: string | null;
   last_note: string | null;
+  last_note_author: string | null;
   closed_at: string | null;
 };
 
@@ -53,6 +63,7 @@ function toItem(row: RawItem): WorkItem {
     events: row.events,
     last_at: row.last_at ?? row.created_at,
     last_note: row.last_note,
+    last_note_author: row.last_note_author,
   };
 }
 
@@ -151,6 +162,73 @@ export function listWork(
     )
     .all(...params, limit) as RawItem[];
   return rows.map(toItem);
+}
+
+export type WorkEventSummary = {
+  work_id: number;
+  title: string;
+  kind: WorkEventKind;
+  text: string;
+  author: string | null;
+  at: string;
+};
+
+/**
+ * Trail events written by anyone else since a moment in time — the "what
+ * happened while you were out" half of a briefing. Without a watermark there
+ * is no such question, so an absent one returns nothing rather than the whole
+ * trail.
+ */
+export function recentEvents(
+  db: Database,
+  opts: {
+    project?: string | null;
+    since?: string | null;
+    excludeAuthor?: string | null;
+    limit?: number;
+  } = {},
+): WorkEventSummary[] {
+  const since = opts.since?.trim();
+  if (!since) return [];
+  const limit = Math.max(1, Math.min(opts.limit ?? 10, 200));
+  const where = ["e.created_at > ?"];
+  const params: (string | number)[] = [since];
+  if (opts.project) {
+    const matches = matchingProjects(db, opts.project);
+    if (!matches.length) return [];
+    where.push(`w.project IN (${matches.map(() => "?").join(",")})`);
+    params.push(...matches);
+  }
+  if (opts.excludeAuthor) {
+    // An unattributed event could be anyone's, including the caller's, so it
+    // is shown rather than hidden.
+    where.push("(e.author IS NULL OR e.author <> ?)");
+    params.push(opts.excludeAuthor);
+  }
+  const rows = db
+    .query(
+      `SELECT e.work_id, w.title, e.kind, e.text, e.author, e.created_at
+       FROM work_events e JOIN work w ON w.id = e.work_id
+       WHERE ${where.join(" AND ")}
+       ORDER BY e.created_at DESC, e.id DESC
+       LIMIT ?`,
+    )
+    .all(...params, limit) as {
+    work_id: number;
+    title: string;
+    kind: WorkEventKind;
+    text: string;
+    author: string | null;
+    created_at: string;
+  }[];
+  return rows.map((row) => ({
+    work_id: row.work_id,
+    title: row.title,
+    kind: row.kind,
+    text: row.text,
+    author: row.author,
+    at: row.created_at,
+  }));
 }
 
 export function openWorkCount(db: Database): number {

@@ -8,6 +8,7 @@ import {
   openWork,
   openWorkCount,
   pruneLog,
+  recentEvents,
 } from "../src/work";
 import { tempDb } from "./helpers";
 
@@ -103,6 +104,42 @@ describe("work log", () => {
     expect(getWork(db, second.id)).toBeNull();
     // open work is the handoff, so it survives every prune
     expect(getWork(db, live.id)).not.toBeNull();
+  });
+
+  test("the last note carries the signature it was written with", () => {
+    const db = tempDb();
+    dbs.push(db);
+    const item = openWork(db, { title: "M4 container", project: "alpha", author: "opencode" });
+    noteWork(db, item.id, { text: "built in a worktree", author: "opencode" });
+
+    const [open] = listWork(db, { project: "alpha" });
+    expect(open.last_note).toBe("built in a worktree");
+    // stored since the log existed, and dropped by the query until now
+    expect(open.last_note_author).toBe("opencode");
+
+    // an unsigned note stays unsigned rather than borrowing the item's author
+    noteWork(db, item.id, { text: "something else" });
+    expect(listWork(db, { project: "alpha" })[0].last_note_author).toBeNull();
+  });
+
+  test("what a project's trail gained since a moment, minus your own work", () => {
+    const db = tempDb();
+    dbs.push(db);
+    openWork(db, { title: "alpha thing", project: "alpha", author: "opencode" });
+    const after = new Date(Date.now() + 1000).toISOString();
+
+    expect(recentEvents(db, { project: "alpha", since: after })).toEqual([]);
+    const before = new Date(Date.now() - 1000).toISOString();
+    expect(recentEvents(db, { project: "alpha", since: before }).map((e) => e.kind)).toEqual([
+      "open",
+    ]);
+    expect(recentEvents(db, { project: "alpha", since: before, excludeAuthor: "opencode" })).toEqual(
+      [],
+    );
+    // no watermark, no question to answer
+    expect(recentEvents(db, { project: "alpha" })).toEqual([]);
+    expect(recentEvents(db, { project: "beta", since: before })).toEqual([]);
+    expect(recentEvents(db, { project: "alpha", since: before })[0]?.title).toBe("alpha thing");
   });
 
   test("the trail can be read for one project at a time", () => {

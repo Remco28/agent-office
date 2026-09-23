@@ -159,12 +159,22 @@ const TOOLS_DDL = `
   );
 `;
 
-/** One row, machine-wide: which project and agent is currently working. */
+/**
+ * The slot for a session that never named an author. A sentinel rather than
+ * NULL because it is a primary key: "nobody said who they were" is a session
+ * of its own, not the absence of one.
+ */
+export const UNNAMED_SESSION = "";
+
+/**
+ * One row per author: which project that agent is working on, and when it
+ * last checked in. Keyed by author rather than by a single machine-wide row,
+ * so one agent cannot inherit or overwrite another's identity.
+ */
 const SESSION_DDL = `
   CREATE TABLE IF NOT EXISTS session_state (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+    author TEXT PRIMARY KEY NOT NULL,
     project TEXT,
-    author TEXT,
     updated_at TEXT NOT NULL
   );
 `;
@@ -174,6 +184,36 @@ function tableExists(db: Database, name: string): boolean {
     .query("SELECT name FROM sqlite_master WHERE name = ?")
     .get(name) as { name: string } | null;
   return row !== null;
+}
+
+function tableColumns(db: Database, table: string): Set<string> {
+  const rows = db.query(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return new Set(rows.map((row) => row.name));
+}
+
+/**
+ * The session table used to hold one machine-wide row (`id = 1`), which meant
+ * two agents shared one identity. Recreate it keyed by author and move the
+ * old row across; an old row that never named an author lands in the unnamed
+ * slot, where it still answers for a single-agent machine.
+ */
+function migrateSession(db: Database): void {
+  if (!tableExists(db, "session_state")) return;
+  if (!tableColumns(db, "session_state").has("id")) return;
+  const rows = db
+    .query("SELECT project, author, updated_at FROM session_state")
+    .all() as SessionRow[];
+  db.exec("DROP TABLE session_state");
+  db.exec(SESSION_DDL);
+  const insert = db.query(
+    `INSERT INTO session_state (author, project, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(author) DO UPDATE SET
+       project = excluded.project,
+       updated_at = excluded.updated_at`,
+  );
+  for (const row of rows) {
+    insert.run(row.author?.trim() || UNNAMED_SESSION, row.project, row.updated_at);
+  }
 }
 
 function migrate(db: Database): void {
@@ -189,13 +229,13 @@ function migrate(db: Database): void {
   ensureMemoryColumns(db);
   db.exec(WORK_DDL);
   db.exec(TOOLS_DDL);
+  migrateSession(db);
   db.exec(SESSION_DDL);
   backfillAttribution(db);
 }
 
 function memoryColumns(db: Database): Set<string> {
-  const rows = db.query("PRAGMA table_info(memories)").all() as { name: string }[];
-  return new Set(rows.map((row) => row.name));
+  return tableColumns(db, "memories");
 }
 
 function ensureMemoryColumns(db: Database): void {

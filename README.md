@@ -82,12 +82,22 @@ git pull
 ## Starting a session
 
 ```bash
-office begin --project ~/Projects/the-thing --by freebuff
+office begin --project ~/Projects/the-thing --by <your-agent-name>
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
+That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what they wrote since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project **for you**. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
 
-Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers; pass neither to just read.
+Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers under that name — a field you do not restate is *kept*, not cleared; pass neither to just read.
+
+### Two agents, one office
+
+A session is keyed by author, so one agent cannot inherit or overwrite another's. Name yourself and the office keeps the two apart:
+
+- `begin --by <name>` records *that agent's* row. Its later commands resolve through it.
+- Declining to name yourself puts you in the **unnamed slot**: a project you declare is remembered there, nothing is ever attributed to you, and `begin` says so on stderr. That slot is not a person, so it never makes the office ambiguous. Ambiguity is losing track of which *named* session you are — two named sessions and no name — and then nothing is inherited.
+- `begin` lists every session it remembers and what the others did since you were last here. That is measured against your own previous check-in, so a first visit is handed the briefing rather than the whole trail.
+
+`--by` is expected and will be required in a future release. Export `OFFICE_AUTHOR` instead of repeating the flag. The reasoning is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
 
 ## Two records, one file
 
@@ -138,7 +148,7 @@ office forget 12
 
 ## The desk
 
-Type `office` with no arguments to open the desk: one screen with daemon/embedder status, the active project, database size, work log size, write volume, and warnings if the store is running away — including too much unfinished work. `s` start/stop, `r` restart, `f` fix, `q` leave.
+Type `office` with no arguments to open the desk: one screen with daemon/embedder status, the active project (and every session, when more than one is recorded), database size, work log size, write volume, and warnings if the store is running away — including too much unfinished work. `s` start/stop, `r` restart, `f` fix, `q` leave.
 
 Agents still use the CLI. Office instructions are **opt-in per working directory**, not global — no `~/.AGENTS.md`. To give Freebuff (or another agent) the office, put `AGENTS.md` only in the folder you start that agent in:
 
@@ -164,7 +174,7 @@ The whole memory — and the work log — is that SQLite file. Stop the daemon, 
 | `OFFICE_PYTHON` | Python with sentence-transformers |
 | `OFFICE_MODEL` | Embedding model (default `all-MiniLM-L6-v2`) |
 | `OFFICE_PROJECT` | Default project for a session |
-| `OFFICE_AUTHOR` | Default `--by` |
+| `OFFICE_AUTHOR` | Your name — the `--by` default, so writes attribute correctly without repeating the flag |
 | `OFFICE_MIN_SIM` | Relevance floor for meaning-only hits (default `0.30`) |
 | `OFFICE_LOG_CAP` | Characters of work trail to keep (default `1000000`) |
 

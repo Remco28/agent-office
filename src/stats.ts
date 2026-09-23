@@ -46,6 +46,8 @@ export type DeskSnapshot = {
   model: string | null;
   /** The project the office thinks this session is working on. */
   active: { project: string | null; author: string | null; since: string | null } | null;
+  /** Every session the office remembers. `active` is null once there are two. */
+  sessions: Array<{ project: string | null; author: string | null; since: string | null }>;
   store: StoreStats;
   warnings: Warning[];
 };

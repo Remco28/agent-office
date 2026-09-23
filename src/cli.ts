@@ -9,6 +9,7 @@ import {
 } from "./daemon";
 import { baseUrl, dataDir, pidPath, port } from "./paths";
 import { serve } from "./server";
+import { formatAgo } from "./stats";
 import { runTui } from "./tui";
 
 type Opts = {
@@ -111,9 +112,11 @@ function declaredAuthor(opts: Opts): string | null {
 function help(): string {
   return `agent-office — local working memory for coding agents
 
-  office begin --project <path> [--by <agent>]
-                              start a session: name the target, get the tools,
-                              preferences, unfinished work and a briefing
+  office begin --project <path> --by <agent>
+                              start a session: name the target and yourself,
+                              get the tools, preferences, who else is here,
+                              what happened since you were last here, and the
+                              unfinished work
   office context [query]      memories for this task (recent if no query)
   office search <query>       find one specific fact
   office remember [--tag t] [--global] <text>
@@ -136,7 +139,11 @@ function help(): string {
   office                      open the desk (humans)
 
 Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-n <n>
---project and --by replace what the office remembers. Pass neither to just read.
+--project and --by replace what the office remembers, for you alone; a session
+is keyed by author; a field you do not restate is kept. Pass neither to just
+read. --by is expected: without it your work lands in the unnamed slot,
+unattributed, rather than filed under whoever else was here last. Export
+OFFICE_AUTHOR instead of repeating the flag.
 JSON is the default for agent commands. Pass --text for a short listing.
 Daemon binds 127.0.0.1:${port()}. Data: ${dataDir()}
 `;
@@ -152,18 +159,53 @@ type Hit = {
   via?: string;
 };
 
-function printBriefing(data: {
+function byline(author: string | null | undefined): string {
+  return author ? ` by ${author}` : " (unattributed)";
+}
+
+type BriefingView = {
   project: string | null;
   project_source?: string;
   author: string | null;
   tools: Array<{ name: string; summary: string; usage: string | null }>;
   preferences: Hit[];
-  open_work: Array<{ id: number; title: string; last_note: string | null }>;
+  open_work: Array<{ id: number; title: string; last_note: string | null; last_note_author: string | null }>;
   memories: Hit[];
-}): void {
+  sessions?: Array<{ author: string | null; project: string | null; since: string; is_you: boolean }>;
+  notices?: Array<{
+    work_id: number;
+    title: string;
+    kind: string;
+    text: string;
+    author: string | null;
+    at: string;
+  }>;
+  notices_since?: string | null;
+  author_warnings?: Array<{ level: string; text: string }>;
+};
+
+function printBriefing(data: BriefingView): void {
   const out: string[] = [];
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
+  // One session is already on the author line; more than one is the news.
+  if ((data.sessions ?? []).length > 1) {
+    out.push("", "sessions");
+    for (const session of data.sessions ?? []) {
+      const who = session.author ?? "(unattributed)";
+      const you = session.is_you ? "  (you)" : "";
+      out.push(`  ${who}${you}   last here ${formatAgo(session.since)}`);
+    }
+  }
+  if (data.notices_since) {
+    const notices = data.notices ?? [];
+    out.push("", `since you were last here (${formatAgo(data.notices_since)})`);
+    if (!notices.length) out.push("  (nothing)");
+    for (const notice of notices) {
+      const what = notice.text ? `  — ${notice.text}` : "";
+      out.push(`  #${notice.work_id}  ${notice.kind}${byline(notice.author)}${what}`);
+    }
+  }
   if (data.tools.length) {
     out.push("", "tools");
     for (const tool of data.tools) {
@@ -177,7 +219,8 @@ function printBriefing(data: {
   if (data.open_work.length) {
     out.push("", "unfinished");
     for (const item of data.open_work) {
-      out.push(`  #${item.id}  ${item.title}${item.last_note ? `  — ${item.last_note}` : ""}`);
+      const note = item.last_note ? `  — ${item.last_note}${byline(item.last_note_author)}` : "";
+      out.push(`  #${item.id}  ${item.title}${note}`);
     }
   }
   out.push("", "memories");
@@ -186,6 +229,16 @@ function printBriefing(data: {
     out.push(`  #${memory.id}  ${memory.content}`);
   }
   process.stdout.write(out.join("\n") + "\n");
+}
+
+/**
+ * A session that declined to name itself is told so, on stderr, every time.
+ * The office answers when asked; this is the one thing it volunteers.
+ */
+function printAuthorWarnings(warnings: BriefingView["author_warnings"]): void {
+  for (const warning of warnings ?? []) {
+    process.stderr.write(`${warning.level}: ${warning.text}\n`);
+  }
 }
 
 export async function main(argv = process.argv): Promise<number> {
@@ -254,9 +307,10 @@ export async function main(argv = process.argv): Promise<number> {
     const data = (await api("/begin", {
       method: "POST",
       body: { project: declaredProject(opts), author: declaredAuthor(opts) },
-    })) as Parameters<typeof printBriefing>[0];
+    })) as BriefingView;
     if (asText) printBriefing(data);
     else printJson(data);
+    printAuthorWarnings(data.author_warnings);
     return 0;
   }
 
@@ -330,14 +384,22 @@ export async function main(argv = process.argv): Promise<number> {
       const params = new URLSearchParams({ all, limit: String(opts.limit ?? 20) });
       if (opts.project) params.set("project", opts.project);
       const data = (await api(`/work?${params}`)) as {
-        work: Array<{ id: number; title: string; last_note: string | null; closed: boolean }>;
+        work: Array<{
+          id: number;
+          title: string;
+          author: string | null;
+          last_note: string | null;
+          last_note_author: string | null;
+          closed: boolean;
+        }>;
         project: string | null;
       };
       if (asText) {
         if (!data.work.length) process.stdout.write("(none)\n");
         for (const item of data.work) {
           const mark = item.closed ? "x" : " ";
-          process.stdout.write(`[${mark}] #${item.id}  ${item.title}\n`);
+          const note = item.last_note ? `  — last note${byline(item.last_note_author)}` : "";
+          process.stdout.write(`[${mark}] #${item.id}  ${item.title}${note}\n`);
         }
       } else {
         printJson(data);

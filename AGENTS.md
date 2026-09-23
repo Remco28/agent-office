@@ -7,10 +7,14 @@ Two records live in one file: **memories** (decisions and conventions, found by 
 ## Start here
 
 ```bash
-office begin --project ~/Projects/the-thing --by freebuff
+office begin --project ~/Projects/the-thing --by <your-agent-name>
 ```
 
-This records the target for the session and returns what you need first: the tools this machine has, preferences that apply everywhere, work nobody finished, and the memories for this project. Every later command inherits the project.
+This records the target for the session and returns what you need first: the tools this machine has, preferences that apply everywhere, who else is working here, what they did since your last visit, work nobody finished, and the memories for this project. Every later command inherits the project **for you**.
+
+**Name yourself.** The session is stored under the name you give, so it is how the office attributes what you write — and how the other agent tells your work from theirs. Do not use a name that belongs to the tool you are running: a plausible default is invisible to exactly the agent it happens to be right for, and wrong for every other. Export `OFFICE_AUTHOR` from your launcher instead of repeating the flag.
+
+If you do not name yourself you land in the **unnamed slot**: the office says so on stderr, remembers a project you declare there, and attributes nothing to you. Two *named* sessions and no name declared is the case where it declines to guess and inherits nothing.
 
 Nothing is inferred from the working directory — you are usually started in the office itself. If no project is declared, say so instead of guessing: `office begin` tells you.
 

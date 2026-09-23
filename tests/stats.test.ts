@@ -43,6 +43,7 @@ function emptyDesk(over: Partial<DeskSnapshot> = {}): DeskSnapshot {
     embedder: "ready",
     model: "all-MiniLM-L6-v2",
     active: null,
+    sessions: [],
     warnings: [],
     ...over,
     store: { ...store, ...(over.store ?? {}) },

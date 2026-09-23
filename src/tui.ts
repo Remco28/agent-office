@@ -41,6 +41,16 @@ function formatChars(n: number | null): string {
   return `${n.toLocaleString()} chars of log`;
 }
 
+type RawSession = { project?: unknown; author?: unknown; since?: unknown };
+
+function plainSession(raw: RawSession) {
+  return {
+    project: typeof raw.project === "string" ? raw.project : null,
+    author: typeof raw.author === "string" ? raw.author : null,
+    since: typeof raw.since === "string" ? raw.since : null,
+  };
+}
+
 async function snapshot(): Promise<DeskSnapshot> {
   const live = await health();
   const store = collectStoreStats();
@@ -49,10 +59,9 @@ async function snapshot(): Promise<DeskSnapshot> {
   const startedAt = typeof live?.started_at === "string" ? live.started_at : null;
   const pid = typeof live?.pid === "number" ? live.pid : null;
   const embedder = embedderState({ daemonUp, ready, startedAt });
-  const rawActive = live?.active as
-    | { project?: unknown; author?: unknown; since?: unknown }
-    | null
-    | undefined;
+  const rawActive = live?.active as RawSession | null | undefined;
+  const rawSessions = Array.isArray(live?.sessions) ? (live.sessions as RawSession[]) : [];
+  const sessions = rawSessions.map(plainSession);
   const snap: DeskSnapshot = {
     daemon: {
       up: daemonUp,
@@ -62,13 +71,8 @@ async function snapshot(): Promise<DeskSnapshot> {
     },
     embedder,
     model: typeof live?.model === "string" ? live.model : MODEL_NAME,
-    active: rawActive
-      ? {
-          project: typeof rawActive.project === "string" ? rawActive.project : null,
-          author: typeof rawActive.author === "string" ? rawActive.author : null,
-          since: typeof rawActive.since === "string" ? rawActive.since : null,
-        }
-      : null,
+    active: rawActive ? plainSession(rawActive) : null,
+    sessions,
     store,
     warnings: [],
   };
@@ -91,6 +95,10 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     store.missingEmbeddings != null && store.missingEmbeddings > 0
       ? `  ${store.missingEmbeddings} without vectors`
       : "";
+  // With two sessions there is no single active one, so the desk shows the
+  // most recent check-in and lists the rest on the line below.
+  const whose = snap.active ??
+    snap.sessions[0] ?? { project: null, author: null, since: null };
   const lines = [
     `${BOLD}agent-office${RESET}  ${DIM}${now.toISOString().slice(11, 19)} UTC${RESET}`,
     "",
@@ -98,8 +106,15 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     `Embedder   ${embLabel}  ${snap.model ?? MODEL_NAME}`,
     `Python     ${DIM}${detectPython()}${RESET}`,
     "",
-    `Project    ${snap.active?.project ?? `${DIM}none declared${RESET}`}`,
-    `           ${DIM}${snap.active ? `by ${snap.active.author ?? "unknown"}  ${formatAgo(snap.active.since, now.getTime())}` : "agents name their target with: office begin --project <path>"}${RESET}`,
+    `Project    ${whose.project ?? `${DIM}none declared${RESET}`}`,
+    `           ${DIM}${whose.project || whose.since ? `by ${whose.author ?? "unnamed"}  ${formatAgo(whose.since, now.getTime())}` : "agents name their target with: office begin --project <path> --by <agent>"}${RESET}`,
+    ...(snap.sessions.length > 1
+      ? [
+          `Sessions   ${snap.sessions.length}   ${DIM}${snap.sessions
+            .map((s) => `${s.author ?? "unnamed"} ${formatAgo(s.since, now.getTime())}`)
+            .join(", ")}${RESET}`,
+        ]
+      : []),
     "",
     `Database   ${count} memories   ${formatBytes(store.totalBytes)}${missing}`,
     `           db ${formatBytes(store.bytes)}   wal ${formatBytes(store.walBytes)}   shm ${formatBytes(store.shmBytes)}`,

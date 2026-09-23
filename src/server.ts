@@ -8,7 +8,7 @@ import {
   remember,
   searchDetailed,
 } from "./memory";
-import { briefing, getActive, resolveScope, setActive } from "./session";
+import { beginSession, briefing, getActive, listSessions, resolveScope } from "./session";
 import { closeWork, getWork, listWork, noteWork, openWork } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
@@ -104,6 +104,13 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
           active: active
             ? { project: active.project, author: active.author, since: active.updated_at }
             : null,
+          // Every session the machine remembers. `active` is null once there
+          // are two, because then there is no single answer to give.
+          sessions: listSessions(db).map((session) => ({
+            project: session.project,
+            author: session.author,
+            since: session.updated_at,
+          })),
           embedder: embedder.ready,
           model: MODEL_NAME,
           port: listen,
@@ -134,15 +141,15 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         const author = str(body.author);
         // Naming a target is the one declaration a session makes. Everything
         // after this inherits it; nothing is inferred from the working dir.
-        if (project || author) setActive(db, { project, author });
-        const result = await briefing(db, embedder);
-        return json({
-          ...result,
-          // this call is what named them, so report it that way
-          project_source: project ? "declared" : result.project_source,
-          author_source: author ? "declared" : result.author_source,
-          warnings: warnings(),
+        // The row this call replaces is the watermark, so it is read first.
+        const { previous } = beginSession(db, { project, author });
+        // Passing the declaration in is what makes the briefing report the
+        // scope this call named, and the advice it gives match.
+        const result = await briefing(db, embedder, {
+          since: previous?.updated_at ?? null,
+          declared: { project, author },
         });
+        return json({ ...result, warnings: warnings() });
       }
 
       if (req.method === "POST" && path === "/remember") {
