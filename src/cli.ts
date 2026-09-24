@@ -24,6 +24,7 @@ type Opts = {
   detach?: boolean;
   all?: boolean;
   text?: boolean;
+  readonly?: boolean;
   rest: string[];
 };
 
@@ -59,6 +60,7 @@ function parse(argv: string[]): { cmd: string; opts: Opts } {
     if (a === "--detach") opts.detach = true;
     else if (a === "--text") opts.text = true;
     else if (a === "--all") opts.all = true;
+    else if (a === "--readonly" || a === "--read") opts.readonly = true;
     else if (a === "--global" || a === "--everywhere") opts.scope = "global";
     else if (a === "--tag" || a === "-t") {
       const value = args.shift();
@@ -122,6 +124,11 @@ function help(): string {
                               get the tools, preferences, who else is here,
                               what happened since you were last here, and the
                               unfinished work
+  office peek [--project <path>] [--by <agent>]
+                              the same briefing, read-only: nothing is written
+                              and your check-in time does not move. Use this
+                              when you are told not to modify state. (Same as
+                              begin --readonly.)
   office context [query]      memories for this task (recent if no query)
   office search <query>       find one specific fact
   office remember [--tag t] [--global] <text>
@@ -145,6 +152,7 @@ function help(): string {
   office                      open the desk (humans)
 
 Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-n <n>
+--readonly  the read-only begin: use with begin, or just run peek
 --project and --by replace what the office remembers, for you alone; a session
 is keyed by author; a field you do not restate is kept. Pass neither to just
 read. --by is expected: without it your work lands in the unnamed slot,
@@ -177,6 +185,8 @@ type BriefingView = {
   preferences: Hit[];
   open_work: Array<{ id: number; title: string; last_note: string | null; last_note_author: string | null }>;
   memories: Hit[];
+  readonly?: boolean;
+  readonly_note?: string | null;
   sessions?: Array<{ author: string | null; project: string | null; since: string; is_you: boolean }>;
   notices?: Array<{
     work_id: number;
@@ -213,6 +223,7 @@ function printBriefing(data: BriefingView): void {
       out.push(`  #${notice.work_id}  ${notice.kind}${byline(notice.author)}${what}`);
     }
   }
+  if (data.readonly_note) out.push("", `read-only   ${data.readonly_note}`);
   if (data.tools.length) {
     out.push("", "tools");
     for (const tool of data.tools) {
@@ -321,10 +332,17 @@ export async function main(argv = process.argv): Promise<number> {
 
   await ensureDaemon();
 
-  if (cmd === "begin") {
+  if (cmd === "begin" || cmd === "peek") {
+    // `peek` is `begin --readonly`: the friendly name for the door an agent
+    // told not to modify state is allowed through.
+    const readonly = cmd === "peek" || Boolean(opts.readonly);
     const data = (await api("/begin", {
       method: "POST",
-      body: { project: declaredProject(opts), author: declaredAuthor(opts) },
+      body: {
+        project: declaredProject(opts),
+        author: declaredAuthor(opts),
+        readonly,
+      },
     })) as BriefingView;
     if (asText) printBriefing(data);
     else printJson(data);

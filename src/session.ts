@@ -162,6 +162,30 @@ export function beginSession(
   return { previous, current: declared ? setActive(db, { project, author }) : null };
 }
 
+/**
+ * The same visit as `beginSession`, with every write removed: the caller's own
+ * check-in mark is read and left exactly where it was, and no session row is
+ * created or touched.
+ *
+ * This exists because `begin` is the office's front door and it changes the
+ * record. An agent told not to modify state is right to refuse it, and the more
+ * careful the agent, the more certain that refusal — so the most careful
+ * agents were the ones locked out. A peek is the honest alternative: the same
+ * briefing, nothing written.
+ *
+ * The mark returned is the caller's own row, so "since you were last here"
+ * stays true — but because nothing moved it, the same notices recur until a
+ * real check-in advances it. A peek reports that rather than pretending the
+ * visit was a check-in.
+ */
+export function peekSession(
+  db: Database,
+  input: { project?: string | null; author?: string | null } = {},
+): BeginResult {
+  const author = input.author?.trim() || envAuthor();
+  return { previous: getSession(db, author), current: null };
+}
+
 function envProject(): string | null {
   const raw = process.env.OFFICE_PROJECT ?? process.env.OFFICE_SOURCE;
   return raw?.trim() ? normalizeProject(raw) : null;
@@ -177,19 +201,28 @@ function envAuthor(): string | null {
  * nothing. Nothing is inferred from the working directory — agents are
  * started in the office itself and name their target out loud.
  *
- * Two rules decide what "unambiguous" means, and both exist because a wrong
- * attribution is invisible to exactly the agent it happens to suit:
+ * Project and author do not follow the same rule, and the difference is the
+ * point of this function:
  *
- * - A caller that named nobody belongs to the unnamed slot. That slot is not a
- *   person: it never makes the office ambiguous and it never answers with an
- *   author, so it can only hand back an anonymous project. This matters more
- *   than it looks — if an unnamed row counted toward ambiguity, then a single
- *   `begin --project` without a name would leave the machine unable to resolve
- *   a project for *any* undeclared caller from then on, permanently, which is
- *   a worse failure than the one being protected against.
- * - Failing that, the machine's only row is the single-agent convenience the
- *   office has always had. Two or more *named* sessions and no name is not an
- *   answer, so nothing is returned.
+ * - The **project** may come from a remembered session. A project is not an
+ *   identity: a wrong one is visible in the record, and the single-agent
+ *   convenience is real. An undeclared caller belongs to the unnamed slot,
+ *   which is not a person — it never makes the office ambiguous and can only
+ *   hand back an anonymous project. This matters more than it looks: if an
+ *   unnamed row counted toward ambiguity, then a single `begin --project`
+ *   without a name would leave the machine unable to resolve a project for
+ *   *any* undeclared caller from then on, permanently, which is a worse
+ *   failure than the one being protected against. Failing the unnamed slot,
+ *   the machine's only row is the convenience the office has always had. Two
+ *   or more *named* sessions and no name is not an answer, so nothing is
+ *   returned.
+ * - The **author is never inherited.** It is only ever declared. A caller that
+ *   named nobody gets no name at all — not even the machine's only one. That
+ *   fallback is exactly how one agent's work came to be signed with another
+ *   agent's name, silently: the wrong name is invisible to precisely the agent
+ *   it happens to be right for, who therefore has no reason to look. An
+ *   anonymous write shows up as a gap somebody can close; a plausible one
+ *   never does.
  */
 export function resolveScope(
   db: Database,
@@ -208,13 +241,16 @@ export function resolveScope(
   const ambiguous = !declaredAuthor && !remembered && named.length > 1;
 
   const project = declaredProject ?? remembered?.project ?? null;
-  const author = declaredAuthor ?? remembered?.author ?? null;
+  // Only ever declared — the remembered name is not borrowed. See the note
+  // above: lending it is how the office signed one agent's work with
+  // another's, and the agent it suited had no reason to look.
+  const author = declaredAuthor ?? null;
   const authorSource: ScopeSource = declaredAuthor
     ? "declared"
-    : remembered
-      ? "active"
-      : ambiguous
-        ? "ambiguous"
+    : ambiguous
+      ? "ambiguous"
+      : remembered
+        ? "active"
         : "none";
   return {
     project,
@@ -232,19 +268,11 @@ export function resolveScope(
  */
 export function authorWarnings(scope: Scope): AuthorWarning[] {
   if (scope.author_source === "declared") return [];
-  if (scope.author_source === "active" && scope.author) {
-    return [
-      {
-        level: "warn",
-        text: `no --by declared; using the remembered session \`${scope.author}\`. A future release will require --by (or OFFICE_AUTHOR).`,
-      },
-    ];
-  }
   if (scope.author_source === "active") {
     return [
       {
         level: "warn",
-        text: "no --by declared; you are in the unnamed slot, so nothing is attributed to you. If another agent is using this office you are sharing that slot — pass --by <agent> or export OFFICE_AUTHOR.",
+        text: "no --by declared; you are in the unnamed slot, so nothing is attributed to you — the office will not sign your work with a session it merely remembers. Pass --by <agent> or export OFFICE_AUTHOR.",
       },
     ];
   }
@@ -287,6 +315,10 @@ export type Briefing = {
   /** What someone else did since *your* last `begin`. Empty on a first visit. */
   notices: WorkEventSummary[];
   notices_since: string | null;
+  /** True when nothing was written: this briefing came from a read-only visit. */
+  readonly: boolean;
+  /** Why a read-only visit's notices may repeat, when there is anything to repeat. */
+  readonly_note: string | null;
   author_warnings: AuthorWarning[];
   store: {
     memories: number;
@@ -316,9 +348,12 @@ export async function briefing(
     /** What this call declared, so the briefing reports it rather than the
      *  fallback it happens to match. */
     declared?: { project?: string | null; author?: string | null };
+    /** A visit that wrote nothing, so the notice watermark did not move. */
+    readonly?: boolean;
   } = {},
 ): Promise<Briefing> {
   const scope = resolveScope(db, opts.declared);
+  const readOnly = Boolean(opts.readonly);
   const watermark = opts.since?.trim() || null;
   const result = await searchDetailed(db, embedder, "", BRIEFING_MEMORIES, {
     project: scope.project,
@@ -366,6 +401,12 @@ export async function briefing(
         })
       : [],
     notices_since: watermark,
+    readonly: readOnly,
+    readonly_note: readOnly
+      ? watermark
+        ? "nothing was written; your check-in time did not move, so the notices above will be shown again until a begin moves it"
+        : 'nothing was written; you have no previous check-in, so there is no "since you were last here" to report'
+      : null,
     author_warnings: authorWarnings(scope),
     store: {
       memories: countMemories(db),

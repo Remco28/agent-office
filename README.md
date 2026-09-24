@@ -108,10 +108,17 @@ Nothing is inferred from the working directory: agents are started in the office
 A session is keyed by author, so one agent cannot inherit or overwrite another's. Name yourself and the office keeps the two apart:
 
 - `begin --by <name>` records *that agent's* row. Its later commands resolve through it.
-- Declining to name yourself puts you in the **unnamed slot**: a project you declare is remembered there, nothing is ever attributed to you, and `begin` says so on stderr. That slot is not a person, so it never makes the office ambiguous. Ambiguity is losing track of which *named* session you are — two named sessions and no name — and then nothing is inherited.
+- Declining to name yourself puts you in the **unnamed slot**: a project you declare is remembered there, nothing is ever attributed to you, and `begin` says so on stderr. That slot is not a person, so it never makes the office ambiguous.
+- **An author is never inherited.** An undeclared caller is handed no name at all, not even the machine's only remembered one — borrowing that is how one agent's work came to be signed with another's. The *project* may still be remembered; the name may not. Ambiguity (two or more *named* sessions and no name) reaches the same null author with a louder warning.
 - `begin` lists every session it remembers and what the others did since you were last here. That is measured against your own previous check-in, so a first visit is handed the briefing rather than the whole trail.
 
 `--by` is expected and will be required in a future release. Export `OFFICE_AUTHOR` instead of repeating the flag. The reasoning is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
+
+### Reading without checking in
+
+`begin` is the front door and it writes, which locks out the agents it ought to suit most: one told not to modify state reads `AGENTS.md`, sees that `begin` records a session, and correctly refuses to run it — so it never enters at all. `office peek` is the read-only way in. Same briefing, nothing written; it is exactly `begin --readonly`. Because a peek does not move your check-in mark, its "since you were last here" notices repeat until a real `begin` moves it, and it says so rather than pretending to be a check-in.
+
+The other reads never write either — `context`, `search`, `work`, `tools`, `list`, `status`. Only `begin`, `remember`, `forget`, and the work/tools writers change the record.
 
 ## Two records, one file
 

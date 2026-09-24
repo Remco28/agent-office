@@ -12,9 +12,11 @@ office begin --project ~/Projects/the-thing --by <your-agent-name>
 
 This records the target for the session and returns what you need first: the tools this machine has, preferences that apply everywhere, who else is working here, what they did since your last visit, work nobody finished, and the memories for this project. Every later command inherits the project **for you**.
 
+**Read-only? Use `office peek`.** `begin` writes: it records a session row and moves your check-in mark. If you have been told not to modify state, do not talk yourself out of the office — run `peek` instead (the same as `begin --readonly`). It returns the same briefing and writes nothing, so your check-in mark stays where it was; that also means its notices repeat until a real `begin` moves it, and it says so. The plain reads never write at all: `context`, `search`, `work`, `tools`, `list`, `status`, `peek`. Only `begin`, `remember`, `forget`, `work open|note|close`, and `tools add|remove` change the record.
+
 **Name yourself.** The session is stored under the name you give, so it is how the office attributes what you write — and how the other agent tells your work from theirs. Do not use a name that belongs to the tool you are running: a plausible default is invisible to exactly the agent it happens to be right for, and wrong for every other. Export `OFFICE_AUTHOR` from your launcher instead of repeating the flag.
 
-If you do not name yourself you land in the **unnamed slot**: the office says so on stderr, remembers a project you declare there, and attributes nothing to you. Two *named* sessions and no name declared is the case where it declines to guess and inherits nothing.
+If you do not name yourself you land in the **unnamed slot**: the office says so on stderr, remembers a project you declare there, and attributes nothing to you. A name is never inherited — not even when the office remembers only one session, because that is how one agent's work ends up signed with another's. Two *named* sessions and no name declared reaches the same place with a louder warning.
 
 Nothing is inferred from the working directory — you are usually started in the office itself. If no project is declared, say so instead of guessing: `office begin` tells you.
 

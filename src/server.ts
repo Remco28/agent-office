@@ -10,7 +10,14 @@ import {
   searchDetailed,
   type SearchResult,
 } from "./memory";
-import { beginSession, briefing, getActive, listSessions, resolveScope } from "./session";
+import {
+  beginSession,
+  briefing,
+  getActive,
+  listSessions,
+  peekSession,
+  resolveScope,
+} from "./session";
 import { closeWork, getWork, listWork, noteWork, openWork } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
 import { NO_PROJECT_NOTE } from "./scope";
@@ -157,15 +164,22 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         const body = await readBody(req);
         const project = str(body.project);
         const author = str(body.author);
+        // A read-only visit is the same briefing with the door left shut: the
+        // caller's check-in mark is read, never moved, and no row is written.
+        // It exists so an agent told not to modify state can still come in.
+        const readonly = body.readonly === true;
         // Naming a target is the one declaration a session makes. Everything
         // after this inherits it; nothing is inferred from the working dir.
         // The row this call replaces is the watermark, so it is read first.
-        const { previous } = beginSession(db, { project, author });
+        const { previous } = readonly
+          ? peekSession(db, { project, author })
+          : beginSession(db, { project, author });
         // Passing the declaration in is what makes the briefing report the
         // scope this call named, and the advice it gives match.
         const result = await briefing(db, embedder, {
           since: previous?.updated_at ?? null,
           declared: { project, author },
+          readonly,
         });
         return json({ ...result, warnings: warnings() });
       }

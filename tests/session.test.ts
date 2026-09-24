@@ -10,6 +10,7 @@ import {
   getActive,
   getSession,
   listSessions,
+  peekSession,
   resolveScope,
   setActive,
 } from "../src/session";
@@ -38,7 +39,8 @@ describe("session", () => {
 
     const result = await briefing(db, embedder);
     expect(result.project).toBe("alpha");
-    expect(result.author).toBe("freebuff");
+    // the project is remembered for the undeclared caller; the name is not
+    expect(result.author).toBeNull();
     expect(result.note).toBeNull();
     expect(result.tools.map((t) => t.name)).toEqual(["rg"]);
     expect(result.preferences.map((m) => m.content)).toEqual(["always use tabs"]);
@@ -85,7 +87,7 @@ describe("session", () => {
     expect(result.store.work_open).toBe(1);
   });
 
-  test("naming a target replaces what the office remembered, for that author", () => {
+  test("naming a target replaces the remembered project, but never lends its author", () => {
     const db = tempDb();
     dbs.push(db);
     setActive(db, { project: "alpha", author: "freebuff" });
@@ -93,8 +95,9 @@ describe("session", () => {
 
     const scope = resolveScope(db);
     expect(scope.project).toBe(join(homedir(), "Projects", "beta"));
-    expect(scope.author).toBe("freebuff");
     expect(scope.project_source).toBe("active");
+    // the project is remembered; the name is not handed over
+    expect(scope.author).toBeNull();
     expect(scope.author_source).toBe("active");
     expect(getActive(db)?.project).toBe(join(homedir(), "Projects", "beta"));
   });
@@ -107,8 +110,22 @@ describe("session", () => {
     const scope = resolveScope(db, { project: "/somewhere/else" });
     expect(scope.project).toBe("/somewhere/else");
     expect(scope.project_source).toBe("declared");
-    // the author was not restated, so the session's author still applies
-    expect(scope.author).toBe("freebuff");
+    // an author is only ever declared: not restating it does not borrow it
+    expect(scope.author).toBeNull();
+    expect(scope.author_source).toBe("active");
+  });
+
+  test("the machine's only remembered session is not handed to a caller that named nobody", () => {
+    const db = tempDb();
+    dbs.push(db);
+    setActive(db, { project: "/p/alpha", author: "freebuff" });
+
+    // exactly one row and no declaration: the project is remembered, the name
+    // is not. This is the fallback that used to sign OpenCode's work 'freebuff'
+    const scope = resolveScope(db);
+    expect(scope.project).toBe("/p/alpha");
+    expect(scope.project_source).toBe("active");
+    expect(scope.author).toBeNull();
     expect(scope.author_source).toBe("active");
   });
 
@@ -170,9 +187,12 @@ describe("session", () => {
     expect(authorWarnings(resolveScope(db))[0]?.text).toContain("no session recorded");
 
     setActive(db, { project: "alpha", author: "freebuff" });
-    expect(authorWarnings(resolveScope(db))[0]?.text).toContain(
-      "using the remembered session `freebuff`",
-    );
+    const remembered = authorWarnings(resolveScope(db));
+    expect(remembered[0]?.level).toBe("warn");
+    // it says the work is unsigned; it does not report the remembered name as
+    // though it were yours to use
+    expect(remembered[0]?.text).toContain("nothing is attributed to you");
+    expect(remembered[0]?.text).not.toContain("freebuff");
 
     setActive(db, { project: "beta", author: "opencode" });
     const ambiguous = authorWarnings(resolveScope(db));
@@ -187,11 +207,13 @@ describe("session", () => {
     dbs.push(db);
     beginSession(db, { project: "alpha", author: "freebuff" });
 
-    // resolved without the declaration, the one remembered session is used,
-    // which is exactly the case the deprecation warning is about
+    // resolved without the declaration, the remembered session supplies the
+    // project but not the name — which is exactly what the warning is about
     const inherited = await briefing(db, fakeEmbedder());
     expect(inherited.author_warnings).toHaveLength(1);
     expect(inherited.author_source).toBe("active");
+    expect(inherited.author).toBeNull();
+    expect(inherited.project).toBe("alpha");
 
     const declared = await briefing(db, fakeEmbedder(), {
       declared: { project: "alpha", author: "freebuff" },
@@ -231,7 +253,12 @@ describe("session", () => {
     noteWork(db, item.id, { text: "no signature at all", author: null });
     openWork(db, { title: "beta thing", project: "beta", author: "opencode" });
 
-    const result = await briefing(db, fakeEmbedder(), { since: watermark });
+    // the caller has to say who it is before "not mine" means anything: a
+    // declaration is the only thing that sets an author now
+    const result = await briefing(db, fakeEmbedder(), {
+      since: watermark,
+      declared: { project: "alpha", author: "freebuff" },
+    });
     // in scope, not mine, newest first
     expect(result.notices.map((n) => n.text)).toEqual(["no signature at all", "half done"]);
     expect(result.notices[0]?.work_id).toBe(item.id);
@@ -320,5 +347,80 @@ describe("session", () => {
 
     expect(getSession(db, "freebuff")?.project).toBe("alpha");
     expect(resolveScope(db, { author: "freebuff" }).project).toBe("alpha");
+  });
+
+  test("a peek is a begin with none of the writes", () => {
+    const db = tempDb();
+    dbs.push(db);
+    const begun = beginSession(db, { project: "alpha", author: "freebuff" });
+    const mark = begun.current!.updated_at;
+
+    const peeked = peekSession(db, { project: "/p/elsewhere", author: "freebuff" });
+    // the check-in mark is read and left exactly where it was: no row written,
+    // no project replaced, nothing set
+    expect(peeked.previous?.updated_at).toBe(mark);
+    expect(peeked.current).toBeNull();
+    expect(getSession(db, "freebuff")?.updated_at).toBe(mark);
+    expect(getSession(db, "freebuff")?.project).toBe("alpha");
+  });
+
+  test("a peek by an author the office has never seen leaves no row behind", () => {
+    const db = tempDb();
+    dbs.push(db);
+    const peeked = peekSession(db, { project: "alpha", author: "newcomer" });
+
+    expect(peeked.previous).toBeNull();
+    expect(getSession(db, "newcomer")).toBeNull();
+    expect(listSessions(db)).toEqual([]);
+  });
+
+  test("a read-only visit reports notices without advancing the mark", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    const begun = beginSession(db, { project: "alpha", author: "freebuff" });
+    const mark = begun.current!.updated_at;
+    await Bun.sleep(5);
+    const item = openWork(db, { title: "alpha thing", project: "alpha", author: "freebuff" });
+    await Bun.sleep(5);
+    noteWork(db, item.id, { text: "someone else's note", author: "opencode" });
+
+    const read = await briefing(db, fakeEmbedder(), {
+      since: peekSession(db, { author: "freebuff" }).previous?.updated_at ?? null,
+      declared: { project: "alpha", author: "freebuff" },
+      readonly: true,
+    });
+    expect(read.readonly).toBe(true);
+    expect(read.readonly_note).toContain("did not move");
+    expect(read.notices.map((n) => n.text)).toEqual(["someone else's note"]);
+
+    // nothing moved, so a second peek is handed the same thing
+    expect(getSession(db, "freebuff")?.updated_at).toBe(mark);
+    const repeat = await briefing(db, fakeEmbedder(), {
+      since: mark,
+      declared: { project: "alpha", author: "freebuff" },
+      readonly: true,
+    });
+    expect(repeat.notices.map((n) => n.text)).toEqual(["someone else's note"]);
+
+    // a real check-in moves the mark, and only what follows it is news
+    const checkedIn = beginSession(db, { project: "alpha", author: "freebuff" });
+    expect(checkedIn.current!.updated_at).not.toBe(mark);
+    const quiet = await briefing(db, fakeEmbedder(), {
+      since: checkedIn.current!.updated_at,
+      declared: { project: "alpha", author: "freebuff" },
+    });
+    expect(quiet.readonly).toBe(false);
+    expect(quiet.readonly_note).toBeNull();
+    expect(quiet.notices).toEqual([]);
+  });
+
+  test("a read-only visit with no check-in says there is nothing to measure", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    const result = await briefing(db, fakeEmbedder(), { readonly: true });
+
+    expect(result.readonly).toBe(true);
+    expect(result.notices).toEqual([]);
+    expect(result.readonly_note).toContain("no previous check-in");
   });
 });
