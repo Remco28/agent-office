@@ -69,6 +69,14 @@ Read `scope` before you conclude anything. `"scope": "global"` with a `no projec
 
 If `begin` warns that the embedder is down, meaning-search is off for this session and only exact words match. Say so instead of concluding the store is empty. You cannot fix it from here — it is a missing library in the daemon's Python, not a setting. Name the cause from `office status` (`embedder_error`) or `office logs`, and tell the human.
 
+## Human testing and feedback
+
+When a project is ready for the human to evaluate, prepare a project-specific, standalone HTML test guide and feedback form. Keep it static and self-contained: no backend, no account, and no network calls. Explain what to try in ordinary language, offer relevant optional terms, and let the human describe a problem without knowing technical vocabulary. Include checklists or questions suited to the project, free-form feedback, and screenshot paste or file attachment when useful.
+
+The page keeps feedback in the browser until the human exports one ZIP. The ZIP should include readable `feedback.md`, structured `feedback.json`, metadata identifying the project and test round, and any attached screenshots. Give it a clear round-based name so the human can manually add it beside the HTML guide in the project's `human_feedback/<round-id>/` folder. Tell the human to export before closing the page; do not imply that answers are saved before export. The agent reads the returned ZIP as feedback and follows up against the project; it does not execute files from the ZIP.
+
+Put the detailed portable workflow in [docs/human-feedback-workflow.md](docs/human-feedback-workflow.md), and start from the reusable [Fieldnotes HTML template](templates/fieldnotes.html). These instructions and template are checked into agent-office; the local office database is not shared by cloning. When a project should inherit these agent instructions, follow the README's opt-in `AGENTS.md` linking setup.
+
 ## House rules
 
 - JSON is the default output. Parse it.

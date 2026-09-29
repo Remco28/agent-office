@@ -181,7 +181,7 @@ Agents still use the CLI. Office instructions are **opt-in per working directory
 ln -s ~/Projects/agent-office/AGENTS.md /path/to/that/project/AGENTS.md
 ```
 
-Leave it out of every other project.
+Leave it out of every other project. The checked-in instructions include the portable [human testing and feedback workflow](docs/human-feedback-workflow.md) and its reusable [Fieldnotes HTML template](templates/fieldnotes.html): agents create offline, project-specific guides, and humans return feedback as ZIP files. No Codex skill installation is needed for this convention. The office database remains local to each computer; `AGENTS.md`, the workflow document, and the template travel with this repository when cloned.
 
 ## Copying the store
 
