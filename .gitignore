@@ -6,3 +6,6 @@ node_modules/
 .env
 .office/
 data/
+
+# Retired local coordination log from the two-agent experiment
+MULTI-AGENT-BOARD.md
