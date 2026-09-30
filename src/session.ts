@@ -162,8 +162,12 @@ export function beginSession(
   db: Database,
   input: { project?: string | null; author?: string | null },
 ): BeginResult {
-  const author = input.author?.trim() || envAuthor();
-  const project = input.project?.trim() ? normalizeProject(input.project) : envProject();
+  // The name is whatever the caller declared — there is deliberately no
+  // process.env fallback here. This runs inside the daemon, and the daemon is a
+  // long-lived shared process whose environment belongs to whoever started it,
+  // not to the caller. See resolveScope for the full reasoning.
+  const author = input.author?.trim() || null;
+  const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const previous = getSession(db, author);
   const declared = author !== null || project !== null;
   return { previous, current: declared ? setActive(db, { project, author }) : null };
@@ -189,17 +193,8 @@ export function peekSession(
   db: Database,
   input: { project?: string | null; author?: string | null } = {},
 ): BeginResult {
-  const author = input.author?.trim() || envAuthor();
+  const author = input.author?.trim() || null;
   return { previous: getSession(db, author), current: null };
-}
-
-function envProject(): string | null {
-  const raw = process.env.OFFICE_PROJECT ?? process.env.OFFICE_SOURCE;
-  return raw?.trim() ? normalizeProject(raw) : null;
-}
-
-function envAuthor(): string | null {
-  return process.env.OFFICE_AUTHOR?.trim() || null;
 }
 
 /**
@@ -230,13 +225,21 @@ function envAuthor(): string | null {
  *   it happens to be right for, who therefore has no reason to look. An
  *   anonymous write shows up as a gap somebody can close; a plausible one
  *   never does.
+ *
+ * `OFFICE_PROJECT`/`OFFICE_AUTHOR` are resolved by the *caller*, never here.
+ * This function runs inside the daemon — a long-lived, shared process — so its
+ * environment belongs to whoever started it. A daemon started with
+ * `OFFICE_AUTHOR=probe` would otherwise sign every unnamed write on the machine
+ * with that name and report it as `declared`. The CLI folds its own
+ * environment into the request body; a caller that reaches the daemon directly
+ * must put the name and project there too.
  */
 export function resolveScope(
   db: Database,
   input: { project?: string | null; author?: string | null } = {},
 ): Scope {
-  const declaredProject = input.project?.trim() ? normalizeProject(input.project) : envProject();
-  const declaredAuthor = input.author?.trim() || envAuthor();
+  const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
+  const declaredAuthor = input.author?.trim() || null;
 
   const rows = storedSessions(db);
   const mine = declaredAuthor

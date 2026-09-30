@@ -335,15 +335,34 @@ describe("session", () => {
     setActive(db, { project: "beta", author: "opencode" });
 
     // a launcher that exports OFFICE_AUTHOR attributes correctly without
-    // touching what the office remembers for anyone else
+    // touching what the office remembers for anyone else: the caller resolves
+    // its own environment and declares the answer in the request
+    const result = await briefing(db, fakeEmbedder(), { declared: { author: "freebuff" } });
+    expect(result.sessions.map((s) => s.author)).toEqual(["opencode", "freebuff"]);
+    expect(result.sessions.map((s) => s.is_you)).toEqual([false, true]);
+    expect(result.author).toBe("freebuff");
+    expect(result.project).toBe("alpha");
+  });
+
+  test("the daemon's own environment does not name an unnamed caller", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    setActive(db, { project: "alpha", author: "freebuff" });
+    setActive(db, { project: "beta", author: "opencode" });
+
+    // This used to be read out of `process.env` *inside the daemon*, so a
+    // daemon started with OFFICE_AUTHOR=probe signed every unnamed write on the
+    // machine with that name and reported it as `declared`. The daemon is
+    // shared and long-lived; its environment is not the caller's.
     const previous = process.env.OFFICE_AUTHOR;
-    process.env.OFFICE_AUTHOR = "freebuff";
+    process.env.OFFICE_AUTHOR = "probe";
     try {
-      const result = await briefing(db, fakeEmbedder());
-      expect(result.sessions.map((s) => s.author)).toEqual(["opencode", "freebuff"]);
-      expect(result.sessions.map((s) => s.is_you)).toEqual([false, true]);
-      expect(result.author).toBe("freebuff");
-      expect(result.project).toBe("alpha");
+      const scope = resolveScope(db);
+      expect(scope.author).toBeNull();
+      expect(scope.author_source).toBe("ambiguous");
+      const result = await briefing(db, fakeEmbedder(), { declared: {} });
+      expect(result.author).toBeNull();
+      expect(result.sessions.every((s) => !s.is_you)).toBe(true);
     } finally {
       if (previous === undefined) delete process.env.OFFICE_AUTHOR;
       else process.env.OFFICE_AUTHOR = previous;

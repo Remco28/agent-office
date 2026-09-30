@@ -188,9 +188,15 @@ Two smaller repairs came with it:
   declared author can no longer be handed the other agent's history as "what
   happened since you were last here".
 
-`beginSession` also honours `OFFICE_PROJECT`/`OFFICE_AUTHOR` directly now. That
-only matters to a caller talking to the daemon without the CLI in front of it —
-the CLI already folded both into the request body.
+`beginSession` used to honour `OFFICE_PROJECT`/`OFFICE_AUTHOR` directly. That
+fallback is gone (`2026-09-30`), because it ran *inside the daemon*: the daemon
+is a long-lived shared process, so its environment belongs to whoever started
+it, not to the caller. A daemon started with `OFFICE_AUTHOR=probe` signed every
+unnamed write on the machine with that name and reported it as `declared` —
+exactly the silent mis-attribution the rules above exist to prevent. Environment
+fallbacks live in the caller now: the CLI folds its own `OFFICE_*` into the
+request body, and a caller reaching the daemon directly must put its name and
+project there too.
 
 ## Known, not fixed here
 
