@@ -135,18 +135,40 @@ export function closeWork(
   return getWork(db, id)!;
 }
 
+/**
+ * What a caller is allowed to ask the trail for. Each arm is a deliberate
+ * choice — the scope used to be optional, and leaving it out meant "every
+ * project's loose ends", which is the one read a scoped office is supposed to
+ * refuse. So the read is now a required argument and there is no way to ask
+ * for work by not asking.
+ *
+ * - `project` is the handover: what this project left unfinished.
+ * - `unclaimed` is what was filed with no project at all. Those items belong
+ *   to nobody, so showing them to a caller with no project is not a guess —
+ *   it is the only way an orphaned handoff is ever found again.
+ * - `all` is the whole trail, asked for by name. It is the human's view, the
+ *   same kind of read as `office list`.
+ */
+export type WorkRead =
+  | { kind: "project"; project: string }
+  | { kind: "unclaimed" }
+  | { kind: "all" };
+
 export function listWork(
   db: Database,
-  opts: { project?: string | null; includeClosed?: boolean; limit?: number } = {},
+  read: WorkRead,
+  opts: { includeClosed?: boolean; limit?: number } = {},
 ): WorkItem[] {
   const limit = Math.max(1, Math.min(opts.limit ?? 20, 200));
   const where: string[] = [];
   const params: (string | number)[] = [];
-  if (opts.project) {
-    const matches = matchingProjects(db, opts.project);
+  if (read.kind === "project") {
+    const matches = matchingProjects(db, read.project);
     if (!matches.length) return [];
     where.push(`w.project IN (${matches.map(() => "?").join(",")})`);
     params.push(...matches);
+  } else if (read.kind === "unclaimed") {
+    where.push("w.project IS NULL");
   }
   if (!opts.includeClosed) {
     where.push(
@@ -167,6 +189,10 @@ export function listWork(
 export type WorkEventSummary = {
   work_id: number;
   title: string;
+  /** Which project it belongs to. Carried so an office-wide activity list can
+   *  say where each item came from instead of handing it over as if it were
+   *  the reader's. */
+  project: string | null;
   kind: WorkEventKind;
   text: string;
   author: string | null;
@@ -184,15 +210,29 @@ export function recentEvents(
   opts: {
     project?: string | null;
     since?: string | null;
+    /**
+     * The caller has no visit of its own to measure from — a fresh agent. It
+     * is given the most recent events instead of nothing, because an empty
+     * answer here is exactly what sends a stranger hunting the machine for
+     * changes it never made. With no project named the result is the whole
+     * office's activity, each item labelled with where it came from.
+     */
+    latest?: boolean;
     excludeAuthor?: string | null;
     limit?: number;
   } = {},
 ): WorkEventSummary[] {
   const since = opts.since?.trim();
-  if (!since) return [];
+  // No watermark and no request for the recent trail: there is no question to
+  // answer, so answer nothing rather than the whole log.
+  if (!since && !opts.latest) return [];
   const limit = Math.max(1, Math.min(opts.limit ?? 10, 200));
-  const where = ["e.created_at > ?"];
-  const params: (string | number)[] = [since];
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+  if (since) {
+    where.push("e.created_at > ?");
+    params.push(since);
+  }
   if (opts.project) {
     const matches = matchingProjects(db, opts.project);
     if (!matches.length) return [];
@@ -205,17 +245,19 @@ export function recentEvents(
     where.push("(e.author IS NULL OR e.author <> ?)");
     params.push(opts.excludeAuthor);
   }
+  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const rows = db
     .query(
-      `SELECT e.work_id, w.title, e.kind, e.text, e.author, e.created_at
+      `SELECT e.work_id, w.title, w.project, e.kind, e.text, e.author, e.created_at
        FROM work_events e JOIN work w ON w.id = e.work_id
-       WHERE ${where.join(" AND ")}
+       ${clause}
        ORDER BY e.created_at DESC, e.id DESC
        LIMIT ?`,
     )
     .all(...params, limit) as {
     work_id: number;
     title: string;
+    project: string | null;
     kind: WorkEventKind;
     text: string;
     author: string | null;
@@ -224,6 +266,7 @@ export function recentEvents(
   return rows.map((row) => ({
     work_id: row.work_id,
     title: row.title,
+    project: row.project,
     kind: row.kind,
     text: row.text,
     author: row.author,
@@ -245,6 +288,18 @@ export function openWorkCount(db: Database): number {
 
 export function workCount(db: Database): number {
   const row = db.query("SELECT COUNT(*) AS n FROM work").get() as { n: number };
+  return row.n;
+}
+
+/**
+ * Work filed with no project, open or closed: reachable only by asking for
+ * the unclaimed. This is the count of handoffs that a project-scoped read
+ * cannot find, which is exactly what makes them worth counting out loud.
+ */
+export function unclaimedWorkCount(db: Database): number {
+  const row = db.query("SELECT COUNT(*) AS n FROM work WHERE project IS NULL").get() as {
+    n: number;
+  };
   return row.n;
 }
 

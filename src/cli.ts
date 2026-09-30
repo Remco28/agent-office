@@ -121,9 +121,12 @@ function help(): string {
 
   office begin --project <path> --by <agent>
                               start a session: name the target and yourself,
-                              get the tools, preferences, who else is here,
-                              what happened since you were last here, and the
-                              unfinished work
+                              get the tools, preferences, who else is here
+                              (with how long ago each was last seen), what has
+                              happened here, and the unfinished work. On a
+                              first visit the activity is the office's most
+                              recent, since you have no last visit to measure
+                              from
   office peek [--project <path>] [--by <agent>]
                               the same briefing, read-only: nothing is written
                               and your check-in time does not move. Use this
@@ -135,11 +138,12 @@ function help(): string {
   office list [--limit n]     recent memories, newest first
   office forget <id>          delete a memory
 
-  office work                 unfinished work for this project
+  office work                 unfinished work for this project; with no
+                              project named, the items filed unclaimed
   office work open <title>    start a piece of work
   office work note <id> <text>   append where you got to
   office work close <id> [text]  say it is finished
-  office work log [--all]     recent work, newest first
+  office work log [--all]     the whole trail, every project, newest first
 
   office tools                what this machine has
   office tools add <name> [--use <cmd>] [--note <text>] <summary>
@@ -158,6 +162,8 @@ is keyed by author; a field you do not restate is kept. Pass neither to just
 read. --by is expected: without it your work lands in the unnamed slot,
 unattributed, rather than filed under whoever else was here last. Export
 OFFICE_AUTHOR instead of repeating the flag.
+Records written with no project are filed unclaimed: no project-scoped read
+returns them, so the office names them instead of losing them quietly.
 JSON is the default for agent commands. Pass --text for a short listing.
 Daemon binds 127.0.0.1:${port()}. Data: ${dataDir()}
 `;
@@ -184,19 +190,28 @@ type BriefingView = {
   tools: Array<{ name: string; summary: string; usage: string | null }>;
   preferences: Hit[];
   open_work: Array<{ id: number; title: string; last_note: string | null; last_note_author: string | null }>;
+  open_work_note?: string | null;
   memories: Hit[];
   readonly?: boolean;
   readonly_note?: string | null;
-  sessions?: Array<{ author: string | null; project: string | null; since: string; is_you: boolean }>;
+  sessions?: Array<{
+    author: string | null;
+    project: string | null;
+    since: string;
+    last_seen?: string;
+    is_you: boolean;
+  }>;
   notices?: Array<{
     work_id: number;
     title: string;
+    project?: string | null;
     kind: string;
     text: string;
     author: string | null;
     at: string;
   }>;
   notices_since?: string | null;
+  notices_note?: string | null;
   author_warnings?: Array<{ level: string; text: string }>;
   note?: string | null;
 };
@@ -214,14 +229,23 @@ function printBriefing(data: BriefingView): void {
       out.push(`  ${who}${you}   last here ${formatAgo(session.since)}`);
     }
   }
-  if (data.notices_since) {
-    const notices = data.notices ?? [];
-    out.push("", `since you were last here (${formatAgo(data.notices_since)})`);
+  const notices = data.notices ?? [];
+  if (data.notices_since || notices.length) {
+    out.push(
+      "",
+      data.notices_since
+        ? `since you were last here (${formatAgo(data.notices_since)})`
+        : "recent activity here",
+    );
     if (!notices.length) out.push("  (nothing)");
     for (const notice of notices) {
       const what = notice.text ? `  — ${notice.text}` : "";
-      out.push(`  #${notice.work_id}  ${notice.kind}${byline(notice.author)}${what}`);
+      // Only worth naming the project when the list is not already one
+      // project's: a visitor with no project is shown the whole office.
+      const where = data.notices_since ? "" : `  [${notice.project ?? "unclaimed"}]`;
+      out.push(`  #${notice.work_id}  ${notice.kind}${byline(notice.author)}${where}${what}`);
     }
+    if (data.notices_note) out.push(`  ${data.notices_note}`);
   }
   if (data.readonly_note) out.push("", `read-only   ${data.readonly_note}`);
   if (data.tools.length) {
@@ -240,6 +264,7 @@ function printBriefing(data: BriefingView): void {
       const note = item.last_note ? `  — ${item.last_note}${byline(item.last_note_author)}` : "";
       out.push(`  #${item.id}  ${item.title}${note}`);
     }
+    if (data.open_work_note) out.push(`  ${data.open_work_note}`);
   }
   out.push("", "memories");
   if (!data.memories.length) out.push("  (none)");
@@ -358,7 +383,7 @@ export async function main(argv = process.argv): Promise<number> {
     if (!content) {
       throw new Error("usage: office remember [--tag t] [--project p] <text>");
     }
-    const data = await api("/remember", {
+    const data = (await api("/remember", {
       method: "POST",
       body: {
         content,
@@ -367,8 +392,11 @@ export async function main(argv = process.argv): Promise<number> {
         author: declaredAuthor(opts),
         scope: opts.scope ?? null,
       },
-    });
+    })) as { unattributed?: boolean; note?: string | null };
     printJson(data);
+    // Said at the moment it is written, because now the agent can fix it for
+    // free and later it is a record no project read will find.
+    if (data.unattributed && data.note) process.stderr.write(`warn: ${data.note}\n`);
     return 0;
   }
 
@@ -417,7 +445,13 @@ export async function main(argv = process.argv): Promise<number> {
     const sub = opts.rest[0] ?? "list";
     if (sub === "list" || sub === "log") {
       const all = sub === "log" || opts.all ? "1" : "0";
-      const params = new URLSearchParams({ all, limit: String(opts.limit ?? 20) });
+      const params = new URLSearchParams({
+        all,
+        limit: String(opts.limit ?? 20),
+        // The trail is asked for by name; anything else is scoped, and with no
+        // project that means the unclaimed items rather than every project's.
+        read: sub === "log" ? "trail" : "scoped",
+      });
       if (opts.project) params.set("project", opts.project);
       const data = (await api(`/work?${params}`)) as {
         work: Array<{
@@ -429,6 +463,8 @@ export async function main(argv = process.argv): Promise<number> {
           closed: boolean;
         }>;
         project: string | null;
+        read?: string;
+        note?: string | null;
       };
       if (asText) {
         if (!data.work.length) process.stdout.write("(none)\n");
@@ -437,6 +473,7 @@ export async function main(argv = process.argv): Promise<number> {
           const note = item.last_note ? `  — last note${byline(item.last_note_author)}` : "";
           process.stdout.write(`[${mark}] #${item.id}  ${item.title}${note}\n`);
         }
+        if (data.note) process.stdout.write(`${data.note}\n`);
       } else {
         printJson(data);
       }
@@ -445,12 +482,12 @@ export async function main(argv = process.argv): Promise<number> {
     if (sub === "open") {
       const title = opts.rest.slice(1).join(" ").trim();
       if (!title) throw new Error("usage: office work open <title>");
-      printJson(
-        await api("/work/open", {
-          method: "POST",
-          body: { title, project: declaredProject(opts), author: declaredAuthor(opts) },
-        }),
-      );
+      const data = (await api("/work/open", {
+        method: "POST",
+        body: { title, project: declaredProject(opts), author: declaredAuthor(opts) },
+      })) as { unclaimed?: boolean; note?: string | null };
+      printJson(data);
+      if (data.unclaimed && data.note) process.stderr.write(`warn: ${data.note}\n`);
       return 0;
     }
     if (sub === "note" || sub === "close") {

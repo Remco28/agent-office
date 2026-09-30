@@ -9,6 +9,7 @@ import {
   openWorkCount,
   pruneLog,
   recentEvents,
+  unclaimedWorkCount,
 } from "../src/work";
 import { tempDb } from "./helpers";
 
@@ -24,10 +25,10 @@ describe("work log", () => {
     dbs.push(db);
     const item = openWork(db, { title: "auth refactor", project: "alpha", author: "freebuff" });
     expect(item.closed).toBe(false);
-    expect(listWork(db).map((w) => w.id)).toEqual([item.id]);
+    expect(listWork(db, { kind: "all" }).map((w) => w.id)).toEqual([item.id]);
 
     noteWork(db, item.id, { text: "login.ts done, reset.ts next", author: "freebuff" });
-    const open = listWork(db)[0];
+    const open = listWork(db, { kind: "all" })[0];
     expect(open.last_note).toBe("login.ts done, reset.ts next");
     expect(open.closed).toBe(false);
 
@@ -35,8 +36,8 @@ describe("work log", () => {
     expect(closed.closed).toBe(true);
     // the whole trail is still there: open, note, close
     expect(closed.events).toBe(3);
-    expect(listWork(db)).toHaveLength(0);
-    expect(listWork(db, { includeClosed: true })).toHaveLength(1);
+    expect(listWork(db, { kind: "all" })).toHaveLength(0);
+    expect(listWork(db, { kind: "all" }, { includeClosed: true })).toHaveLength(1);
     expect(openWorkCount(db)).toBe(0);
   });
 
@@ -46,7 +47,7 @@ describe("work log", () => {
     const item = openWork(db, { title: "photo sort", project: "photos" });
     noteWork(db, item.id, { text: "halfway through 2023, rest untouched" });
 
-    const open = listWork(db, { project: "photos" });
+    const open = listWork(db, { kind: "project", project: "photos" });
     expect(open).toHaveLength(1);
     expect(open[0].closed).toBe(false);
     expect(open[0].last_note).toBe("halfway through 2023, rest untouched");
@@ -112,14 +113,14 @@ describe("work log", () => {
     const item = openWork(db, { title: "M4 container", project: "alpha", author: "opencode" });
     noteWork(db, item.id, { text: "built in a worktree", author: "opencode" });
 
-    const [open] = listWork(db, { project: "alpha" });
+    const [open] = listWork(db, { kind: "project", project: "alpha" });
     expect(open.last_note).toBe("built in a worktree");
     // stored since the log existed, and dropped by the query until now
     expect(open.last_note_author).toBe("opencode");
 
     // an unsigned note stays unsigned rather than borrowing the item's author
     noteWork(db, item.id, { text: "something else" });
-    expect(listWork(db, { project: "alpha" })[0].last_note_author).toBeNull();
+    expect(listWork(db, { kind: "project", project: "alpha" })[0].last_note_author).toBeNull();
   });
 
   test("what a project's trail gained since a moment, minus your own work", () => {
@@ -142,13 +143,60 @@ describe("work log", () => {
     expect(recentEvents(db, { project: "alpha", since: before })[0]?.title).toBe("alpha thing");
   });
 
+  test("a fresh agent with no visit of its own is shown what happened lately", () => {
+    const db = tempDb();
+    dbs.push(db);
+    openWork(db, { title: "alpha thing", project: "alpha", author: "opencode" });
+    openWork(db, { title: "unclaimed thing", author: null });
+
+    // `latest` is the frame for a stranger: the most recent events, each
+    // labelled with where it came from, without needing a visit to measure from
+    const recent = recentEvents(db, { latest: true });
+    expect(recent.map((e) => e.title).sort()).toEqual(["alpha thing", "unclaimed thing"]);
+    expect(recent.find((e) => e.title === "alpha thing")?.project).toBe("alpha");
+    expect(recent.find((e) => e.title === "unclaimed thing")?.project).toBeNull();
+
+    // a project still narrows it
+    expect(recentEvents(db, { project: "alpha", latest: true }).map((e) => e.title)).toEqual([
+      "alpha thing",
+    ]);
+    // and the cap holds
+    expect(recentEvents(db, { latest: true, limit: 1 })).toHaveLength(1);
+  });
+
   test("the trail can be read for one project at a time", () => {
     const db = tempDb();
     dbs.push(db);
     openWork(db, { title: "alpha thing", project: "alpha" });
     openWork(db, { title: "beta thing", project: "beta" });
-    expect(listWork(db, { project: "alpha" }).map((w) => w.title)).toEqual(["alpha thing"]);
-    expect(listWork(db).map((w) => w.title).sort()).toEqual(["alpha thing", "beta thing"]);
-    expect(listWork(db, { project: "gamma" })).toEqual([]);
+    expect(listWork(db, { kind: "project", project: "alpha" }).map((w) => w.title)).toEqual([
+      "alpha thing",
+    ]);
+    expect(listWork(db, { kind: "all" }).map((w) => w.title).sort()).toEqual([
+      "alpha thing",
+      "beta thing",
+    ]);
+    expect(listWork(db, { kind: "project", project: "gamma" })).toEqual([]);
+  });
+
+  test("work filed with no project is reachable only by asking for the unclaimed", () => {
+    const db = tempDb();
+    dbs.push(db);
+    openWork(db, { title: "alpha thing", project: "alpha" });
+    const orphan = openWork(db, { title: "filed with nobody looking" });
+
+    // A project read cannot see it...
+    expect(listWork(db, { kind: "project", project: "alpha" }).map((w) => w.title)).toEqual([
+      "alpha thing",
+    ]);
+    // ...the unclaimed read is the one that can, which is what keeps a handoff
+    // that lost its project from being lost for good
+    expect(listWork(db, { kind: "unclaimed" }).map((w) => w.id)).toEqual([orphan.id]);
+    expect(unclaimedWorkCount(db)).toBe(1);
+    expect(listWork(db, { kind: "unclaimed" }, { includeClosed: true })).toHaveLength(1);
+
+    closeWork(db, orphan.id);
+    expect(listWork(db, { kind: "unclaimed" })).toEqual([]);
+    expect(unclaimedWorkCount(db)).toBe(1);
   });
 });

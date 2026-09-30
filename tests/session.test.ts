@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fakeEmbedder } from "../src/embed";
 import { remember } from "../src/memory";
 import {
+  BRIEFING_NOTICES,
   authorWarnings,
   beginSession,
   briefing,
@@ -265,16 +266,65 @@ describe("session", () => {
     expect(result.notices_since).toBe(watermark);
   });
 
-  test("a first visit is handed the briefing, not the whole trail", async () => {
+  test("a first visit is handed recent activity, framed, not the whole trail", async () => {
     const db = tempDb();
     dbs.push(db);
     const item = openWork(db, { title: "old thing", project: "alpha", author: "opencode" });
     noteWork(db, item.id, { text: "written before you existed", author: "opencode" });
 
     const result = await briefing(db, fakeEmbedder());
-    expect(result.notices).toEqual([]);
+    // No visit of its own to measure from. Answering that with nothing is what
+    // sends a stranger hunting the machine for changes it never made, so the
+    // recent activity is handed over instead — labelled with where it came
+    // from, because the reader has no project of its own to compare against.
+    expect(result.notices.map((n) => n.text)).toEqual(["written before you existed", "old thing"]);
+    expect(result.notices[0]?.project).toBe("alpha");
     expect(result.notices_since).toBeNull();
+    expect(result.notices_note).toContain("most recent activity");
+    // the trail itself is still not spilled: the cap holds
+    expect(result.notices.length).toBeLessThanOrEqual(BRIEFING_NOTICES);
     expect(result.author_warnings.length).toBeGreaterThan(0);
+  });
+
+  test("a visit with a watermark of its own is not given the stranger's frame", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    setActive(db, { project: "alpha", author: "freebuff" });
+    const result = await briefing(db, fakeEmbedder(), {
+      since: new Date().toISOString(),
+      declared: { project: "alpha", author: "freebuff" },
+    });
+    expect(result.notices_note).toBeNull();
+  });
+
+  test("unfinished work with no project is handed over rather than hidden", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    const orphan = openWork(db, { title: "filed with nobody looking" });
+    openWork(db, { title: "alpha refactor", project: "alpha" });
+
+    // No project named: another project's work is not lent to us...
+    const stranger = await briefing(db, fakeEmbedder());
+    expect(stranger.open_work.map((w) => w.id)).toEqual([orphan.id]);
+    expect(stranger.open_work_note).toContain("no project declared");
+    // ...but the orphan is, because it belongs to nobody, and it is counted
+    // among the records no project-scoped read can reach
+    expect(stranger.store.unattributed).toBe(1);
+
+    // the project's own read is what hands over its work
+    const scoped = await briefing(db, fakeEmbedder(), { declared: { project: "alpha" } });
+    expect(scoped.open_work.map((w) => w.title)).toEqual(["alpha refactor"]);
+    expect(scoped.open_work_note).toBeNull();
+  });
+
+  test("sessions say how long ago they were last seen", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    setActive(db, { project: "alpha", author: "freebuff" });
+    const result = await briefing(db, fakeEmbedder());
+    expect(result.sessions[0]?.since).toBeTruthy();
+    // a bare timestamp reads as if the session were still running
+    expect(result.sessions[0]?.last_seen).toBe("just now");
   });
 
   test("the briefing says who else is in the building, and which one is you", async () => {

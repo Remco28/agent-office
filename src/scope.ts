@@ -34,6 +34,49 @@ export const NO_PROJECT_NOTE =
   "no project declared — only the memories that apply everywhere are in scope; " +
   "name one with `office begin --project <path> --by <agent>`";
 
+/**
+ * What to tell a session with no project that asks for unfinished work.
+ *
+ * The answer used to be every project's loose ends, which is the read the
+ * scope rule exists to refuse. It is not silence either, because the items
+ * filed with no project at all belong to nobody — showing those cannot hand
+ * anyone the wrong project's work, and it is the only way such a handoff is
+ * ever found again.
+ */
+export const UNCLAIMED_WORK_NOTE =
+  "no project declared — showing only the work filed with no project of its own; " +
+  "nothing filed under a project is included. Name one with " +
+  "`office begin --project <path> --by <agent>`";
+
+/**
+ * What to say at the moment a write lands with no project. The agent can fix
+ * this for free right now, by naming one; later it is a handoff nobody looks
+ * for. Said on the way in, not read out of a report afterwards.
+ */
+export const UNCLAIMED_WRITE_NOTE =
+  "this has no project, so it is filed as unclaimed: only a reader who asks " +
+  "for the unclaimed will see it. Pass --project <path>, or it will keep " +
+  "filing that way";
+
+/**
+ * What to say at the moment a memory lands with no project and no `--global`.
+ * It is the sibling of the note above: the same trap, one record over.
+ */
+export const UNATTRIBUTED_MEMORY_NOTE =
+  "this memory has no project and is not marked --global, so no project-scoped " +
+  "read will find it. Pass --project <path>, or --global if it applies everywhere";
+
+/**
+ * What to tell a session that has never been here before and is being handed
+ * the recent trail. Its own visit cannot be the watermark — it does not have
+ * one — so the frame is stated rather than implied, and every event names the
+ * project it came from.
+ */
+export const RECENT_ACTIVITY_NOTE =
+  "you have no previous visit of your own, so this is the office's most recent " +
+  "activity rather than what changed since you were last here; each item names " +
+  "the project it belongs to";
+
 export function projectKey(raw: string): string {
   return basename(normalizeProject(raw)).toLowerCase();
 }

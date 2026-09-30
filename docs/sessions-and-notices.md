@@ -305,3 +305,81 @@ honest scope of the rule is the record, and the doc says that.
 Not done here: any notion of a *persistent* read-only identity, or of a peek
 that can mark work acknowledged without checking in. Both would reintroduce the
 write this amendment exists to remove.
+
+## Amendment: a fresh agent is handed what happened lately
+
+Recorded 2026-09-30. Supersedes §4's rule that a session with no watermark gets
+empty `notices`.
+
+That rule was written for a world where an agent comes back to the same office.
+It is wrong for the world this office actually runs in, where a session rarely
+survives and often should not: a fresh agent *always* has no watermark, so the
+one surface that says "another hand has been here" was blank for precisely the
+agents that need it most. An empty answer is honest only when there is no
+question. "What has been going on here" is a question every arrival is asking,
+and answering it with nothing is what sends an agent hunting the machine for
+changes it does not remember making.
+
+So the frame now depends on whether the caller has a visit of its own:
+
+- **With a watermark** — the caller has checked in before — `notices` stays
+exactly as §4 describes: events since *your* previous `begin`, minus your own
+work.
+- **Without one** — a first visit, or any caller that has never checked in —
+`notices` is the most recent activity, capped at `BRIEFING_NOTICES`. With no
+project declared it is the whole office's, and every event carries its
+`project` so a list that is not one project's reads as news rather than as the
+reader's own work.
+
+The distinction is stated rather than inferred: `notices_since` stays null when
+there is no personal watermark, and `notices_note` carries
+`RECENT_ACTIVITY_NOTE`. The read-only caveat from the previous amendment still
+holds and now reads differently on a first visit — a peek with no watermark
+re-reads the same recent list every time, because there is no mark to move.
+
+One more thing came with it, because it is the same misreading of a fresh
+session: `SessionSummary` gains `last_seen`, the check-in time in plain words.
+`since` is the fact, but a bare timestamp gives an agent no way to tell a
+colleague who is here from one that stopped a week ago. No threshold decides
+this — the office reports the age and lets the reader judge, which is the same
+rule §4 already applies to `since`.
+
+## Amendment: the work read is scoped, and the unclaimed is the read that finds
+an orphan
+
+Recorded 2026-09-30. Supersedes the second bullet of the amendment *the unnamed
+slot must not close the door*, which recorded the widening as a symptom rather
+than fixing it.
+
+`listWork` took an optional project, and no project meant **no filter**: a bare
+`office work` returned every project's unfinished business. That is the read the
+scope rule exists to refuse — another project's loose ends handed over as if
+they were the reader's — and the earlier amendment watched it happen while
+fixing a different bug, then left it alone.
+
+The scope is now a required argument, `WorkRead`, with three arms and no way to
+ask by omission:
+
+- `{ kind: "project", project }` — this project's unfinished work. The handover.
+- `{ kind: "unclaimed" }` — work filed with no project at all.
+- `{ kind: "all" }` — the whole trail. The human's read, like `office list`.
+
+`office work` with no project declared reads the **unclaimed** set rather than
+everything, and `UNCLAIMED_WORK_NOTE` says so in the response. That is not a
+guess: an item with no project belongs to nobody, so showing it cannot lend
+anyone the wrong work, and it is the only way a handoff that lost its project is
+ever found again. `office work log` asks for `all` by name.
+
+This closes the case the earlier amendment opened. The live store held four work
+items with no project — including the two most detailed audit notes in the
+store — and every one was invisible to the project it belonged to. A missing
+name is now a visible gap instead of a silent loss:
+
+- **At the moment of writing.** `POST /work/open` and `POST /remember` report
+`unclaimed` / `unattributed` and carry a note, and the CLI writes it to stderr,
+where the agent can still fix it for free. Nothing is refused: a hard stop is a
+burden, and agents route around burdens.
+- **At the moment of reading.** The briefing hands a session with no project the
+unclaimed work, with `open_work_note` explaining why, and `store.unattributed`
+now counts work as well as memories — "how many unattributed records exist" was
+never a memories-only question.

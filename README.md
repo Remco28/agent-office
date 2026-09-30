@@ -9,6 +9,16 @@ One SQLite file, a localhost daemon, and a CLI. It holds two records:
 
 No identity layer, no account, no cloud. Not source control: code is git, memory is this file.
 
+## Why
+
+Coding agents start with no memory. Providers rarely let a session survive, and often it is better that it does not — a fresh agent is a clean slate. So every agent arrives not knowing what the last one was in the middle of, what was decided and why, which tools this machine has, or which conventions we keep repeating. Git holds the code, and none of that.
+
+**You start every agent in this repository on purpose.** The office is the doorway, not the destination. The agent lands here, names the project it is heading for and who it is, takes what the last agent learned, and gets to work. Nothing is inferred from the working directory — the point of the launch pad is that the folder says nothing, so the target has to be said out loud.
+
+That is also how a human stops repeating themselves. Describe a tool or a convention once, here, and no later agent has to be told again. The record is written for the next agent, not for you: it is the version of "I already said this" that survives the session that heard it.
+
+Memory is per machine. A different install has different tools, and the store does not sync — see [Copying the store](#copying-the-store) for the deliberate fork.
+
 ## Requirements
 
 - [Bun](https://bun.sh)
@@ -99,9 +109,11 @@ git pull
 office begin --project ~/Projects/the-thing --by <your-agent-name>
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what they wrote since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project **for you**. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
+That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project **for you**. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
 
-Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers under that name; a field you do not restate is *kept*, not cleared. Pass neither to just read — and note that a read with no project declared is scoped to the everywhere notes, not to the whole store (see [Retrieval](#retrieval)).
+On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over its most recent activity, each item labelled with the project it came from. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
+
+Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers under that name; a field you do not restate is *kept*, not cleared. Pass neither to just read — and note that a read with no project declared is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
 
 ### Two agents, one office
 
@@ -110,13 +122,13 @@ A session is keyed by author, so one agent cannot inherit or overwrite another's
 - `begin --by <name>` records *that agent's* row. Its later commands resolve through it.
 - Declining to name yourself puts you in the **unnamed slot**: a project you declare is remembered there, nothing is ever attributed to you, and `begin` says so on stderr. That slot is not a person, so it never makes the office ambiguous.
 - **An author is never inherited.** An undeclared caller is handed no name at all, not even the machine's only remembered one — borrowing that is how one agent's work came to be signed with another's. The *project* may still be remembered; the name may not. Ambiguity (two or more *named* sessions and no name) reaches the same null author with a louder warning.
-- `begin` lists every session it remembers and what the others did since you were last here. That is measured against your own previous check-in, so a first visit is handed the briefing rather than the whole trail.
+- `begin` lists every session it remembers and what the others did since you were last here. That is measured against your own previous check-in, so a first visit is handed the recent activity instead — labelled by project — because there is no last visit of its own to measure from.
 
 `--by` is expected and will be required in a future release. Export `OFFICE_AUTHOR` instead of repeating the flag. The reasoning is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
 
 ### Reading without checking in
 
-`begin` is the front door and it writes, which locks out the agents it ought to suit most: one told not to modify state reads `AGENTS.md`, sees that `begin` records a session, and correctly refuses to run it — so it never enters at all. `office peek` is the read-only way in. Same briefing, nothing written; it is exactly `begin --readonly`. Because a peek does not move your check-in mark, its "since you were last here" notices repeat until a real `begin` moves it, and it says so rather than pretending to be a check-in.
+`begin` is the front door and it writes, which locks out the agents it ought to suit most: one told not to modify state reads `AGENTS.md`, sees that `begin` records a session, and correctly refuses to run it — so it never enters at all. `office peek` is the read-only way in. Same briefing, nothing written; it is exactly `begin --readonly`. Because a peek does not move your check-in mark, its "since you were last here" notices repeat until a real `begin` moves it, and it says so rather than pretending to be a check-in. On a first visit there is no watermark to move, so the recent activity reads the same every time until you begin.
 
 The other reads never write either — `context`, `search`, `work`, `tools`, `list`, `status`. Only `begin`, `remember`, `forget`, and the work/tools writers change the record.
 
@@ -134,12 +146,15 @@ They share the database because "your whole memory is one thing you can copy" is
 
 "Done" is not stored anywhere. A piece of work is open while nobody has written a closing line, so an agent that dies mid-task leaves exactly the truth — opened, some notes, no close. The trail is capped at `OFFICE_LOG_CAP` characters (default 1,000,000) and prunes the oldest *closed* work; open work is the handoff and is never dropped.
 
+The read is scoped the same way memories are, and the scope is a required choice in the code rather than an optional filter. `office work` with a project is that project's unfinished business; with no project it is the **unclaimed** items, which belong to nobody and therefore cannot be handed to the wrong project. `office work log` is the whole trail, every project, and is meant to be asked for by name.
+
 ```bash
 office work                       # unfinished work for this project
+                                  # (with no project: the unclaimed items)
 office work open "photo sort"     # returns an id
 office work note 4 "2023 done, 2024 untouched"
 office work close 4
-office work log --all --limit 20  # the trail, newest first
+office work log --all --limit 20  # the whole trail, every project
 ```
 
 `office work note` is the handoff. The reason it is written *while* working is that an agent running out of context cannot write its own death notice.
@@ -159,7 +174,14 @@ office tools remove ffmpeg
 
 `context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
 
-**Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too. `office list` is the human's view and the one read that shows the whole store.
+**Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too.
+
+Two things are deliberately left unscoped, and both exist so that a handoff is never lost:
+
+- **Recent activity.** A session with no visit of its own is shown the office's most recent trail rather than nothing. Each item names the project it belongs to, so it reads as news about the office instead of a claim on your time.
+- **Unclaimed records.** Work and memories filed with no project belong to nobody, so a session with no project is shown them rather than finding them hidden from every scoped read. The office names a record as unclaimed at the moment it is written, while the agent can still fix it for free.
+
+The whole-store reads are the ones asked for by name: `office list` for memories, and `office work log` for the entire trail.
 
 That is why an unrouted read is never ambiguous: an empty result is either "nothing relevant here", "nothing stored for this project yet", or "no project declared — only the everywhere notes were in scope", and the note says which.
 

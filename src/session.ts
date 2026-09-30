@@ -1,7 +1,13 @@
 import type { Database } from "bun:sqlite";
 import { SCOPE_GLOBAL, UNNAMED_SESSION, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
-import { NO_PROJECT_NOTE, normalizeProject } from "./scope";
+import {
+  NO_PROJECT_NOTE,
+  RECENT_ACTIVITY_NOTE,
+  UNCLAIMED_WORK_NOTE,
+  normalizeProject,
+} from "./scope";
+import { formatAgo } from "./stats";
 import {
   countInScope,
   countMemories,
@@ -16,6 +22,7 @@ import {
   logChars,
   openWorkCount,
   recentEvents,
+  unclaimedWorkCount,
   workCount,
   type WorkEventSummary,
   type WorkItem,
@@ -296,6 +303,12 @@ export type SessionSummary = {
   author: string | null;
   project: string | null;
   since: string;
+  /**
+   * The same moment in plain words ("7d ago"). A bare timestamp reads as
+   * though the session were still running, which is how a session that ended
+   * a week ago is mistaken for a colleague who is here now.
+   */
+  last_seen: string;
   is_you: boolean;
 };
 
@@ -309,12 +322,22 @@ export type Briefing = {
   tools: Tool[];
   preferences: Memory[];
   open_work: WorkItem[];
+  /** Why the open work above is the unclaimed set, when there was no project
+   *  to scope it to. Null when it was scoped normally. */
+  open_work_note: string | null;
   memories: Hit[];
   /** Every session this machine remembers, newest check-in first. */
   sessions: SessionSummary[];
-  /** What someone else did since *your* last `begin`. Empty on a first visit. */
+  /**
+   * What someone else did since *your* last `begin` — or, for an agent that
+   * has never been here, the project's most recent activity. Never empty just
+   * because the caller is new.
+   */
   notices: WorkEventSummary[];
   notices_since: string | null;
+  /** Why the notices above are framed the way they are, when the frame is not
+   *  "since your own last visit". */
+  notices_note: string | null;
   /** True when nothing was written: this briefing came from a read-only visit. */
   readonly: boolean;
   /** Why a read-only visit's notices may repeat, when there is anything to repeat. */
@@ -368,6 +391,27 @@ export async function briefing(
       ? `nothing recorded for ${scope.project} yet`
       : NO_PROJECT_NOTE;
   }
+  // Unfinished work is project-specific in the same way memories are. With no
+  // project named the office does not hand over every project's loose ends —
+  // but it is not silent either: the items filed with no project at all belong
+  // to nobody, so showing them cannot lend anyone the wrong work, and it is
+  // the only way an orphaned handoff is ever found again.
+  const openWork = scope.project
+    ? listWork(db, { kind: "project", project: scope.project }, { limit: BRIEFING_WORK })
+    : listWork(db, { kind: "unclaimed" }, { limit: BRIEFING_WORK });
+  // A watermark is a personal thing — it means "since *you* were here". A
+  // fresh agent has none, and answering that with nothing is what sends a
+  // stranger hunting the machine for changes it never made. So a stranger is
+  // handed the recent activity instead, framed and labelled rather than
+  // implied.
+  const notices = watermark
+    ? recentEvents(db, {
+        project: scope.project,
+        since: watermark,
+        excludeAuthor: scope.author,
+        limit: BRIEFING_NOTICES,
+      })
+    : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
   return {
     ok: true,
     project: scope.project,
@@ -380,38 +424,33 @@ export async function briefing(
     // Unfinished work is project-specific in the same way memories are: with no
     // project named, handing over every project's loose ends is the read the
     // scope rule exists to prevent. The note above says why it is empty.
-    open_work: scope.project
-      ? listWork(db, { project: scope.project, limit: BRIEFING_WORK })
-      : [],
+    open_work: openWork,
+    open_work_note: scope.project || !openWork.length ? null : UNCLAIMED_WORK_NOTE,
     memories,
     sessions: listSessions(db).map((session) => ({
       author: session.author,
       project: session.project,
       since: session.updated_at,
+      last_seen: formatAgo(session.updated_at),
       is_you: session.author !== null && session.author === scope.author,
     })),
-    // A first visit has no watermark, so it is handed the briefing rather
-    // than the whole trail. "Since you were last here" needs a last time.
-    notices: watermark
-      ? recentEvents(db, {
-          project: scope.project,
-          since: watermark,
-          excludeAuthor: scope.author,
-          limit: BRIEFING_NOTICES,
-        })
-      : [],
+    notices,
     notices_since: watermark,
+    notices_note: !watermark && notices.length ? RECENT_ACTIVITY_NOTE : null,
     readonly: readOnly,
     readonly_note: readOnly
       ? watermark
         ? "nothing was written; your check-in time did not move, so the notices above will be shown again until a begin moves it"
-        : 'nothing was written; you have no previous check-in, so there is no "since you were last here" to report'
+        : "nothing was written; you have no previous check-in of your own, so the activity above is the office's most recent rather than a since-you-were-last-here list, and it will read the same until you begin"
       : null,
     author_warnings: authorWarnings(scope),
     store: {
       memories: countMemories(db),
       memories_in_scope: countInScope(db, scope.project),
-      unattributed: countUnattributed(db),
+      // Records no project-scoped read can find: memories filed with no
+      // project, and work filed with no project. Both are handoffs waiting to
+      // be adopted, so they are counted together and out loud.
+      unattributed: countUnattributed(db) + unclaimedWorkCount(db),
       work_open: openWorkCount(db),
       work_total: workCount(db),
       tools: countTools(db),

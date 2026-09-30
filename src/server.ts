@@ -18,9 +18,14 @@ import {
   peekSession,
   resolveScope,
 } from "./session";
-import { closeWork, getWork, listWork, noteWork, openWork } from "./work";
+import { closeWork, getWork, listWork, noteWork, openWork, type WorkRead } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
-import { NO_PROJECT_NOTE } from "./scope";
+import {
+  NO_PROJECT_NOTE,
+  UNATTRIBUTED_MEMORY_NOTE,
+  UNCLAIMED_WORK_NOTE,
+  UNCLAIMED_WRITE_NOTE,
+} from "./scope";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
 import { dbPath, detectPython, logPath, MODEL_NAME, port } from "./paths";
 
@@ -203,11 +208,16 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
             source: str(body.source),
           });
           void backfill();
+          // Said on the way in, not discovered later: a memory with no project
+          // is one no project-scoped read will ever return.
+          const unattributed = memory.project === null && memory.scope === "project";
           return json({
             ok: true,
             memory,
             project_source: scope.project_source,
             author_source: scope.author_source,
+            unattributed,
+            note: unattributed ? UNATTRIBUTED_MEMORY_NOTE : null,
           });
         } catch (err) {
           return fail(err);
@@ -278,14 +288,26 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
 
       if (req.method === "GET" && path === "/work") {
         const scope = resolveScope(db, { project: url.searchParams.get("project") });
+        // The whole trail is asked for by name (`office work log`), the same
+        // kind of read as `office list`. Everything else is scoped: what this
+        // project left unfinished, or — with no project — the items filed with
+        // no project, which are nobody's and so cannot be lent to the wrong
+        // project the way an unscoped list was.
+        const trailing = url.searchParams.get("read") === "trail";
+        const read: WorkRead = trailing
+          ? { kind: "all" }
+          : scope.project
+            ? { kind: "project", project: scope.project }
+            : { kind: "unclaimed" };
         return json({
-          work: listWork(db, {
-            project: scope.project,
+          work: listWork(db, read, {
             includeClosed: url.searchParams.get("all") === "1",
             limit: Number(url.searchParams.get("limit") ?? 20),
           }),
           project: scope.project,
           project_source: scope.project_source,
+          read: read.kind,
+          note: read.kind === "unclaimed" ? UNCLAIMED_WORK_NOTE : null,
         });
       }
 
@@ -301,7 +323,14 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
             project: scope.project,
             author: scope.author,
           });
-          return json({ ok: true, work: item, project_source: scope.project_source });
+          const unclaimed = item.project === null;
+          return json({
+            ok: true,
+            work: item,
+            project_source: scope.project_source,
+            unclaimed,
+            note: unclaimed ? UNCLAIMED_WRITE_NOTE : null,
+          });
         } catch (err) {
           return fail(err);
         }

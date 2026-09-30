@@ -28,6 +28,8 @@ export type StoreStats = {
   lastHour: number | null;
   lastDay: number | null;
   maxChars: number | null;
+  /** Records no project-scoped read can reach: memories and work filed with
+   *  no project. A handoff waiting to be adopted, counted out loud. */
   unattributed: number | null;
   workOpen: number | null;
   workTotal: number | null;
@@ -140,7 +142,9 @@ export function queryStore(db: Database, now = new Date()): Omit<
     maxChars,
     unattributed: countOr(
       db,
-      "SELECT COUNT(*) AS n FROM memories WHERE scope = 'project' AND project IS NULL",
+      `SELECT
+         (SELECT COUNT(*) FROM memories WHERE scope = 'project' AND project IS NULL) +
+         (SELECT COUNT(*) FROM work WHERE project IS NULL) AS n`,
     ),
     workOpen: countOr(
       db,
