@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { matchingProjects } from "./scope";
 import { logCap } from "./paths";
-import type { WorkEventKind } from "./db";
+import { clampLimit, type WorkEventKind } from "./db";
 
 export type WorkItem = {
   id: number;
@@ -159,7 +159,7 @@ export function listWork(
   read: WorkRead,
   opts: { includeClosed?: boolean; limit?: number } = {},
 ): WorkItem[] {
-  const limit = Math.max(1, Math.min(opts.limit ?? 20, 200));
+  const limit = clampLimit(opts.limit, 20, 200);
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (read.kind === "project") {
@@ -226,7 +226,7 @@ export function recentEvents(
   // No watermark and no request for the recent trail: there is no question to
   // answer, so answer nothing rather than the whole log.
   if (!since && !opts.latest) return [];
-  const limit = Math.max(1, Math.min(opts.limit ?? 10, 200));
+  const limit = clampLimit(opts.limit, 10, 200);
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (since) {

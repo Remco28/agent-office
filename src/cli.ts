@@ -12,6 +12,7 @@ import { baseUrl, dataDir, logPath, pidPath, port } from "./paths";
 import { serve } from "./server";
 import { formatAgo } from "./stats";
 import { runTui } from "./tui";
+import { normalizeProject } from "./scope";
 
 type Opts = {
   tags: string[];
@@ -109,7 +110,10 @@ async function api(
 
 /** What the caller declares. Unset means "use whatever the office remembers". */
 function declaredProject(opts: Opts): string | null {
-  return opts.project ?? process.env.OFFICE_PROJECT ?? process.env.OFFICE_SOURCE ?? null;
+  const raw = opts.project ?? process.env.OFFICE_PROJECT ?? process.env.OFFICE_SOURCE ?? null;
+  // Resolved here, in the caller's working directory. The daemon would resolve
+  // a relative path against its own directory, which is only right by luck.
+  return raw?.trim() ? normalizeProject(raw) : null;
 }
 
 function declaredAuthor(opts: Opts): string | null {
@@ -213,6 +217,8 @@ type BriefingView = {
   notices_since?: string | null;
   notices_note?: string | null;
   author_warnings?: Array<{ level: string; text: string }>;
+  sessions_hidden?: number;
+  identity_note?: string | null;
   note?: string | null;
 };
 
@@ -220,6 +226,7 @@ function printBriefing(data: BriefingView): void {
   const out: string[] = [];
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
+  if (data.identity_note) out.push(`         ${data.identity_note}`);
   // One session is already on the author line; more than one is the news.
   if ((data.sessions ?? []).length > 1) {
     out.push("", "sessions");
@@ -228,6 +235,7 @@ function printBriefing(data: BriefingView): void {
       const you = session.is_you ? "  (you)" : "";
       out.push(`  ${who}${you}   last here ${formatAgo(session.since)}`);
     }
+    if (data.sessions_hidden) out.push(`  (+${data.sessions_hidden} older, not shown)`);
   }
   const notices = data.notices ?? [];
   if (data.notices_since || notices.length) {
@@ -417,7 +425,8 @@ export async function main(argv = process.argv): Promise<number> {
   }
 
   if (cmd === "list") {
-    const query = opts.project ? `?project=${encodeURIComponent(opts.project)}&` : "?";
+    const listed = opts.project?.trim() ? normalizeProject(opts.project) : null;
+    const query = listed ? `?project=${encodeURIComponent(listed)}&` : "?";
     const data = (await api(
       `/list${query}limit=${opts.limit ?? 20}`,
     )) as { memories: Hit[] };
@@ -452,7 +461,7 @@ export async function main(argv = process.argv): Promise<number> {
         // project that means the unclaimed items rather than every project's.
         read: sub === "log" ? "trail" : "scoped",
       });
-      if (opts.project) params.set("project", opts.project);
+      if (opts.project?.trim()) params.set("project", normalizeProject(opts.project));
       const data = (await api(`/work?${params}`)) as {
         work: Array<{
           id: number;

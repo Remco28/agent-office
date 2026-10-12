@@ -12,7 +12,9 @@ export function normalizeProject(raw: string): string {
   if (!value) return "";
   if (value === "~") value = homedir();
   else if (value.startsWith("~/")) value = join(homedir(), value.slice(2));
-  if (value.includes("/")) value = resolve(value);
+  // "." and ".." are paths too. Without this, `--project .` was stored as a
+  // project literally named ".", which matches nothing a later read names.
+  if (value.includes("/") || value === "." || value === "..") value = resolve(value);
   const trimmed = value.replace(/\/+$/, "");
   return trimmed || "/";
 }

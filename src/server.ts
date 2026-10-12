@@ -13,6 +13,9 @@ import {
 import {
   beginSession,
   briefing,
+  claimIdentity,
+  normalizeAuthor,
+  pruneSessions,
   getActive,
   listSessions,
   peekSession,
@@ -168,7 +171,6 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       if (req.method === "POST" && path === "/begin") {
         const body = await readBody(req);
         const project = str(body.project);
-        const author = str(body.author);
         // A read-only visit is the same briefing with the door left shut: the
         // caller's check-in mark is read, never moved, and no row is written.
         // It exists so an agent told not to modify state can still come in.
@@ -176,6 +178,13 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         // Naming a target is the one declaration a session makes. Everything
         // after this inherits it; nothing is inferred from the working dir.
         // The row this call replaces is the watermark, so it is read first.
+        // A bare name becomes a numbered run (`codex` -> `codex-4821`); a
+        // numbered name resumes. A peek writes nothing, so it mints nothing.
+        const identity = readonly
+          ? { author: normalizeAuthor(str(body.author)), minted: false }
+          : claimIdentity(db, str(body.author));
+        const author = identity.author;
+        if (!readonly) pruneSessions(db, author);
         const { previous } = readonly
           ? peekSession(db, { project, author })
           : beginSession(db, { project, author });
@@ -185,6 +194,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
           since: previous?.updated_at ?? null,
           declared: { project, author },
           readonly,
+          minted: identity.minted,
         });
         return json({ ...result, warnings: warnings() });
       }
@@ -341,7 +351,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         try {
           const item = noteWork(db, Number(body.id), {
             text: String(body.text ?? ""),
-            author: str(body.author) ?? resolveScope(db, {}).author,
+            author: normalizeAuthor(str(body.author)),
           });
           return json({ ok: true, work: item });
         } catch (err) {
@@ -354,7 +364,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         try {
           const item = closeWork(db, Number(body.id), {
             text: str(body.text) ?? undefined,
-            author: str(body.author) ?? resolveScope(db, {}).author,
+            author: normalizeAuthor(str(body.author)),
           });
           return json({ ok: true, work: item });
         } catch (err) {

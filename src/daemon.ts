@@ -73,7 +73,10 @@ export async function startDetach(): Promise<void> {
   // the whole difference between "search is word-only" and knowing why.
   const fd = openLog();
   const child = Bun.spawn({
-    cmd: ["bun", `${ROOT}/src/index.ts`, "serve"],
+    // The bun running this CLI, not whatever "bun" PATH finds: bin/office
+    // falls back to bun's install locations precisely because agent shells
+    // often lack it on PATH, and a bare "bun" here would undo that.
+    cmd: [process.execPath, `${ROOT}/src/index.ts`, "serve"],
     cwd: ROOT,
     stdin: "ignore",
     stdout: fd,

@@ -119,6 +119,9 @@ export function startSidecar(): Embedder {
       waiter.resolve(null);
       return;
     }
+    // An answer means the sidecar is working, so a stale timeout note from
+    // its slow first load no longer describes it.
+    lastError = null;
     waiter.resolve(Float32Array.from(raw.map((n) => Number(n))));
   };
 

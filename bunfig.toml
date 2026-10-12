@@ -1,0 +1,3 @@
+[test]
+# Only this project's tests. Untracked checkouts under scratch/ carry their own.
+root = "./tests"

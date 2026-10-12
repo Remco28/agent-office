@@ -33,6 +33,70 @@ export const BRIEFING_MEMORIES = 6;
 export const BRIEFING_WORK = 10;
 export const BRIEFING_PREFERENCES = 12;
 export const BRIEFING_NOTICES = 10;
+/** Sessions a briefing names: the ones seen recently, at most this many. */
+export const BRIEFING_SESSIONS = 8;
+export const SESSION_RECENT_DAYS = 14;
+/** A session not seen for this long is dropped at the next check-in. */
+export const SESSION_PRUNE_DAYS = 30;
+
+const DAY_MS = 86_400_000;
+
+/** A numbered instance: the base name, a dash, four digits. */
+const INSTANCE_RE = /-\d{4}$/;
+
+/**
+ * One spelling per name. `Codex`, `codex` and `codex ` used to be three
+ * people; lowercased, with runs of whitespace as one dash, they are one.
+ */
+export function normalizeAuthor(raw: string | null | undefined): string | null {
+  const value = raw?.trim().toLowerCase().replace(/\s+/g, "-");
+  return value || null;
+}
+
+export type Identity = {
+  author: string | null;
+  /** True when this check-in was given a new numbered name. */
+  minted: boolean;
+};
+
+/**
+ * The name this check-in will be known by.
+ *
+ * A bare name like `codex` says which tool is running, not which run it is:
+ * launch Codex three times and there were three agents called `codex`, each
+ * inheriting the last one's watermark and indistinguishable in the record.
+ * So a bare name is given a number — `codex-4821` — and that number is the
+ * run. Naming an existing numbered session resumes it; a resumed harness
+ * still has its name in context, which is exactly when resuming is right.
+ */
+export function claimIdentity(db: Database, raw: string | null | undefined): Identity {
+  const author = normalizeAuthor(raw);
+  if (!author) return { author: null, minted: false };
+  if (INSTANCE_RE.test(author)) return { author, minted: false };
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const candidate = `${author}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+    if (!getSession(db, candidate)) return { author: candidate, minted: true };
+  }
+  throw new Error(`could not find a free number for ${author}`);
+}
+
+/**
+ * Drop sessions nobody has checked in as for a month. Every launch is a new
+ * numbered session now, so without this the table — and every briefing that
+ * lists it — only grows. `keep` is the caller, whose own row is never pruned
+ * out from under it.
+ */
+export function pruneSessions(
+  db: Database,
+  keep: string | null,
+  now = Date.now(),
+  days = SESSION_PRUNE_DAYS,
+): number {
+  const cutoff = new Date(now - days * DAY_MS).toISOString();
+  return db
+    .query("DELETE FROM session_state WHERE updated_at < ? AND author <> ?")
+    .run(cutoff, sessionKey(keep)).changes;
+}
 
 /**
  * `ambiguous` is not a failure: it is the office declining to guess. More than
@@ -62,7 +126,7 @@ type StoredSession = {
 type StoredRow = { author: string; project: string | null; updated_at: string };
 
 function sessionKey(author: string | null | undefined): string {
-  return author?.trim() || UNNAMED_SESSION;
+  return normalizeAuthor(author) ?? UNNAMED_SESSION;
 }
 
 function storedSessions(db: Database): StoredSession[] {
@@ -166,7 +230,7 @@ export function beginSession(
   // process.env fallback here. This runs inside the daemon, and the daemon is a
   // long-lived shared process whose environment belongs to whoever started it,
   // not to the caller. See resolveScope for the full reasoning.
-  const author = input.author?.trim() || null;
+  const author = normalizeAuthor(input.author);
   const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const previous = getSession(db, author);
   const declared = author !== null || project !== null;
@@ -193,7 +257,7 @@ export function peekSession(
   db: Database,
   input: { project?: string | null; author?: string | null } = {},
 ): BeginResult {
-  const author = input.author?.trim() || null;
+  const author = normalizeAuthor(input.author);
   return { previous: getSession(db, author), current: null };
 }
 
@@ -239,7 +303,7 @@ export function resolveScope(
   input: { project?: string | null; author?: string | null } = {},
 ): Scope {
   const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
-  const declaredAuthor = input.author?.trim() || null;
+  const declaredAuthor = normalizeAuthor(input.author);
 
   const rows = storedSessions(db);
   const mine = declaredAuthor
@@ -329,8 +393,16 @@ export type Briefing = {
    *  to scope it to. Null when it was scoped normally. */
   open_work_note: string | null;
   memories: Hit[];
-  /** Every session this machine remembers, newest check-in first. */
+  /**
+   * Sessions seen in the last two weeks, newest first, at most eight — plus
+   * the caller. The full list grew with every launch and was handed to every
+   * agent on every check-in.
+   */
   sessions: SessionSummary[];
+  /** Sessions remembered but left out of the list above. */
+  sessions_hidden: number;
+  /** Said when this check-in was given a numbered name, so the agent uses it. */
+  identity_note: string | null;
   /**
    * What someone else did since *your* last `begin` — or, for an agent that
    * has never been here, the project's most recent activity. Never empty just
@@ -376,6 +448,9 @@ export async function briefing(
     declared?: { project?: string | null; author?: string | null };
     /** A visit that wrote nothing, so the notice watermark did not move. */
     readonly?: boolean;
+    /** This check-in was given a new numbered name. */
+    minted?: boolean;
+    now?: number;
   } = {},
 ): Promise<Briefing> {
   const scope = resolveScope(db, opts.declared);
@@ -415,6 +490,14 @@ export async function briefing(
         limit: BRIEFING_NOTICES,
       })
     : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
+  const recentCutoff = new Date((opts.now ?? Date.now()) - SESSION_RECENT_DAYS * DAY_MS).toISOString();
+  const allSessions = listSessions(db);
+  const shown = allSessions
+    .filter(
+      (session, index) =>
+        (session.author !== null && session.author === scope.author) ||
+        (session.updated_at >= recentCutoff && index < BRIEFING_SESSIONS),
+    );
   return {
     ok: true,
     project: scope.project,
@@ -430,13 +513,19 @@ export async function briefing(
     open_work: openWork,
     open_work_note: scope.project || !openWork.length ? null : UNCLAIMED_WORK_NOTE,
     memories,
-    sessions: listSessions(db).map((session) => ({
+    sessions: shown.map((session) => ({
       author: session.author,
       project: session.project,
       since: session.updated_at,
       last_seen: formatAgo(session.updated_at),
       is_you: session.author !== null && session.author === scope.author,
     })),
+    sessions_hidden: allSessions.length - shown.length,
+    identity_note:
+      opts.minted && scope.author
+        ? `you are ${scope.author} for this run — pass --by ${scope.author} on every call ` +
+          `(or export OFFICE_AUTHOR=${scope.author}); begin with that name again to resume`
+        : null,
     notices,
     notices_since: watermark,
     notices_note: !watermark && notices.length ? RECENT_ACTIVITY_NOTE : null,

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { dumpTags, parseTags, SCOPE_GLOBAL, SCOPE_PROJECT, type MemoryRow } from "./db";
+import { clampLimit, dumpTags, parseTags, SCOPE_GLOBAL, SCOPE_PROJECT, type MemoryRow } from "./db";
 import { dot, packing, unpacking, type Embedder } from "./embed";
 import { minSimilarity } from "./paths";
 import { matchingProjects, normalizeProject, scopeClause } from "./scope";
@@ -162,7 +162,7 @@ export function listMemories(db: Database, limit = 20): Memory[] {
        ORDER BY id DESC
        LIMIT ?`,
     )
-    .all(Math.max(1, Math.min(limit, 200))) as MemoryRow[];
+    .all(clampLimit(limit, 20, 200)) as MemoryRow[];
   return rows.map(publicMemory);
 }
 
@@ -184,7 +184,7 @@ export function listMemoriesInScope(
        ORDER BY id DESC
        LIMIT ?`,
     )
-    .all(...params, Math.max(1, Math.min(limit, 200))) as MemoryRow[];
+    .all(...params, clampLimit(limit, 20, 200)) as MemoryRow[];
   return rows.map(publicMemory);
 }
 
@@ -196,7 +196,7 @@ export function listGlobalMemories(db: Database, limit = 20): Memory[] {
        ORDER BY id DESC
        LIMIT ?`,
     )
-    .all(Math.max(1, Math.min(limit, 100))) as MemoryRow[];
+    .all(clampLimit(limit, 20, 100)) as MemoryRow[];
   return rows.map(publicMemory);
 }
 
@@ -234,19 +234,29 @@ function ftsQuery(raw: string): string | null {
   return [...new Set(tokens)].map((t) => `"${t}"`).join(" OR ");
 }
 
-function ftsRank(db: Database, query: string, limit: number): number[] {
+/**
+ * Word matches ranked inside the scope. The scope is applied before the limit,
+ * not after: ranking the whole store first let a busy project fill every slot,
+ * and a quiet project's own exact match was cut before the filter saw it.
+ */
+function ftsRank(
+  db: Database,
+  query: string,
+  limit: number,
+  scope: { sql: string; params: string[] },
+): number[] {
   const match = ftsQuery(query);
   if (!match) return [];
   try {
     const rows = db
       .query(
-        `SELECT rowid AS id
-         FROM memories_fts
-         WHERE memories_fts MATCH ?
-         ORDER BY rank
+        `SELECT memories_fts.rowid AS id
+         FROM memories_fts JOIN memories ON memories.id = memories_fts.rowid
+         WHERE memories_fts MATCH ?${scope.sql}
+         ORDER BY memories_fts.rank
          LIMIT ?`,
       )
-      .all(match, limit) as { id: number }[];
+      .all(match, ...scope.params, limit) as { id: number }[];
     return rows.map((r) => r.id);
   } catch {
     return [];
@@ -258,6 +268,7 @@ function vectorRank(
   db: Database,
   queryVec: Float32Array,
   limit: number,
+  allowed: Set<number>,
 ): { ranked: number[]; sims: Map<number, number> } {
   const rows = db
     .query("SELECT id, embedding FROM memories WHERE embedding IS NOT NULL")
@@ -266,7 +277,9 @@ function vectorRank(
   const scored: { id: number; score: number }[] = [];
   for (const row of rows) {
     const vec = unpacking(row.embedding);
-    if (!vec) continue;
+    // Out-of-scope rows are skipped before ranking for the same reason as
+    // ftsRank: otherwise they take the top slots and are then thrown away.
+    if (!vec || !allowed.has(row.id)) continue;
     const score = dot(queryVec, vec);
     sims.set(row.id, score);
     scored.push({ id: row.id, score });
@@ -301,7 +314,7 @@ export async function searchDetailed(
   opts: SearchOptions = {},
 ): Promise<SearchResult> {
   const q = query.trim();
-  const cap = Math.max(1, Math.min(limit, 50));
+  const cap = clampLimit(limit, 8, 50);
   const project = opts.project ? normalizeProject(opts.project) : null;
   const floor = opts.minSimilarity ?? minSimilarity();
   const allowed = scopedIds(db, project);
@@ -321,16 +334,16 @@ export async function searchDetailed(
     };
   }
 
-  const fts = ftsRank(db, q, cap * 3).filter((id) => allowed.has(id));
+  const fts = ftsRank(db, q, cap * 3, scopeFragment(db, project));
   let vec: number[] = [];
   let sims = new Map<number, number>();
   if (embedder) {
     try {
       const encoded = await embedder.encode(q);
       if (encoded) {
-        const ranked = vectorRank(db, encoded, cap * 3);
+        const ranked = vectorRank(db, encoded, cap * 3, allowed);
         sims = ranked.sims;
-        vec = ranked.ranked.filter((id) => allowed.has(id));
+        vec = ranked.ranked;
       }
     } catch {
       vec = [];

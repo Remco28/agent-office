@@ -269,6 +269,16 @@ function backfillAttribution(db: Database): void {
   ).run();
 }
 
+/**
+ * A row limit a caller asked for, made safe to bind. A query string or flag
+ * that is not a number arrives as NaN, and SQLite rejects `LIMIT NaN` with
+ * "datatype mismatch" — so a typo in --limit used to fail the whole read.
+ */
+export function clampLimit(raw: number | undefined, fallback: number, max: number): number {
+  const n = raw === undefined || !Number.isFinite(raw) ? fallback : Math.floor(raw);
+  return Math.max(1, Math.min(n, max));
+}
+
 export function parseTags(raw: string | null | undefined): string[] {
   if (!raw) return [];
   try {
