@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { SCOPE_GLOBAL, UNNAMED_SESSION, type SessionRow } from "./db";
+import { ROLE_MANAGER, SCOPE_GLOBAL, UNNAMED_SESSION, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
 import {
   NO_PROJECT_NOTE,
@@ -28,11 +28,16 @@ import {
   type WorkItem,
 } from "./work";
 import { countTools, listTools, type Tool } from "./tools";
+import { closedSince, listIssues, openIssueCount, type Issue } from "./issues";
 
 export const BRIEFING_MEMORIES = 6;
 export const BRIEFING_WORK = 10;
 export const BRIEFING_PREFERENCES = 12;
 export const BRIEFING_NOTICES = 10;
+/** Open issues a briefing lists; the rest are counted, and `office issues` has them. */
+export const BRIEFING_ISSUES = 5;
+/** A manager not seen for this many days is reported as absent, not as here. */
+export const MANAGER_STALE_DAYS = 3;
 /** Sessions a briefing names: the ones seen recently, at most this many. */
 export const BRIEFING_SESSIONS = 8;
 export const SESSION_RECENT_DAYS = 14;
@@ -121,9 +126,15 @@ type StoredSession = {
   project: string | null;
   author: string | null;
   updated_at: string;
+  role: string | null;
 };
 
-type StoredRow = { author: string; project: string | null; updated_at: string };
+type StoredRow = {
+  author: string;
+  project: string | null;
+  updated_at: string;
+  role: string | null;
+};
 
 function sessionKey(author: string | null | undefined): string {
   return normalizeAuthor(author) ?? UNNAMED_SESSION;
@@ -132,7 +143,7 @@ function sessionKey(author: string | null | undefined): string {
 function storedSessions(db: Database): StoredSession[] {
   const rows = db
     .query(
-      `SELECT author, project, updated_at FROM session_state
+      `SELECT author, project, updated_at, role FROM session_state
        ORDER BY updated_at DESC, author ASC`,
     )
     .all() as StoredRow[];
@@ -141,25 +152,50 @@ function storedSessions(db: Database): StoredSession[] {
     project: row.project,
     author: row.author || null,
     updated_at: row.updated_at,
+    role: row.role,
   }));
 }
 
 /** Every recorded session, newest check-in first. */
 export function listSessions(db: Database): SessionRow[] {
-  return storedSessions(db).map(({ project, author, updated_at }) => ({
+  return storedSessions(db).map(({ project, author, updated_at, role }) => ({
     project,
     author,
     updated_at,
+    role,
   }));
+}
+
+/** The session holding the manager role, if one does. At most one ever does. */
+export function getManager(db: Database): SessionRow | null {
+  return listSessions(db).find((session) => session.role === ROLE_MANAGER) ?? null;
+}
+
+/**
+ * What a caller may ask for. `manager` claims the role, and there is only one:
+ * claiming moves it. `none` gives it up. Anything else is refused rather than
+ * stored, because a typo'd role that silently did nothing would look exactly
+ * like a role that worked.
+ */
+export function normalizeRole(raw: string | null | undefined): "manager" | "none" | null {
+  const value = raw?.trim().toLowerCase();
+  if (!value) return null;
+  if (value === ROLE_MANAGER || value === "none") return value;
+  throw new Error(`unknown role "${raw}" — the only role is "manager" ("none" gives it up)`);
 }
 
 /** One author's row. The stored key is never null; the unnamed slot is `''`. */
 export function getSession(db: Database, author: string | null | undefined): SessionRow | null {
   const row = db
-    .query("SELECT project, author, updated_at FROM session_state WHERE author = ?")
+    .query("SELECT project, author, updated_at, role FROM session_state WHERE author = ?")
     .get(sessionKey(author)) as StoredRow | null;
   if (!row) return null;
-  return { project: row.project, author: row.author || null, updated_at: row.updated_at };
+  return {
+    project: row.project,
+    author: row.author || null,
+    updated_at: row.updated_at,
+    role: row.role,
+  };
 }
 
 /**
@@ -184,24 +220,35 @@ export function getActive(db: Database): SessionRow | null {
  */
 export function setActive(
   db: Database,
-  input: { project?: string | null; author?: string | null },
+  input: { project?: string | null; author?: string | null; role?: string | null },
 ): SessionRow | null {
   const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const key = sessionKey(input.author);
+  const role = normalizeRole(input.role);
+  // A role belongs to someone. The unnamed slot is nobody in particular, so it
+  // cannot hold one — it would hand the manager's authority to whoever next
+  // forgot to give a name.
+  if (role === "manager" && key === UNNAMED_SESSION) {
+    throw new Error("the manager role needs a name: pass --by <agent>");
+  }
   const now = new Date().toISOString();
   const existing = getSession(db, key === UNNAMED_SESSION ? null : key);
+  // Claiming moves the role rather than sharing it: one manager at a time.
+  if (role === "manager") {
+    db.query("UPDATE session_state SET role = NULL WHERE role = ? AND author <> ?").run(
+      ROLE_MANAGER,
+      key,
+    );
+  }
+  const nextRole = role === "manager" ? ROLE_MANAGER : role === "none" ? null : existing?.role ?? null;
   if (existing) {
-    db.query("UPDATE session_state SET project = ?, updated_at = ? WHERE author = ?").run(
-      project ?? existing.project,
-      now,
-      key,
-    );
+    db.query(
+      "UPDATE session_state SET project = ?, updated_at = ?, role = ? WHERE author = ?",
+    ).run(project ?? existing.project, now, nextRole, key);
   } else {
-    db.query("INSERT INTO session_state (author, project, updated_at) VALUES (?, ?, ?)").run(
-      key,
-      project,
-      now,
-    );
+    db.query(
+      "INSERT INTO session_state (author, project, updated_at, role) VALUES (?, ?, ?, ?)",
+    ).run(key, project, now, nextRole);
   }
   return getSession(db, key === UNNAMED_SESSION ? null : key);
 }
@@ -224,7 +271,7 @@ export type BeginResult = {
  */
 export function beginSession(
   db: Database,
-  input: { project?: string | null; author?: string | null },
+  input: { project?: string | null; author?: string | null; role?: string | null },
 ): BeginResult {
   // The name is whatever the caller declared — there is deliberately no
   // process.env fallback here. This runs inside the daemon, and the daemon is a
@@ -233,8 +280,13 @@ export function beginSession(
   const author = normalizeAuthor(input.author);
   const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const previous = getSession(db, author);
-  const declared = author !== null || project !== null;
-  return { previous, current: declared ? setActive(db, { project, author }) : null };
+  // Asking for a role is a declaration too, so that it reaches setActive and is
+  // refused there if it came with no name, instead of being silently dropped.
+  const declared = author !== null || project !== null || normalizeRole(input.role) !== null;
+  return {
+    previous,
+    current: declared ? setActive(db, { project, author, role: input.role }) : null,
+  };
 }
 
 /**
@@ -379,6 +431,15 @@ export type SessionSummary = {
   is_you: boolean;
 };
 
+export type ManagerSummary = {
+  author: string | null;
+  since: string;
+  last_seen: string;
+  is_you: boolean;
+  /** Not seen in a while: the role is held on paper only. */
+  stale: boolean;
+};
+
 export type Briefing = {
   ok: true;
   project: string | null;
@@ -403,6 +464,21 @@ export type Briefing = {
   sessions_hidden: number;
   /** Said when this check-in was given a numbered name, so the agent uses it. */
   identity_note: string | null;
+  /** The role this session holds, if the human designated one. */
+  role: string | null;
+  /** Who is office manager right now, or null. The human designates it. */
+  manager: ManagerSummary | null;
+  /** Said when there is no manager, or the one named has gone quiet. */
+  manager_note: string | null;
+  /**
+   * Open issues about the office itself, most recently touched first, capped.
+   * Shown to every session whatever its project, so a problem is added to
+   * rather than filed twice. `issues_open` is the full count.
+   */
+  issues: Issue[];
+  issues_open: number;
+  /** Issues this author filed that someone else closed since their last visit. */
+  issues_closed: Issue[];
   /**
    * What someone else did since *your* last `begin` — or, for an agent that
    * has never been here, the project's most recent activity. Never empty just
@@ -424,6 +500,7 @@ export type Briefing = {
     unattributed: number;
     work_open: number;
     work_total: number;
+    issues_open: number;
     tools: number;
     log_chars: number;
   };
@@ -492,6 +569,20 @@ export async function briefing(
     : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
   const recentCutoff = new Date((opts.now ?? Date.now()) - SESSION_RECENT_DAYS * DAY_MS).toISOString();
   const allSessions = listSessions(db);
+  const managerRow = allSessions.find((session) => session.role === ROLE_MANAGER) ?? null;
+  const nowMs = opts.now ?? Date.now();
+  const managerStale =
+    managerRow !== null &&
+    managerRow.updated_at < new Date(nowMs - MANAGER_STALE_DAYS * DAY_MS).toISOString();
+  const manager: ManagerSummary | null = managerRow
+    ? {
+        author: managerRow.author,
+        since: managerRow.updated_at,
+        last_seen: formatAgo(managerRow.updated_at),
+        is_you: managerRow.author !== null && managerRow.author === scope.author,
+        stale: managerStale,
+      }
+    : null;
   const shown = allSessions
     .filter(
       (session, index) =>
@@ -521,6 +612,16 @@ export async function briefing(
       is_you: session.author !== null && session.author === scope.author,
     })),
     sessions_hidden: allSessions.length - shown.length,
+    role: scope.author ? (getSession(db, scope.author)?.role ?? null) : null,
+    manager,
+    manager_note: !manager
+      ? "no office manager is designated, so open issues go to the human"
+      : manager.stale
+        ? `the office manager (${manager.author}) was last seen ${manager.last_seen}; treat them as absent and open issues as going to the human`
+        : null,
+    issues: listIssues(db, { limit: BRIEFING_ISSUES }),
+    issues_open: openIssueCount(db),
+    issues_closed: closedSince(db, { author: scope.author, since: watermark }),
     identity_note:
       opts.minted && scope.author
         ? `you are ${scope.author} for this run — pass --by ${scope.author} on every call ` +
@@ -545,6 +646,7 @@ export async function briefing(
       unattributed: countUnattributed(db) + unclaimedWorkCount(db),
       work_open: openWorkCount(db),
       work_total: workCount(db),
+      issues_open: openIssueCount(db),
       tools: countTools(db),
       log_chars: logChars(db),
     },

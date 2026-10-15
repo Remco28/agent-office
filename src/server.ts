@@ -21,6 +21,7 @@ import {
   peekSession,
   resolveScope,
 } from "./session";
+import { closeIssue, getIssue, listIssues, noteIssue, openIssue } from "./issues";
 import { closeWork, getWork, listWork, noteWork, openWork, type WorkRead } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
 import {
@@ -175,6 +176,12 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         // caller's check-in mark is read, never moved, and no row is written.
         // It exists so an agent told not to modify state can still come in.
         const readonly = body.readonly === true;
+        const role = str(body.role);
+        // A peek writes nothing, and a role is a write. Refused, not ignored:
+        // an ignored claim looks exactly like one that worked.
+        if (readonly && role) {
+          return json({ error: "a read-only visit cannot take a role: use begin, not peek" }, 400);
+        }
         // Naming a target is the one declaration a session makes. Everything
         // after this inherits it; nothing is inferred from the working dir.
         // The row this call replaces is the watermark, so it is read first.
@@ -185,9 +192,14 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
           : claimIdentity(db, str(body.author));
         const author = identity.author;
         if (!readonly) pruneSessions(db, author);
-        const { previous } = readonly
-          ? peekSession(db, { project, author })
-          : beginSession(db, { project, author });
+        let previous;
+        try {
+          ({ previous } = readonly
+            ? peekSession(db, { project, author })
+            : beginSession(db, { project, author, role }));
+        } catch (err) {
+          return fail(err);
+        }
         // Passing the declaration in is what makes the briefing report the
         // scope this call named, and the advice it gives match.
         const result = await briefing(db, embedder, {
@@ -375,6 +387,55 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       if (req.method === "POST" && path === "/work/get") {
         const body = await readBody(req);
         return json({ work: getWork(db, Number(body.id)) });
+      }
+
+      if (req.method === "GET" && path === "/issues") {
+        return json({
+          issues: listIssues(db, {
+            includeClosed: url.searchParams.get("all") === "1",
+            limit: Number(url.searchParams.get("limit") ?? 20),
+          }),
+        });
+      }
+
+      if (req.method === "POST" && path === "/issues/open") {
+        const body = await readBody(req);
+        // The project is where this surfaced, taken the way any write takes it.
+        // It is context for whoever triages — an issue with none is not
+        // unclaimed, because issues belong to the office, not to a project.
+        const scope = resolveScope(db, {
+          project: str(body.project),
+          author: str(body.author),
+        });
+        try {
+          const issue = openIssue(db, {
+            title: String(body.title ?? ""),
+            project: scope.project,
+            author: scope.author,
+          });
+          return json({ ok: true, issue, project_source: scope.project_source });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && (path === "/issues/note" || path === "/issues/close")) {
+        const body = await readBody(req);
+        const input = { text: String(body.text ?? ""), author: normalizeAuthor(str(body.author)) };
+        try {
+          const issue =
+            path === "/issues/note"
+              ? noteIssue(db, Number(body.id), input)
+              : closeIssue(db, Number(body.id), input);
+          return json({ ok: true, issue });
+        } catch (err) {
+          return fail(err);
+        }
+      }
+
+      if (req.method === "POST" && path === "/issues/get") {
+        const body = await readBody(req);
+        return json({ issue: getIssue(db, Number(body.id)) });
       }
 
       return json({ error: "not found" }, 404);

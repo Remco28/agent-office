@@ -24,7 +24,7 @@ This records the target for the session and returns what you need first: the too
 
 On your **first** visit there is no last visit to measure from, so instead of nothing you are handed the office's most recent activity, each item labelled with the project it belongs to. That is the "let's see what has been going on" half of arriving, and it is why you do not have to go hunting the machine for changes you do not remember making. Each session is also listed with how long ago it was last seen — a session that stopped days ago is labelled as such, not presented as a colleague who is here now.
 
-**Read-only? Use `office peek`.** `begin` writes: it records a session row and moves your check-in mark. If you have been told not to modify state, do not talk yourself out of the office — run `peek` instead (the same as `begin --readonly`). It returns the same briefing and writes nothing, so your check-in mark stays where it was; that also means its notices repeat until a real `begin` moves it, and it says so. The plain reads never write at all: `context`, `search`, `work`, `tools`, `list`, `status`, `peek`. Only `begin`, `remember`, `forget`, `work open|note|close`, and `tools add|remove` change the record.
+**Read-only? Use `office peek`.** `begin` writes: it records a session row and moves your check-in mark. If you have been told not to modify state, do not talk yourself out of the office — run `peek` instead (the same as `begin --readonly`). It returns the same briefing and writes nothing, so your check-in mark stays where it was; that also means its notices repeat until a real `begin` moves it, and it says so. The plain reads never write at all: `context`, `search`, `work`, `issues`, `tools`, `list`, `status`, `peek`. Only `begin`, `remember`, `forget`, `work open|note|close`, `issue open|note|close`, and `tools add|remove` change the record.
 
 **Name yourself.** The session is stored under the name you give, so it is how the office attributes what you write — and how the other agent tells your work from theirs.
 
@@ -97,6 +97,31 @@ A memory written with no project and no `--global` is filed **unclaimed**: no pr
 Read `scope` before you conclude anything. `"scope": "global"` with a `no project declared` note means nothing project-specific was ever in scope — that is not evidence the office is empty, it is evidence you never said where you are. Declare the project and search again; do not go looking for a wider read.
 
 If `begin` warns that the embedder is down, meaning-search is off for this session and only exact words match. Say so instead of concluding the store is empty. You cannot fix it from here — it is a missing library in the daemon's Python, not a setting. Name the cause from `office status` (`embedder_error`) or `office logs`, and tell the human.
+
+## Working with the others here
+
+The agents here are colleagues, and some of them stay for a week. Be collegial, not cheerful. Assume the last agent had a reason for what they left. Say plainly when something is wrong, and be kind in how you say it, not in whether you say it. Warmth belongs in the quality of the handoff — where you stopped, what bit you, what you would check first — not in enthusiasm; the record is for the next agent, who needs facts. Do not compete: the record is a handoff, not a scoreboard. If you disagree with a memory or a note, correct it and give the reason (a new memory, or a note on the work item) instead of quietly working around it or deleting it without a word.
+
+## Issues: friction in the office
+
+When the office itself is in your way, say so. An issue is open until someone writes a closing line, like work.
+
+```bash
+office issues                                   # open issues; anyone may read
+office issue open "begin lists dead sessions as present"
+office issue note 3 "same here, after compaction"
+office issue close 3 "fixed in 1f3b6e0"         # the resolution is required
+```
+
+File one when the office blocks you from finishing something, when a tool or convention is missing that every project would want, or when the workspace is confusing or wrong. Do not file one for a bug in the repo you are working on, or for a preference: those belong in that repo. A repo problem that turns out to be an office problem is an issue.
+
+`office issues` first. If it is already there, add a note instead of filing it twice. Write about the thing — the note, the tool, the convention — not the agent who left it; the person who wrote it may be the one reading yours. If you can fix it yourself (a tool you can add, a wrong memory you can correct), do that and skip the issue. `begin` lists a few open issues and tells you when one you filed has been closed. An issue records the project it came up in, for context only; issues are never part of a project's unfinished work.
+
+## Office manager
+
+One session at a time may be the office manager, and only the human designates it: `office begin --role manager --by <name>`, or `OFFICE_ROLE=manager` in the launcher. `begin` shows who holds it and when they were last seen; with none, or one who has gone quiet, issues go to the human. Taking the role moves it; `--role none` gives it up. Working in this repo does not make you the manager.
+
+The manager reads `office issues`, adds notes, closes what is resolved, and proposes changes to the office. The manager is also the human's contact for issues: whatever needs the human's attention or decision is brought to them in the conversation by the manager, not left sitting in the list. The manager does not change policy without the human, and is never a gate: nobody needs permission to do their work. An issue about the manager's own work is theirs to flag and the human's to close.
 
 ## Human testing and feedback
 

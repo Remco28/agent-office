@@ -18,6 +18,7 @@ type Opts = {
   tags: string[];
   project?: string;
   author?: string;
+  role?: string;
   scope?: string;
   usage?: string;
   notes?: string;
@@ -71,6 +72,8 @@ function parse(argv: string[]): { cmd: string; opts: Opts } {
       opts.project = args.shift();
     } else if (a === "--by" || a === "-a") {
       opts.author = args.shift();
+    } else if (a === "--role") {
+      opts.role = args.shift();
     } else if (a === "--use") {
       opts.usage = args.shift();
     } else if (a === "--note") {
@@ -120,6 +123,11 @@ function declaredAuthor(opts: Opts): string | null {
   return opts.author ?? process.env.OFFICE_AUTHOR ?? null;
 }
 
+/** The role is designated by the human — in the launcher's environment, or on begin. */
+function declaredRole(opts: Opts): string | null {
+  return opts.role ?? process.env.OFFICE_ROLE ?? null;
+}
+
 function help(): string {
   return `agent-office — local working memory for coding agents
 
@@ -149,6 +157,14 @@ function help(): string {
   office work close <id> [text]  say it is finished
   office work log [--all]     the whole trail, every project, newest first
 
+  office issues [--all]       open issues about the office itself (anyone may
+                              read; --all adds closed ones)
+  office issue open <title>   the office blocks you, lacks something every
+                              project would want, or is wrong. Not for bugs in
+                              the repo you are working on. Search first
+  office issue note <id> <text>   add to one instead of filing it twice
+  office issue close <id> <resolution>   say what changed, or why not (required)
+
   office tools                what this machine has
   office tools add <name> [--use <cmd>] [--note <text>] <summary>
   office tools remove <name>
@@ -160,6 +176,8 @@ function help(): string {
   office                      open the desk (humans)
 
 Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-n <n>
+--role manager  on begin: take the office manager role (one holder; the human
+designates it, or export OFFICE_ROLE). --role none gives it up
 --readonly  the read-only begin: use with begin, or just run peek
 --project and --by replace what the office remembers, for you alone; a session
 is keyed by author; a field you do not restate is kept. Pass neither to just
@@ -219,7 +237,24 @@ type BriefingView = {
   author_warnings?: Array<{ level: string; text: string }>;
   sessions_hidden?: number;
   identity_note?: string | null;
+  role?: string | null;
+  manager?: { author: string | null; last_seen: string; is_you: boolean } | null;
+  manager_note?: string | null;
+  issues?: IssueView[];
+  issues_open?: number;
+  issues_closed?: IssueView[];
   note?: string | null;
+};
+
+type IssueView = {
+  id: number;
+  title: string;
+  author: string | null;
+  last_note: string | null;
+  last_note_author: string | null;
+  closed?: boolean;
+  closed_by?: string | null;
+  resolution?: string | null;
 };
 
 function printBriefing(data: BriefingView): void {
@@ -227,6 +262,13 @@ function printBriefing(data: BriefingView): void {
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
   if (data.identity_note) out.push(`         ${data.identity_note}`);
+  if (data.role) out.push(`role     ${data.role}`);
+  if (data.manager) {
+    out.push(
+      `manager  ${data.manager.is_you ? "you" : (data.manager.author ?? "(unnamed)")}   last here ${data.manager.last_seen}`,
+    );
+  }
+  if (data.manager_note) out.push(`         ${data.manager_note}`);
   // One session is already on the author line; more than one is the news.
   if ((data.sessions ?? []).length > 1) {
     out.push("", "sessions");
@@ -255,6 +297,12 @@ function printBriefing(data: BriefingView): void {
     }
     if (data.notices_note) out.push(`  ${data.notices_note}`);
   }
+  for (const issue of data.issues_closed ?? []) {
+    out.push(
+      "",
+      `closed, an issue you filed: #${issue.id}  ${issue.title}  — ${issue.resolution ?? ""}${byline(issue.closed_by)}`,
+    );
+  }
   if (data.readonly_note) out.push("", `read-only   ${data.readonly_note}`);
   if (data.tools.length) {
     out.push("", "tools");
@@ -273,6 +321,15 @@ function printBriefing(data: BriefingView): void {
       out.push(`  #${item.id}  ${item.title}${note}`);
     }
     if (data.open_work_note) out.push(`  ${data.open_work_note}`);
+  }
+  if (data.issues?.length) {
+    out.push("", "issues (about the office itself)");
+    for (const issue of data.issues) {
+      const note = issue.last_note ? `  — ${issue.last_note}${byline(issue.last_note_author)}` : "";
+      out.push(`  #${issue.id}  ${issue.title}${byline(issue.author)}${note}`);
+    }
+    const more = (data.issues_open ?? 0) - data.issues.length;
+    if (more > 0) out.push(`  (+${more} more: office issues)`);
   }
   out.push("", "memories");
   if (!data.memories.length) out.push("  (none)");
@@ -374,6 +431,7 @@ export async function main(argv = process.argv): Promise<number> {
       body: {
         project: declaredProject(opts),
         author: declaredAuthor(opts),
+        role: declaredRole(opts),
         readonly,
       },
     })) as BriefingView;
@@ -515,6 +573,54 @@ export async function main(argv = process.argv): Promise<number> {
       return 0;
     }
     throw new Error(`unknown work command: ${sub}\n${help()}`);
+  }
+
+  if (cmd === "issues" || cmd === "issue") {
+    const sub = cmd === "issues" ? "list" : (opts.rest[0] ?? "list");
+    if (sub === "list") {
+      const params = new URLSearchParams({
+        all: opts.all ? "1" : "0",
+        limit: String(opts.limit ?? 20),
+      });
+      const data = (await api(`/issues?${params}`)) as { issues: IssueView[] };
+      if (asText) {
+        if (!data.issues.length) process.stdout.write("(none)\n");
+        for (const issue of data.issues) {
+          const mark = issue.closed ? "x" : " ";
+          const note = issue.last_note ? `  — last note${byline(issue.last_note_author)}` : "";
+          process.stdout.write(`[${mark}] #${issue.id}  ${issue.title}${byline(issue.author)}${note}\n`);
+        }
+      } else {
+        printJson(data);
+      }
+      return 0;
+    }
+    if (sub === "open") {
+      const title = opts.rest.slice(1).join(" ").trim();
+      if (!title) throw new Error("usage: office issue open <title>");
+      printJson(
+        await api("/issues/open", {
+          method: "POST",
+          body: { title, project: declaredProject(opts), author: declaredAuthor(opts) },
+        }),
+      );
+      return 0;
+    }
+    if (sub === "note" || sub === "close") {
+      const id = Number(opts.rest[1]);
+      const label = sub === "note" ? "<text>" : "<resolution>";
+      if (!Number.isInteger(id) || id <= 0) throw new Error(`usage: office issue ${sub} <id> ${label}`);
+      const text = opts.rest.slice(2).join(" ").trim();
+      if (!text) throw new Error(`usage: office issue ${sub} <id> ${label}`);
+      printJson(
+        await api(`/issues/${sub}`, {
+          method: "POST",
+          body: { id, text, author: declaredAuthor(opts) },
+        }),
+      );
+      return 0;
+    }
+    throw new Error(`unknown issue command: ${sub}\n${help()}`);
   }
 
   if (cmd === "tools") {

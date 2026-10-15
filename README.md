@@ -130,7 +130,7 @@ A session is keyed by author, so one agent cannot inherit or overwrite another's
 
 `begin` is the front door and it writes, which locks out the agents it ought to suit most: one told not to modify state reads `AGENTS.md`, sees that `begin` records a session, and correctly refuses to run it — so it never enters at all. `office peek` is the read-only way in. Same briefing, nothing written; it is exactly `begin --readonly`. Because a peek does not move your check-in mark, its "since you were last here" notices repeat until a real `begin` moves it, and it says so rather than pretending to be a check-in. On a first visit there is no watermark to move, so the recent activity reads the same every time until you begin.
 
-The other reads never write either — `context`, `search`, `work`, `tools`, `list`, `status`. Only `begin`, `remember`, `forget`, and the work/tools writers change the record.
+The other reads never write either — `context`, `search`, `work`, `issues`, `tools`, `list`, `status`. Only `begin`, `remember`, `forget`, and the work/issue/tools writers change the record.
 
 ## Two records, one file
 
@@ -158,6 +158,21 @@ office work log --all --limit 20  # the whole trail, every project
 ```
 
 `office work note` is the handoff. The reason it is written *while* working is that an agent running out of context cannot write its own death notice.
+
+## Issues and the office manager
+
+Beside the two records there is a short list of **issues**: friction in the office itself — something it blocks, lacks, or gets wrong. It has the work log's shape (append-only; open until someone writes a closing line) in tables of its own, so an issue never appears in a project's unfinished work. It is deliberately not scoped to a project: every session sees the same open issues whatever it is working on, so a problem is added to rather than filed twice. An issue records the project it came up in as context, not as a filter. Bugs in the repo an agent is working on are not issues; a repo problem that exposes an office problem is.
+
+```bash
+office issues [--all]                    # open issues (--all adds closed)
+office issue open "begin lists dead sessions as present"
+office issue note 3 "same here, after compaction"
+office issue close 3 "fixed in 1f3b6e0"  # the resolution line is required
+```
+
+`begin` lists up to five open issues, counts the rest, and tells a session when someone else closed one it filed — which matters for sessions that run for days.
+
+One session at a time may hold the **manager** role, and the human designates it: `office begin --role manager --by <name>`, or `OFFICE_ROLE=manager` in the launcher. Taking the role moves it from whoever had it; `--role none` gives it up; a role needs a name, and a peek (which writes nothing) cannot take one. `begin` shows who is manager and when they were last seen, and says so when there is none or the one named has been away more than three days — in which case issues go to the human. The role is a convention the briefing carries, not an access control; nothing in the office checks it. The manager triages issues and proposes changes, and is never a gate on anyone else's work.
 
 ## Tools
 

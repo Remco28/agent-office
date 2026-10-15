@@ -69,7 +69,13 @@ export type SessionRow = {
   project: string | null;
   author: string | null;
   updated_at: string;
+  /** `manager` for the one session the human designated, otherwise null. */
+  role: string | null;
 };
+
+export const ROLE_MANAGER = "manager";
+
+export type IssueEventKind = "open" | "note" | "close";
 
 export function openDb(path = dbPath()): Database {
   mkdirSync(dirname(path), { recursive: true });
@@ -147,6 +153,34 @@ const WORK_DDL = `
   CREATE INDEX IF NOT EXISTS work_project ON work(project);
 `;
 
+/**
+ * Friction in the office itself: something it blocks, lacks or gets wrong. The
+ * same append-only shape as the work log, and for the same reason — "closed" is
+ * a closing line, not a field. Deliberately its own pair of tables: issues are
+ * about the office, not any project, so they must never surface in a
+ * project's unfinished work. `project` is where it surfaced, not a filter.
+ */
+const ISSUES_DDL = `
+  CREATE TABLE IF NOT EXISTS issues (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    project TEXT,
+    author TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS issue_events (
+    id INTEGER PRIMARY KEY,
+    issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    text TEXT NOT NULL DEFAULT '',
+    author TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS issue_events_issue ON issue_events(issue_id);
+`;
+
 const TOOLS_DDL = `
   CREATE TABLE IF NOT EXISTS tools (
     id INTEGER PRIMARY KEY,
@@ -175,7 +209,8 @@ const SESSION_DDL = `
   CREATE TABLE IF NOT EXISTS session_state (
     author TEXT PRIMARY KEY NOT NULL,
     project TEXT,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    role TEXT
   );
 `;
 
@@ -202,7 +237,7 @@ function migrateSession(db: Database): void {
   if (!tableColumns(db, "session_state").has("id")) return;
   const rows = db
     .query("SELECT project, author, updated_at FROM session_state")
-    .all() as SessionRow[];
+    .all() as Omit<SessionRow, "role">[];
   db.exec("DROP TABLE session_state");
   db.exec(SESSION_DDL);
   const insert = db.query(
@@ -228,9 +263,15 @@ function migrate(db: Database): void {
   }
   ensureMemoryColumns(db);
   db.exec(WORK_DDL);
+  db.exec(ISSUES_DDL);
   db.exec(TOOLS_DDL);
   migrateSession(db);
   db.exec(SESSION_DDL);
+  // A session table made before roles existed has no such column; the DDL above
+  // only creates it for a fresh one.
+  if (!tableColumns(db, "session_state").has("role")) {
+    db.exec("ALTER TABLE session_state ADD COLUMN role TEXT");
+  }
   backfillAttribution(db);
 }
 
