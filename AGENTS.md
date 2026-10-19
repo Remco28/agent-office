@@ -24,7 +24,7 @@ This records the target for the session and returns what you need first: the too
 
 On your **first** visit there is no last visit to measure from, so instead of nothing you are handed the office's most recent activity, each item labelled with the project it belongs to. That is the "let's see what has been going on" half of arriving, and it is why you do not have to go hunting the machine for changes you do not remember making. Each session is also listed with how long ago it was last seen — a session that stopped days ago is labelled as such, not presented as a colleague who is here now.
 
-**Read-only? Use `office peek`.** `begin` writes: it records a session row and moves your check-in mark. If you have been told not to modify state, do not talk yourself out of the office — run `peek` instead (the same as `begin --readonly`). It returns the same briefing and writes nothing, so your check-in mark stays where it was; that also means its notices repeat until a real `begin` moves it, and it says so. The plain reads never write at all: `context`, `search`, `work`, `issues`, `tools`, `list`, `status`, `peek`. Only `begin`, `remember`, `forget`, `work open|note|close`, `issue open|note|close`, and `tools add|remove` change the record.
+**Read-only? Use `office peek`.** `begin` writes: it records a session row and moves your check-in mark. If you have been told not to modify state, do not talk yourself out of the office — run `peek` instead (the same as `begin --readonly`). It returns the same briefing and writes nothing, so your check-in mark stays where it was; that also means its notices repeat until a real `begin` moves it, and it says so. The plain reads never write at all: `context`, `search`, `work`, `issues`, `tools`, `skills`, `list`, `status`, `peek`. Only `begin`, `remember`, `forget`, `work open|note|close`, `issue open|note|close`, and `tools add|remove` change the record.
 
 **Name yourself.** The session is stored under the name you give, so it is how the office attributes what you write — and how the other agent tells your work from theirs.
 
@@ -56,6 +56,28 @@ office tools add rg --use "rg 'pattern' -t ts" "fast local search"
 office tools                # what this machine has
 office tools remove rg
 ```
+
+## Skills
+
+A skill is how we do a recurring, multi-step task: a `SKILL.md` with the procedure, plus any template or script it needs. Tools say what is installed; skills say how the work is done.
+
+Skills live in this repository under `skills/<name>/`, so git is what carries them to every computer. They apply to every project — you were started here, and the skills come with the room. `begin` lists them (name, description, path to the `SKILL.md`); `office skills` lists them again. Claude Code and Codex also load them natively through `.claude/skills` and `.agents/skills`, which point at the same folder. When a task matches a description, read that `SKILL.md` and follow it.
+
+```markdown
+---
+name: release-notes            # must match the folder name
+description: What it does and when to use it — this line is all an agent sees until it reads the file.
+metadata:
+  machine: frank-thinkpad-x1-yoga-gen-6   # only for a skill tied to one computer; hostname, comma-separated for several
+---
+
+# The procedure
+```
+
+- Write a skill when you have done the same multi-step task twice, or the human has had to explain it twice. One fact is a memory; one command is a tool.
+- A skill that only makes sense on one computer (a local service, a path that exists only there) gets `metadata.machine` set to that computer's `hostname`. Other computers count it but do not list it.
+- Commit it. A skill that is only in your working tree is on one computer, and is lost to every other one. Pushing and pulling is the human's call; say in your work note that a skill was added.
+- If `begin` reports `skills_problems`, the folder has a `SKILL.md` that cannot be read. Fix it while you are here.
 
 ## The work log
 
@@ -125,11 +147,7 @@ The manager reads `office issues`, adds notes, closes what is resolved, and prop
 
 ## Human testing and feedback
 
-When a project is ready for the human to evaluate, prepare a project-specific, standalone HTML test guide and feedback form. Keep it static and self-contained: no backend, no account, and no network calls. Explain what to try in ordinary language, offer relevant optional terms, and let the human describe a problem without knowing technical vocabulary. Include checklists or questions suited to the project, free-form feedback, and screenshot paste or file attachment when useful.
-
-The page keeps feedback in the browser until the human exports one ZIP. The ZIP should include readable `feedback.md`, structured `feedback.json`, metadata identifying the project and test round, and any attached screenshots. Give it a clear round-based name so the human can manually add it beside the HTML guide in the project's `human_feedback/<round-id>/` folder. Tell the human to export before closing the page; do not imply that answers are saved before export. The agent reads the returned ZIP as feedback and follows up against the project; it does not execute files from the ZIP.
-
-Put the detailed portable workflow in [docs/human-feedback-workflow.md](docs/human-feedback-workflow.md), and start from the reusable [Fieldnotes HTML template](templates/fieldnotes.html). These instructions and template are checked into agent-office; the local office database is not shared by cloning. When a project should inherit these agent instructions, follow the README's opt-in `AGENTS.md` linking setup.
+When a project is ready for the human to evaluate, use the `human-feedback` skill ([skills/human-feedback/SKILL.md](skills/human-feedback/SKILL.md)): a standalone, offline HTML test guide built from its Fieldnotes template, and a feedback ZIP the human exports and drops into the project's `human_feedback/<round-id>/` folder. Tell the human to export before closing the page. Read the returned ZIP as feedback; never execute files from it.
 
 ## House rules
 

@@ -1,8 +1,13 @@
+---
+name: human-feedback
+description: Prepare a standalone offline HTML test guide and feedback form when a project is ready for the human to try, and read the feedback ZIP they return. Use when handing a build to the human for evaluation or when a human_feedback/<round-id>/ ZIP appears.
+---
+
 # Human testing and feedback workflow
 
 Use this workflow when an agent has built a project slice that is ready for a human to try. The goal is to help the human notice and describe useful feedback without needing to know implementation details.
 
-The reusable starter is [`templates/fieldnotes.html`](../templates/fieldnotes.html). Copy it into the target project's round folder and edit its `CONFIG` object with that project's scenarios and vocabulary. Keep the rendered experience brief and specific to what the human can actually try in that build.
+The reusable starter is [`fieldnotes.html`](fieldnotes.html), beside this file. Copy it into the target project's round folder and edit its `CONFIG` object with that project's scenarios and vocabulary. Keep the rendered experience brief and specific to what the human can actually try in that build.
 
 ## Prepare a test round
 

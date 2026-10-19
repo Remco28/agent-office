@@ -218,7 +218,17 @@ Agents still use the CLI. Office instructions are **opt-in per working directory
 ln -s ~/Projects/agent-office/AGENTS.md /path/to/that/project/AGENTS.md
 ```
 
-Leave it out of every other project. The checked-in instructions include the portable [human testing and feedback workflow](docs/human-feedback-workflow.md) and its reusable [Fieldnotes HTML template](templates/fieldnotes.html): agents create offline, project-specific guides, and humans return feedback as ZIP files. No Codex skill installation is needed for this convention. The office database remains local to each computer; `AGENTS.md`, the workflow document, and the template travel with this repository when cloned.
+Leave it out of every other project. The office database remains local to each computer; `AGENTS.md` and `skills/` travel with this repository when cloned.
+
+## Skills
+
+Skills are checked in under `skills/<name>/SKILL.md`, in the format Claude Code and Codex load natively (YAML frontmatter with `name` and `description`, then the procedure; templates and scripts sit beside it). They are not in the database: git is what carries them to every computer, and the folder is the only copy.
+
+They apply to every project. Agents are started here, and `office begin` lists each skill's name, description, and path; `office skills` lists them on their own. `.claude/skills` and `.agents/skills` are symlinks to the same folder, so Claude Code and Codex started in this checkout also load them themselves.
+
+A skill tied to one computer sets `metadata.machine` to that computer's `hostname` (comma-separated for several; matched without case). Other computers count it rather than list it. `OFFICE_MACHINE` overrides the hostname, and `OFFICE_SKILLS` points the office at another folder.
+
+The first skill is [`human-feedback`](skills/human-feedback/SKILL.md): agents build an offline, project-specific test guide from its Fieldnotes template, and the human returns feedback as a ZIP.
 
 ## Copying the store
 
@@ -239,6 +249,8 @@ The whole memory — and the work log — is that SQLite file. Stop the daemon, 
 | `OFFICE_AUTHOR` | Your name — the `--by` default, so writes attribute correctly without repeating the flag |
 | `OFFICE_MIN_SIM` | Relevance floor for meaning-only hits (default `0.30`) |
 | `OFFICE_LOG_CAP` | Characters of work trail to keep (default `1000000`) |
+| `OFFICE_SKILLS` | Skills folder (default: `skills/` in this checkout) |
+| `OFFICE_MACHINE` | This computer's name for `metadata.machine` (default: `hostname`) |
 | `OFFICE_PYTHON_BUILD` | Interpreter `install.sh` uses to build `./.venv` (default `python3`) |
 
 `--source` and `OFFICE_SOURCE` are the old names for `--project` and `OFFICE_PROJECT`; they still work.

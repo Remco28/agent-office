@@ -6,6 +6,14 @@ export const ROOT = join(import.meta.dir, "..");
 export const SIDECAR = join(ROOT, "sidecar", "embed.py");
 export const MODEL_NAME = process.env.OFFICE_MODEL ?? "all-MiniLM-L6-v2";
 
+/**
+ * The skills folder. It is in the checkout, not the data dir, because git is
+ * what carries a skill to every computer; OFFICE_SKILLS exists for tests.
+ */
+export function skillsDir(): string {
+  return process.env.OFFICE_SKILLS ?? join(ROOT, "skills");
+}
+
 export function dataDir(): string {
   if (process.env.OFFICE_HOME) return process.env.OFFICE_HOME;
   return join(homedir(), ".local", "share", "agent-office");

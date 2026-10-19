@@ -28,6 +28,8 @@ import {
   type WorkItem,
 } from "./work";
 import { countTools, listTools, type Tool } from "./tools";
+import { listSkills, type Skill, type SkillProblem } from "./skills";
+import { skillsDir } from "./paths";
 import { closedSince, listIssues, openIssueCount, type Issue } from "./issues";
 
 export const BRIEFING_MEMORIES = 6;
@@ -448,6 +450,15 @@ export type Briefing = {
   author_source: ScopeSource;
   active_since: string | null;
   tools: Tool[];
+  /**
+   * Skills for every project, read from the checkout's `skills/` folder: name,
+   * description, and the SKILL.md to read when a task matches. Skills marked
+   * for other computers are counted in `skills_elsewhere`, not listed.
+   */
+  skills: Skill[];
+  skills_elsewhere: number;
+  /** SKILL.md files that could not be read; empty when all is well. */
+  skills_problems: SkillProblem[];
   preferences: Memory[];
   open_work: WorkItem[];
   /** Why the open work above is the unclaimed set, when there was no project
@@ -528,8 +539,11 @@ export async function briefing(
     /** This check-in was given a new numbered name. */
     minted?: boolean;
     now?: number;
+    /** Where the skills are read from; the checkout's folder by default. */
+    skillsDir?: string;
   } = {},
 ): Promise<Briefing> {
+  const skills = listSkills(opts.skillsDir ?? skillsDir());
   const scope = resolveScope(db, opts.declared);
   const readOnly = Boolean(opts.readonly);
   const watermark = opts.since?.trim() || null;
@@ -597,6 +611,9 @@ export async function briefing(
     author_source: scope.author_source,
     active_since: scope.active_since,
     tools: listTools(db),
+    skills: skills.skills,
+    skills_elsewhere: skills.elsewhere,
+    skills_problems: skills.problems,
     preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),
     // Unfinished work is project-specific in the same way memories are: with no
     // project named, handing over every project's loose ends is the read the

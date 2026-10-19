@@ -169,6 +169,11 @@ function help(): string {
   office tools add <name> [--use <cmd>] [--note <text>] <summary>
   office tools remove <name>
 
+  office skills               skills for every project, from this checkout's
+                              skills/ folder; read a SKILL.md when its task
+                              comes up. Ones marked for another computer are
+                              counted, not listed
+
   office serve [--detach]     start the localhost daemon
   office status               daemon health (JSON)
   office logs [-n <lines>]    the daemon's own output, for when it is unwell
@@ -210,6 +215,9 @@ type BriefingView = {
   project_source?: string;
   author: string | null;
   tools: Array<{ name: string; summary: string; usage: string | null }>;
+  skills?: SkillView[];
+  skills_elsewhere?: number;
+  skills_problems?: Array<{ path: string; problem: string }>;
   preferences: Hit[];
   open_work: Array<{ id: number; title: string; last_note: string | null; last_note_author: string | null }>;
   open_work_note?: string | null;
@@ -245,6 +253,25 @@ type BriefingView = {
   issues_closed?: IssueView[];
   note?: string | null;
 };
+
+type SkillView = { name: string; description: string; path: string; machines: string[] | null };
+
+function printSkills(
+  skills: SkillView[],
+  elsewhere: number,
+  problems: Array<{ path: string; problem: string }>,
+  indent: string,
+): string[] {
+  const out: string[] = [];
+  for (const skill of skills) {
+    const only = skill.machines ? `  [this computer only]` : "";
+    out.push(`${indent}${skill.name}  ${skill.description}${only}`);
+    out.push(`${indent}  ${skill.path}`);
+  }
+  if (elsewhere) out.push(`${indent}(+${elsewhere} for other computers, not shown)`);
+  for (const problem of problems) out.push(`${indent}! ${problem.path}: ${problem.problem}`);
+  return out;
+}
 
 type IssueView = {
   id: number;
@@ -309,6 +336,12 @@ function printBriefing(data: BriefingView): void {
     for (const tool of data.tools) {
       out.push(`  ${tool.name}  ${tool.summary}${tool.usage ? `  (${tool.usage})` : ""}`);
     }
+  }
+  if (data.skills?.length || data.skills_elsewhere || data.skills_problems?.length) {
+    out.push("", "skills");
+    out.push(
+      ...printSkills(data.skills ?? [], data.skills_elsewhere ?? 0, data.skills_problems ?? [], "  "),
+    );
   }
   if (data.preferences.length) {
     out.push("", "everywhere");
@@ -621,6 +654,21 @@ export async function main(argv = process.argv): Promise<number> {
       return 0;
     }
     throw new Error(`unknown issue command: ${sub}\n${help()}`);
+  }
+
+  if (cmd === "skills") {
+    const data = (await api("/skills")) as {
+      skills: SkillView[];
+      elsewhere: number;
+      problems: Array<{ path: string; problem: string }>;
+    };
+    if (asText) {
+      const lines = printSkills(data.skills, data.elsewhere, data.problems, "");
+      process.stdout.write((lines.length ? lines.join("\n") : "(none)") + "\n");
+    } else {
+      printJson(data);
+    }
+    return 0;
   }
 
   if (cmd === "tools") {

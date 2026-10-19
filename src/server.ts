@@ -24,6 +24,7 @@ import {
 import { closeIssue, getIssue, listIssues, noteIssue, openIssue } from "./issues";
 import { closeWork, getWork, listWork, noteWork, openWork, type WorkRead } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
+import { listSkills } from "./skills";
 import {
   NO_PROJECT_NOTE,
   UNATTRIBUTED_MEMORY_NOTE,
@@ -31,7 +32,7 @@ import {
   UNCLAIMED_WRITE_NOTE,
 } from "./scope";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
-import { dbPath, detectPython, logPath, MODEL_NAME, port } from "./paths";
+import { dbPath, detectPython, logPath, MODEL_NAME, port, skillsDir } from "./paths";
 
 export type Office = {
   stop: () => void;
@@ -286,6 +287,10 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
 
       if (req.method === "GET" && path === "/tools") {
         return json({ tools: listTools(db) });
+      }
+
+      if (req.method === "GET" && path === "/skills") {
+        return json(listSkills(skillsDir()));
       }
 
       if (req.method === "POST" && path === "/tools") {
