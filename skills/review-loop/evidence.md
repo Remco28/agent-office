@@ -41,6 +41,20 @@ The seventh was caught by a control the method itself prescribes. **Readers
 reported all of them accurately.** This is why step 4's first gate exists, and
 why the gate is about *the copy you handed over*, not about dismissing layout.
 
+**And the gate cuts both ways.** After seven clean rounds the artifact shipped,
+and the owner found within hours that it burned 20–50% of a processor, parked,
+with nothing visibly moving — a perpetual animation on an element the browser
+could not composite, redrawing 3,072 vector paths sixty times a second. No
+reader had an instrument, so no reader could see it. Worse, the author's own
+instrument could not reproduce it: a headless bisect put the page at 3.9%
+against a blank page's 4.6% and would have certified it clean.
+
+So: **a tool that cannot reproduce a fault cannot clear the artifact of it**,
+and the word "measured" has to carry the name of what did the measuring. Where
+a property is only visible on the real target — compositing, battery, print,
+latency, a screen reader's actual speech — either measure it there or record it
+as unmeasured. Do not let a convenient instrument stand in for an absent one.
+
 ## The ratchet — the loop's built-in bias
 
 Readers find faults. Faults get fixed. Fixes add caution. **No reader sees the

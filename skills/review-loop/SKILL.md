@@ -167,7 +167,7 @@ non-obvious part, and [`briefs.md`](briefs.md) has each one written out:
 |---|---|---|
 | **Fix auditor** | last round's fixes, and nothing else | did each land? |
 | **Disposition auditor** | the findings and what you did with each | was the triage fair? |
-| **Cost reader** | the artifact, plus a control | what does this cost its user — time, money, CPU, attention, quota? |
+| **Cost reader** | a **measurement** taken on the real target, plus a control | what does this cost its user — time, money, CPU, attention, quota? An impression is not evidence here; if you cannot measure it on the thing the audience actually uses, say so rather than clearing it |
 | **A/B reader** | two drafts, unlabelled, both orderings | which is better? |
 
 Retire a persona after two rounds with no tier-1 or tier-2 finding, and record it
