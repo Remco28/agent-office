@@ -113,3 +113,12 @@ auditor is a mitigation, not a cure.
   lens needs, and say in the brief what you left out.
 - **Specialist casts do not transfer between genres.** Tested, twice. Expect to
   write a new profile and keep only the frame.
+- **Readers drawn from one model have correlated errors.** Raised by a reader,
+  not by the author: *"if the readers share one underlying model, their errors
+  may be correlated, and agreement between them is weaker evidence than
+  agreement between people."* That is right, and it weakens the single load-
+  bearing rule in step 4. Nothing here measures it. Until something does, treat
+  convergence as a strong hint rather than proof, vary the personas hard so the
+  readers are not asked the same question in the same words, and keep the human
+  at the end — which is the only reader in the cast whose errors are
+  uncorrelated with the rest.
