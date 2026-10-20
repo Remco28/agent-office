@@ -5,14 +5,15 @@ what it is built on and where it is thin.
 
 ## The evidence base, stated honestly
 
-Everything here comes from **one author, one artifact, six rounds** — a long-form
-public explainer, reviewed by small cheap model agents. Two cold-read tests on
-other genres (a lab manual, an API reference) found that the *loop structure*
-carried over and the *cast and house rules* did not.
+Everything here comes from **one author, two artifacts, nine rounds** — a
+long-form public explainer (seven rounds) and a one-page diagram (two) —
+reviewed by small cheap model agents. Two cold-read tests on other genres (a
+lab manual, an API reference) found that the *loop structure* carried over and
+the *cast and house rules* did not.
 
-So: treat the five steps as general and **treat every specific persona, house
-rule and threshold as a hypothesis** until a second genre confirms it. The
-numbers below are one trial's, not a law.
+So: treat the procedure's steps as general and **treat every specific persona,
+house rule and threshold as a hypothesis** until another genre confirms it. The
+numbers below come from two artifacts by one author, which is not a law.
 
 ## The framing result
 
@@ -25,7 +26,7 @@ That is the whole reason step 3 is written the way it is.
 
 ## The harness is the unreliable component, not the readers
 
-Across six rounds, **six of seven false findings were the author's pipeline**,
+Across those rounds, **every false finding was the author's pipeline** —
 not the readers' judgement:
 
 - a capture whose viewport stretched every section
@@ -37,8 +38,9 @@ not the readers' judgement:
 - extraction markers read as visible page text — filed by four readers across
   two rounds before the author recognised them
 
-The seventh was caught by a control the method itself prescribes. **Readers
-reported all of them accurately.** This is why step 4's first gate exists, and
+— nine of them across nine rounds, and not one was a reader's judgement.
+**Every one was reported accurately by the reader who hit it**; what was wrong
+was the copy they had been handed, or the instrument used to check it. This is why step 4's first gate exists, and
 why the gate is about *the copy you handed over*, not about dismissing layout.
 
 **And the gate cuts both ways.** After seven clean rounds the artifact shipped,
@@ -61,7 +63,8 @@ Readers find faults. Faults get fixed. Fixes add caution. **No reader sees the
 previous version, so none can say "this got worse."** The artifact can only
 harden, round after round, and nothing inside the loop objects.
 
-Measured: the page grew **4,243 → 4,730 words (+11.5%)** across six rounds while
+Measured: the page grew **4,243 → 4,730 words (+11.5%)** across the explainer's
+six rounds while
 three readers a round asked for cuts, every one filed as taste.
 
 Four A/B readers on two unlabelled drafts, both orderings:

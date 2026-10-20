@@ -81,22 +81,18 @@ reader the slice their lens needs rather than the whole thing.
 them the frozen copy — otherwise a reader tests a state no version contains. For
 a static document, give every reader the identical file and record its version.
 
-**Run.** All readers in parallel, each blind to the others — convergence is only
-evidence if it is independent. You need a way to spawn parallel subagents; a
-cheap model tier is sufficient and has been enough in practice.
+**Run.** All readers in parallel, each blind to the others. A small cheap model
+has been enough for the reading itself.
 
-**Spread the cast across models when you have more than one, and record which
-model each reader ran on.** Readers drawn from a single model have correlated
-errors, so their agreement is weaker evidence than it looks — and without the
-model recorded beside each finding you cannot tell a real convergence from one
-model's habit. This is the cheapest available fix for the method's biggest
-known weakness; see [`evidence.md`](evidence.md).
+**Spread the cast across models, and write the model beside each finding.**
+Readers drawn from one model share its blind spots, so their agreement is worth
+less than the count suggests. Two models disagreeing about what they noticed is
+information; two instances of one model agreeing may only be one opinion. If
+you have a single model, say so in the record and treat every convergence as a
+strong hint rather than proof.
 
-**Readers are cheap; your own context is not.** The bottleneck is never the cost
-of running a reader, it is the author's capacity to read what comes back. So run
-*more* readers than feels necessary, and spend the effort on compressing their
-reports rather than on rationing the cast. If the reports stop fitting, have a
-separate agent group and rank them — never decide for you.
+**A round-one default, if you want one:** six comprehension readers across at
+least two models, plus one or two specialists. Adjust from there.
 
 **Every brief has six parts.** This skeleton is the minimum;
 [`briefs.md`](briefs.md) is how to make them good, and is worth reading before
@@ -110,10 +106,17 @@ you write the first one.
    useful answer."*
 6. **Known artifacts of the materials**, named as deliberate.
 
-> **Ask whether it succeeded. Do not ask what is wrong with it.** Ask an agent to
-> find problems and it will find problems; that is not evidence. Nitpicking goes
-> to named **specialists** told that nitpicking is the job. Never ask one persona
-> to both judge success and hunt faults.
+> **Ask whether it succeeded. Do not make fault-finding the job.** Ask an agent
+> to go looking for problems and it will return problems, present or not; that
+> is not evidence. Hunting is given to named **specialists** who are told that
+> nitpicking is their job.
+>
+> This is about the *frame*, not about refusing defect reports. A comprehension
+> reader is asked what it understood, and then — question 3 below — whether
+> anything was broken, *limited to what it is confident about*. That is a
+> reader volunteering a fault, which is worth a great deal. What you must not do
+> is set someone loose to find faults and then read their list as a verdict on
+> whether the thing worked.
 
 Comprehension readers answer four questions, in this order:
 
@@ -126,10 +129,17 @@ Comprehension readers answer four questions, in this order:
 
 | Tier | Test | Do |
 |---|---|---|
-| **1** | Two or more independent readers, **or** checkable against the artifact itself | Fix |
+| **1** | Two or more **independent** readers, **or** checkable against the artifact itself | Fix |
 | **2** | One reader, checkable against an outside source | Verify, then fix or decline |
 | **3** | Taste, framing, tone | Collect. Surface to the human. Do not act |
 | **0** | An artifact of how you showed it to them | Reject, out loud |
+
+**"Independent" is doing the work in tier 1, and a large cast makes it cheap.**
+Two readers agreeing is evidence when they are different people asked different
+questions on different models. Two of twelve same-model readers agreeing may be
+one habit counted twice. Weigh a convergence against how many readers *could*
+have said it and how differently they were asked — and when in doubt, treat it
+as tier 2 and go and check.
 
 Two gates before you believe anything:
 
@@ -175,6 +185,12 @@ A prediction written after the results is worth nothing.
 Three kinds. A profile's list is a **floor, not a ceiling** — before each round
 ask *what did I just change, what am I afraid of, and who would notice?* and
 write a reader for each answer. The best readers are usually bespoke.
+
+**Readers are cheap; your own context is not.** The bottleneck has never been
+the cost of running a reader, it is your capacity to read what comes back. So
+run more readers than feels necessary and spend the effort compressing their
+reports, rather than rationing the cast. If the reports stop fitting, have a
+separate agent group and rank them — that agent never decides.
 
 - **Comprehension readers** — the real audience, across its range of abilities.
 - **Specialists** — one lens each, told that nitpicking is the job.

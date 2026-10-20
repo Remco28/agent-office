@@ -69,9 +69,11 @@ attribute."* That single sentence removed the most common false finding.
 
 ---
 
-## Four briefs that earned their place
+## Five briefs that earned their place
 
-(SKILL.md lists what each is *for*; this is how to write them.)
+(SKILL.md lists the four standing readers and what each is *for*; this is how
+to write them. The fifth is not standing — it is a bespoke reader that has
+been worth reusing.)
 
 **The fix auditor.** Materials: *last round's fixes and nothing else*, plus the
 artifact. For each change: GONE / STILL THERE / REPLACED BY A NEW PROBLEM, with a
@@ -88,13 +90,22 @@ ones. It is the only reader that audits the instrument instead of the artifact.
 Tell it plainly: *"Finding nothing is a real answer, but it is the answer that
 should make us trust YOU less rather than the author more."*
 
+**The cost reader.** Materials: a measurement taken on the real target, plus
+the same measurement of a control — a blank page, the previous version, a
+competitor. Asks what the artifact costs the person using it: time, attention,
+money, battery, processor, quota. Say this plainly in the brief: *"An
+impression is not evidence here. If it was not measured on the thing the
+audience actually uses, answer 'unmeasured' — do not answer 'fine'."* The
+processor story in [`evidence.md`](evidence.md) is what this reader exists for,
+and it is also the one it missed.
+
 **The A/B reader.** Materials: two unlabelled drafts, *both orderings run
-separately* to control for position. Which is better to **read**, which do you
-**trust**, is either over-qualified, does either fail to state its own result
-plainly. The only reader that can detect regression, because every other reader
+separately* to control for position. Asks four things: which is better to
+**read**; which do you **trust**; is either over-qualified; does either fail to
+state its own result plainly. The only reader that can detect regression, because every other reader
 sees one version and can only add caution.
 
-**A targeted recall reader.** Materials: the artifact, read once, no going back.
+**A targeted recall reader.** *Not standing — bespoke, but worth reusing.* Materials: the artifact, read once, no going back.
 Then specific questions from memory about the thing last round's fix was supposed
 to deliver. *"Your uncertainty is the useful data here, not your ability to find
 the answer."* This is how you learn whether a fix reached a reader rather than
@@ -104,8 +115,10 @@ merely reaching the file.
 
 ## Running them
 
-Parallel, blind to each other. Model tier has mattered less than framing — see
-[`evidence.md`](evidence.md).
+Parallel, blind to each other. Framing matters more than model tier — but
+**spread the cast across models anyway and record which model said what.**
+Readers from one model share its blind spots, so their agreement counts for
+less than the number suggests.
 
 Brief them like colleagues who have one job and limited time, not like a form to
 fill in.
