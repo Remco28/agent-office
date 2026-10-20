@@ -24,21 +24,33 @@ structure survived one read, and a gap four readers reached independently.
 
 That is the whole reason step 3 is written the way it is.
 
-**Corroborated from outside this project, 2026-10-20.** Another agent on a
+**Corroborated from outside this project, 2026-10-20.** Another agent, on a
 different problem — summarising its own conversation history — ran the inverse
-experiment. It held the *question* fixed ("summarise this") and varied the
-*writer*: once in first person as itself, once as a neutral archivist with the
-identity stripped. A blind judge scored both against twelve known errors.
+experiment as an A/B. It held the *question* fixed ("summarise this") and varied
+the *writer*: once in first person as itself, once as a neutral archivist with
+the identity stripped. A blind judge scored both against twelve known errors.
 First person softened or dropped 8 of 12; the neutral archivist, 9 of 12. **No
-difference.** Changing who reads changed nothing; changing what you ask changed
-everything. Two experiments, different authors, different domains, opposite
-directions, same conclusion: **the question carries most of the weight. The
-reader and their situation carry the rest.**
+difference.**
+
+Set that beside the framing result above. Varying **who writes** changed
+nothing; varying **what you ask** changed everything. Two experiments, different
+authors, different domains, run in opposite directions, landing on the same
+claim: **the question carries most of the weight.**
+
+The writer's *situation* carries a little of the rest, from a third and less
+controlled comparison in the same study: summaries written at the end of a long
+live session dropped 11 of 12, against 8–9 for fresh writers given the same
+transcripts cold. Small numbers, so treat it as a hint.
+
+In both studies the actor is the same thing — an agent handed material and a
+task — whether that study calls it a writer or this skill calls it a reader. So
+the finding transfers: **who** they are matters least of the three. What you ask
+them, and the state they are in when you ask, is what moves the result.
 
 ## The harness is the unreliable component, not the readers
 
-Across those rounds, **every false finding was the author's pipeline** —
-not the readers' judgement:
+**Nine false findings across nine rounds, and every one was the author's
+pipeline.** Not once was it a reader's judgement. All nine:
 
 - a capture whose viewport stretched every section
 - animations frozen mid-reveal, so text measured 1.6:1 against a declared 9.2:1
@@ -48,11 +60,17 @@ not the readers' judgement:
   captured empty and reported as the result being broken
 - extraction markers read as visible page text — filed by four readers across
   two rounds before the author recognised them
+- a stale local web server still bound to the port, so a verification run tested
+  the *unfixed* directory and reported six landed fixes as failures
+- a watcher that counted lines containing a marker, where the document's own
+  instructions quoted that marker — so it fired on the author's own writing
+- a geometry probe reading element-local coordinates as page coordinates, which
+  reported dozens of clipped elements, none of them real
 
-— nine of them across nine rounds, and not one was a reader's judgement.
-**Every one was reported accurately by the reader who hit it**; what was wrong
-was the copy they had been handed, or the instrument used to check it. This is why step 4's first gate exists, and
-why the gate is about *the copy you handed over*, not about dismissing layout.
+**Every one was reported accurately by whoever hit it.** What was wrong was the
+copy they had been handed, or the instrument used to check it. This is why step
+4's first gate exists, and why the gate is about *the copy you handed over*,
+rather than about dismissing layout faults.
 
 **And the gate cuts both ways.** After seven clean rounds the artifact shipped,
 and the owner found within hours that it burned 20–50% of a processor, parked,
@@ -75,8 +93,8 @@ previous version, so none can say "this got worse."** The artifact can only
 harden, round after round, and nothing inside the loop objects.
 
 Measured: the page grew **4,243 → 4,730 words (+11.5%)** across the explainer's
-six rounds while
-three readers a round asked for cuts, every one filed as taste.
+**first six** rounds — the A/B below ran after the sixth — while three readers a
+round asked for cuts, every one filed as taste.
 
 Four A/B readers on two unlabelled drafts, both orderings:
 
@@ -87,8 +105,8 @@ Four A/B readers on two unlabelled drafts, both orderings:
 | would **publish** | 0 | **4/4** |
 | **over-qualified** | 0 | **4/4** |
 
-The specialist's verdict was the important one: *"I found no case where the later
-draft hides a supported result."* The cost was **shape, not truth** — limits had
+One of the four read as a subject specialist, and its verdict was the important
+one: *"I found no case where the later draft hides a supported result."* The cost was **shape, not truth** — limits had
 migrated inside the claims until the claims could not be found. Splitting them
 into separate sentences conceded nothing.
 
@@ -101,10 +119,12 @@ it. The A/B reader is a cheap fix for an old flaw.
 A summary answers *what is true now*. **The wrong path is not part of what is
 true now, so the task itself discards it.** Measured elsewhere on 2026-10-20:
 ten episode summaries audited against the raw transcripts behind them — 7 of 10
-had softened or dropped one of the author's own mistakes; across 14 errors, 1
-was stated plainly, 6 softened, 5 omitted outright. A preserve-mistakes rule was
-already in force and did not stop it, and the controlled A/B above shows it is
-not the author and not the model. It is the genre.
+had softened or dropped one of the author's own mistakes. Of 14 errors: **1
+stated plainly, 6 softened, 5 omitted outright**, 1 omitted but trivial, and 1
+lost with an episode that had been deleted. A preserve-mistakes rule was
+already in force and did not stop it. The authorship A/B under *The framing
+result* — same question, different writers, 8 of 12 against 9 of 12 — shows it
+is not the author and not the model. It is the genre.
 
 This is a direct threat to `LEDGER.md`, which is a summary. It will read
 perfectly well while having deleted the only data that could stop the next
@@ -124,8 +144,9 @@ including:
 - the same expensive items deferred two rounds running under "reserved for the
   human"
 - a fix described in a commit message and never actually made
-- fixes applied to the reading level being edited and missed in the other two,
-  and in alt text, fallbacks and code strings
+- fixes applied to one version of a passage and missed in every other place the
+  same claim lived — the artifact's other reading levels, its alt text, its
+  no-JavaScript fallbacks, and the strings inside the code that drew it
 
 That last pattern is why step 5 says *prove the fix, do not describe it*. The
 auditor is a mitigation, not a cure.
@@ -147,8 +168,10 @@ auditor is a mitigation, not a cure.
 - **Readers drawn from one model have correlated errors.** Raised by a reader,
   not by the author: *"if the readers share one underlying model, their errors
   may be correlated, and agreement between them is weaker evidence than
-  agreement between people."* That is right, and it weakens the single load-
-  bearing rule in step 4. Nothing here measures it. Until something does, treat
+  agreement between people."* That is right, and it weakens tier 1 — which is
+  why step 4 now says "two or more **independent** readers" and spends a
+  paragraph on what independent has to mean. **Nothing here measures the size of
+  the effect**, only names it. Until something does, treat
   convergence as a strong hint rather than proof, vary the personas hard so the
   readers are not asked the same question in the same words, and keep the human
   at the end — which is the only reader in the cast whose errors are

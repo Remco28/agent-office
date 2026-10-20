@@ -28,8 +28,8 @@ Evidence behind the rules, and the biases to correct for:
 
 **Most artifacts contain claims that can be checked mechanically against a source
 of truth.** Do that first. It is cheaper than a reader, it returns tier-1
-findings directly, and it leaves the reader budget for the thing only readers can
-do: whether a stranger understands.
+findings that need no further confirmation, and it leaves the reader budget for
+the thing only readers can do: whether a stranger understands.
 
 | Artifact | Source of truth | The check |
 |---|---|---|
@@ -38,8 +38,9 @@ do: whether a stranger understands.
 | Explainer | the paper or source it explains | every claim traced to a verbatim quote |
 | Any | its own text | a quote contradicting another quote; a rule it states then breaks |
 
-Write these as a script you can re-run each round, not a one-off pass. Findings
-go straight to tier 1.
+Write these as a script you can re-run each round, not a one-off pass. Whatever
+it finds needs no further confirmation — it goes straight to the top tier of the
+triage in step 4, and gets fixed.
 
 ## Step 1 — Write the success question
 
@@ -130,7 +131,7 @@ Comprehension readers answer four questions, in this order:
 | Tier | Test | Do |
 |---|---|---|
 | **1** | Two or more **independent** readers, **or** checkable against the artifact itself | Fix |
-| **2** | One reader, checkable against an outside source | Verify, then fix or decline |
+| **2** | One reader, checkable against an outside source | Verify. Survives → treat as tier 1. Dies → record why |
 | **3** | Taste, framing, tone | Collect. Surface to the human. Do not act |
 | **0** | An artifact of how you showed it to them | Reject, out loud |
 
@@ -155,7 +156,8 @@ Two gates before you believe anything:
 
 ## Step 5 — Fix tier 1 only, check the counterweight, then predict
 
-**Fix tier 1. Leave the rest.** High-confidence fixes collapse low-confidence
+**Fix tier 1 — including any tier-2 finding that survived its kill attempt —
+and leave the rest.** High-confidence fixes collapse low-confidence
 ones, and if you change forty things and the next round is clean you have learned
 nothing about which thirty-nine mattered.
 
