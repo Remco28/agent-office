@@ -220,6 +220,12 @@ the records are not.
 run with different casts, framings or gates are not comparable. Reset the
 baseline when the method settles, and say so in the ledger.
 
+**Give the ledger a required `Believed, and wrong:` field each round** — the
+claim as you held it, quoted, not its correction. A summary deletes the wrong
+path by construction (see [`evidence.md`](evidence.md)), so it has to be asked
+for separately or it is gone. Write `none this round` explicitly when there is
+none: a blank field is invisible, a written assertion can be checked.
+
 **End the ledger by predicting its reader.** A record of what went wrong is
 read, agreed with, and changes nothing — agreement is free, and it looks
 exactly like understanding. So close the ledger with a short list of the

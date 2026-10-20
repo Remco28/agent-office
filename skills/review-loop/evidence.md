@@ -24,6 +24,17 @@ structure survived one read, and a gap four readers reached independently.
 
 That is the whole reason step 3 is written the way it is.
 
+**Corroborated from outside this project, 2026-10-20.** Another agent on a
+different problem — summarising its own conversation history — ran the inverse
+experiment. It held the *question* fixed ("summarise this") and varied the
+*writer*: once in first person as itself, once as a neutral archivist with the
+identity stripped. A blind judge scored both against twelve known errors.
+First person softened or dropped 8 of 12; the neutral archivist, 9 of 12. **No
+difference.** Changing who reads changed nothing; changing what you ask changed
+everything. Two experiments, different authors, different domains, opposite
+directions, same conclusion: **the question carries most of the weight. The
+reader and their situation carry the rest.**
+
 ## The harness is the unreliable component, not the readers
 
 Across those rounds, **every false finding was the author's pipeline** —
@@ -84,6 +95,23 @@ into separate sentences conceded nothing.
 This is a general property of review, not an agent problem. Code review does it.
 Editing does it. Any process where the reviewer sees only the current state does
 it. The A/B reader is a cheap fix for an old flaw.
+
+## The record format is the second weakest joint
+
+A summary answers *what is true now*. **The wrong path is not part of what is
+true now, so the task itself discards it.** Measured elsewhere on 2026-10-20:
+ten episode summaries audited against the raw transcripts behind them — 7 of 10
+had softened or dropped one of the author's own mistakes; across 14 errors, 1
+was stated plainly, 6 softened, 5 omitted outright. A preserve-mistakes rule was
+already in force and did not stop it, and the controlled A/B above shows it is
+not the author and not the model. It is the genre.
+
+This is a direct threat to `LEDGER.md`, which is a summary. It will read
+perfectly well while having deleted the only data that could stop the next
+author repeating you. The counter is not a better rule — rules lose to genres.
+It is a **separate field that asks a different question of the same material**,
+which is why `PREDICTIONS-R<n>.md` is not optional: it is the only artifact in
+this method written before the answer was known.
 
 ## The author is the weakest joint
 
