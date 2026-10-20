@@ -121,4 +121,7 @@ auditor is a mitigation, not a cure.
   convergence as a strong hint rather than proof, vary the personas hard so the
   readers are not asked the same question in the same words, and keep the human
   at the end — which is the only reader in the cast whose errors are
-  uncorrelated with the rest.
+  uncorrelated with the rest. **Where more than one model is available, spread
+  the cast across them and write the model beside each finding.** Every round
+  recorded here ran entirely on one cheap model, so every convergence in this
+  file carries that caveat.

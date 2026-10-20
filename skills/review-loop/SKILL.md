@@ -8,9 +8,16 @@ description: Review something you made by giving it to many cheap reader agents 
 Give a thing you made to readers who have never seen it, then be disciplined
 about which of their answers you believe.
 
-It measures an artifact against **its own stated goal**. It cannot tell you
-whether the work is *good* — only a human can, and that review is never
-optional. Say so when you report results.
+It measures an artifact against **its own stated goal**, along two axes it is
+genuinely good at: **coherence** — does the thing contradict itself, or its
+source — and **comprehension** — does a stranger come away with what you
+intended. Both are real components of quality, and both improve under it. Do
+not undersell that.
+
+What it is blind to is **merit**: whether the thing was worth making, whether
+the argument is right, whether a sentence sings. Only a human can say that, and
+that review is never optional. When you report results, say which of the three
+you are reporting on.
 
 Evidence behind the rules, and the biases to correct for:
 [`evidence.md`](evidence.md). Read it once, not before your first round.
@@ -77,6 +84,19 @@ a static document, give every reader the identical file and record its version.
 **Run.** All readers in parallel, each blind to the others — convergence is only
 evidence if it is independent. You need a way to spawn parallel subagents; a
 cheap model tier is sufficient and has been enough in practice.
+
+**Spread the cast across models when you have more than one, and record which
+model each reader ran on.** Readers drawn from a single model have correlated
+errors, so their agreement is weaker evidence than it looks — and without the
+model recorded beside each finding you cannot tell a real convergence from one
+model's habit. This is the cheapest available fix for the method's biggest
+known weakness; see [`evidence.md`](evidence.md).
+
+**Readers are cheap; your own context is not.** The bottleneck is never the cost
+of running a reader, it is the author's capacity to read what comes back. So run
+*more* readers than feels necessary, and spend the effort on compressing their
+reports rather than on rationing the cast. If the reports stop fitting, have a
+separate agent group and rank them — never decide for you.
 
 **Every brief has six parts.** This skeleton is the minimum;
 [`briefs.md`](briefs.md) is how to make them good, and is worth reading before
@@ -176,8 +196,9 @@ so nobody re-adds it.
 ## Keeping the records
 
 In the **project**, not in this skill: a `review/loop/` folder with `LEDGER.md`
-(rounds, tier-1 counts, false findings, what each round bought) and
-`PREDICTIONS-R<n>.md`. The skill is reusable; the records are not.
+(rounds, tier-1 counts, false findings, what each round bought, **and which
+model each reader ran on**) and `PREDICTIONS-R<n>.md`. The skill is reusable;
+the records are not.
 
 **Changing the method invalidates the comparison.** Tier-1 counts across rounds
 run with different casts, framings or gates are not comparable. Reset the
