@@ -220,6 +220,15 @@ the records are not.
 run with different casts, framings or gates are not comparable. Reset the
 baseline when the method settles, and say so in the ledger.
 
+**End the ledger by predicting its reader.** A record of what went wrong is
+read, agreed with, and changes nothing — agreement is free, and it looks
+exactly like understanding. So close the ledger with a short list of the
+mistakes *the next author will make*, named specifically enough that **the
+human** would recognise one when it happens. They are the only reader who
+persists across sessions, and therefore the only one who can ever tell you the
+record failed. Without that list your lessons are unfalsifiable: nobody is in a
+position to check them, including you.
+
 ## When to stop
 
 - Two consecutive rounds with **zero tier-1 findings**.
