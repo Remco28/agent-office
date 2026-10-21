@@ -144,8 +144,8 @@ function help(): string {
                               and your check-in time does not move. Use this
                               when you are told not to modify state. (Same as
                               begin --readonly.)
-  office context [query]      memories for this task (recent if no query)
-  office search <query>       find one specific fact
+  office context [query]      memories and matching skills (recent memories if no query)
+  office search <query>       find facts and relevant skills
   office remember [--tag t] [--global] <text>
   office list [--limit n]     recent memories, newest first
   office forget <id>          delete a memory
@@ -508,10 +508,21 @@ export async function main(argv = process.argv): Promise<number> {
         q,
         limit: opts.limit ?? 8,
         project: declaredProject(opts),
+        author: declaredAuthor(opts),
       },
-    })) as { hits: Hit[]; note?: string | null };
-    if (asText) printHits(data.hits, data.note);
-    else printJson(data);
+    })) as {
+      hits: Hit[];
+      skill_hits: SkillView[];
+      skills_problems: Array<{ path: string; problem: string }>;
+      note?: string | null;
+    };
+    if (asText) {
+      const skills = data.skill_hits ?? [];
+      if (data.hits.length || !skills.length) printHits(data.hits, data.note);
+      if (skills.length || data.skills_problems?.length) {
+        process.stdout.write(["skills", ...printSkills(skills, 0, data.skills_problems ?? [], "  ")].join("\n") + "\n");
+      }
+    } else printJson(data);
     return 0;
   }
 
@@ -552,7 +563,10 @@ export async function main(argv = process.argv): Promise<number> {
         // project that means the unclaimed items rather than every project's.
         read: sub === "log" ? "trail" : "scoped",
       });
-      if (opts.project?.trim()) params.set("project", normalizeProject(opts.project));
+      const project = declaredProject(opts);
+      const author = declaredAuthor(opts);
+      if (project) params.set("project", project);
+      if (author) params.set("author", author);
       const data = (await api(`/work?${params}`)) as {
         work: Array<{
           id: number;

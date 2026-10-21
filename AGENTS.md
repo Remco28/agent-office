@@ -63,6 +63,8 @@ A skill is how we do a recurring, multi-step task: a `SKILL.md` with the procedu
 
 Skills live in this repository under `skills/<name>/`, so git is what carries them to every computer. They apply to every project — you were started here, and the skills come with the room. `begin` lists them (name, description, path to the `SKILL.md`); `office skills` lists them again. Claude Code and Codex also load them natively through `.claude/skills` and `.agents/skills`, which point at the same folder. When a task matches a description, read that `SKILL.md` and follow it.
 
+`context` and `search` also find relevant skills by their names and descriptions. JSON returns them in `skill_hits`, separately from memory `hits`, with `kind: "skill"` and the `SKILL.md` path to read. Skills apply across projects but respect their machine restrictions. An empty `context` query remains a recent-memory read.
+
 ```markdown
 ---
 name: release-notes            # must match the folder name

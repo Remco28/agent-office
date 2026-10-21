@@ -189,6 +189,12 @@ office tools remove ffmpeg
 
 `context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
 
+Named reads inherit the project declared at `begin`: pass the numbered `--by` name or set `OFFICE_AUTHOR`. A command's `--project` overrides that remembered project for that read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too. Reads do not change the remembered project. `office list` and `office work log` keep their explicit whole-store behavior.
+
+Queries also search the names and descriptions of skills available on this computer, whatever the project. JSON keeps memory results in `hits` and adds `skill_hits`, whose entries have `kind: "skill"`, `name`, `description`, and the absolute `SKILL.md` path, plus ranking evidence. `skills_searched` counts the available skills and `skills_problems` reports unreadable metadata. `--limit` caps each list independently; `--text` prints matching skills and their paths. Meaning-only skill matches use the same relevance floor; word matching works if the embedder is down. An empty `context` query still returns recent memories, without skill matches.
+
+Skill files remain the source of truth. Discovery re-reads their metadata each time and caches only derived embeddings in the daemon's memory; edits, removals, and machine restrictions take effect on the next search. It does not add skill copies to the memory database.
+
 **Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too.
 
 Two things are deliberately left unscoped, and both exist so that a handoff is never lost:

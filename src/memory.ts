@@ -224,14 +224,18 @@ export function countInScope(db: Database, project: string | null | undefined): 
   return row.n;
 }
 
-function ftsQuery(raw: string): string | null {
+export function queryTokens(raw: string): string[] {
   const tokens = raw
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .split(/\s+/)
     .map((t) => t.trim().toLowerCase())
     .filter((t) => t.length > 1 && !STOPWORDS.has(t));
-  if (!tokens.length) return null;
-  return [...new Set(tokens)].map((t) => `"${t}"`).join(" OR ");
+  return [...new Set(tokens)];
+}
+
+function ftsQuery(raw: string): string | null {
+  const tokens = queryTokens(raw);
+  return tokens.length ? tokens.map((t) => `"${t}"`).join(" OR ") : null;
 }
 
 /**

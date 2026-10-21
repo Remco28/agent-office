@@ -25,6 +25,7 @@ import { closeIssue, getIssue, listIssues, noteIssue, openIssue } from "./issues
 import { closeWork, getWork, listWork, noteWork, openWork, type WorkRead } from "./work";
 import { listTools, removeTool, upsertTool } from "./tools";
 import { listSkills } from "./skills";
+import { createSkillSearch } from "./skill-search";
 import {
   NO_PROJECT_NOTE,
   UNATTRIBUTED_MEMORY_NOTE,
@@ -36,6 +37,7 @@ import { dbPath, detectPython, logPath, MODEL_NAME, port, skillsDir } from "./pa
 
 export type Office = {
   stop: () => void;
+  port: number;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -77,6 +79,7 @@ function str(value: unknown): string | null {
 export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   const db = openDb();
   const embedder = opts?.embedder ?? startSidecar();
+  const searchSkills = createSkillSearch(embedder);
   const listen = opts?.port ?? port();
   const startedAt = new Date().toISOString();
 
@@ -247,34 +250,21 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         }
       }
 
-      if (req.method === "POST" && path === "/search") {
+      if (req.method === "POST" && (path === "/search" || path === "/context")) {
         const body = await readBody(req);
         const q = String(body.q ?? body.query ?? "");
         const limit = Number(body.limit ?? 8);
         const project = str(body.project);
-        const scope = resolveScope(db, { project });
+        const scope = resolveScope(db, { project, author: str(body.author) });
         const result = await searchDetailed(db, embedder, q, limit, {
           project: scope.project,
         });
+        const skills = await searchSkills(skillsDir(), q, limit);
         return json({
           ...result,
+          ...skills,
           project_source: scope.project_source,
-          note: result.hits.length ? null : emptyNote(result, scope.project),
-        });
-      }
-
-      if (req.method === "POST" && path === "/context") {
-        const body = await readBody(req);
-        const q = String(body.q ?? body.query ?? "");
-        const limit = Number(body.limit ?? 8);
-        const scope = resolveScope(db, { project: str(body.project) });
-        const result = await searchDetailed(db, embedder, q, limit, {
-          project: scope.project,
-        });
-        return json({
-          ...result,
-          project_source: scope.project_source,
-          note: result.hits.length ? null : emptyNote(result, scope.project),
+          note: result.hits.length || skills.skill_hits.length ? null : emptyNote(result, scope.project),
         });
       }
 
@@ -314,7 +304,10 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       }
 
       if (req.method === "GET" && path === "/work") {
-        const scope = resolveScope(db, { project: url.searchParams.get("project") });
+        const scope = resolveScope(db, {
+          project: url.searchParams.get("project"),
+          author: url.searchParams.get("author"),
+        });
         // The whole trail is asked for by name (`office work log`), the same
         // kind of read as `office list`. Everything else is scoped: what this
         // project left unfinished, or — with no project — the items filed with
@@ -450,6 +443,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   console.error(`office listening on 127.0.0.1:${server.port}`);
 
   return {
+    port: server.port!,
     stop() {
       embedder.close();
       server.stop(true);
