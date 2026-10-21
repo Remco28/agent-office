@@ -35,12 +35,23 @@ the thing only readers can do: whether a stranger understands.
 |---|---|---|
 | API reference | the server, the schema | run every example, diff against the spec |
 | Manual | the equipment spec, the safety standard | every part named is in the parts list; every warning precedes its step |
-| Explainer | the paper or source it explains | every claim traced to a verbatim quote |
+| Explainer | the paper or source it explains | every claim traced to a verbatim quote — necessary, **not sufficient**: see below |
 | Any | its own text | a quote contradicting another quote; a rule it states then breaks |
 
 Write these as a script you can re-run each round, not a one-off pass. Whatever
 it finds needs no further confirmation — it goes straight to the top tier of the
 triage in step 4, and gets fixed.
+
+**Know what the check does not reach.** Tracing a claim to its source proves the
+source says it. It does not prove the source *bears the weight you put on it* —
+the chain is your artifact → the source's prose → the data behind the source,
+and a mechanical check only ever verifies the first link. On this project the
+claims checker ran clean for weeks and the paper's own author still found
+wording that overstated the findings; the same project had separately
+documented two places where the paper's prose ran ahead of its own figures, and
+never connected the two. **When a domain expert is reachable, that second link
+is the thing to ask them about, and it is the one thing no cast and no script
+can do for you.**
 
 ## Step 1 — Write the success question
 
