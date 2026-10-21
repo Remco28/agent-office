@@ -230,6 +230,8 @@ A skill tied to one computer sets `metadata.machine` to that computer's `hostnam
 
 The first skill is [`human-feedback`](skills/human-feedback/SKILL.md): agents build an offline, project-specific test guide from its Fieldnotes template, and the human returns feedback as a ZIP.
 
+[`desktop-polish`](skills/desktop-polish/SKILL.md) makes desktop apps look and feel finished. Agents follow its rules whenever they touch a desktop app's interface, and run its review (with `measure.py`, which counts the sizes, colours and spacing a codebase really uses) when asked to polish one. The skill holds the method; each project keeps its own values and decisions.
+
 ## Copying the store
 
 The whole memory — and the work log — is that SQLite file. Stop the daemon, copy `memory.db` (and `-wal` / `-shm` if present) into the same place on the other machine (`~/.local/share/agent-office/`), and start the daemon there. That is a fork, not a live sync. Do not commit the database.
