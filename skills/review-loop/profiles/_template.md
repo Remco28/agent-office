@@ -3,10 +3,9 @@
 A profile supplies the **audience**. The engine ([`../SKILL.md`](../SKILL.md))
 supplies the epistemics and does not change.
 
-**No existing profile will fit a new genre.** That is expected — tested twice,
-and both times the loop structure carried over and the cast did not. Copy the
-closest profile, delete its cast and house rules, and fill these in. Twenty
-minutes, reusable forever.
+**No existing profile is likely to fit a new genre.** That is expected: the
+loop structure is general, the cast and house rules are specific to an audience.
+Copy the closest profile, delete its cast and house rules, and fill these in.
 
 ---
 

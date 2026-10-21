@@ -7,13 +7,19 @@ what it is built on and where it is thin.
 
 Everything here comes from **one author, two artifacts, nine rounds** — a
 long-form public explainer (seven rounds) and a one-page diagram (two) —
-reviewed by small cheap model agents. Two cold-read tests on other genres (a
-lab manual, an API reference) found that the *loop structure* carried over and
-the *cast and house rules* did not.
+reviewed by small cheap model agents on a single model.
 
-So: treat the procedure's steps as general and **treat every specific persona,
-house rule and threshold as a hypothesis** until another genre confirms it. The
-numbers below come from two artifacts by one author, which is not a law.
+Separately, three **cold-pickup tests** asked agents to read the skill and
+describe how they would apply it to a lab manual, an API reference and a
+product manual. These were hypothetical: no such artifact existed and none was
+reviewed. They tested whether the skill can be picked up and run cold, and they
+shaped step 0 and the profile template. They did **not** test whether the
+method works on those genres.
+
+So: treat the procedure's steps as the general part and **treat every specific
+persona, house rule and threshold as a hypothesis** until it has been used on a
+real artifact of another genre. The numbers below come from two artifacts by
+one author.
 
 ## The framing result
 
@@ -24,33 +30,24 @@ structure survived one read, and a gap four readers reached independently.
 
 That is the whole reason step 3 is written the way it is.
 
-**Corroborated from outside this project, 2026-10-20.** Another agent, on a
-different problem — summarising its own conversation history — ran the inverse
-experiment as an A/B. It held the *question* fixed ("summarise this") and varied
-the *writer*: once in first person as itself, once as a neutral archivist with
-the identity stripped. A blind judge scored both against twelve known errors.
-First person softened or dropped 8 of 12; the neutral archivist, 9 of 12. **No
-difference.**
+**A related result from outside this skill.** A separate experiment on a
+different task — an agent summarising its own conversation history — held the
+question fixed and varied only the writer's persona: first person, or a
+neutral archivist. Scored blind against twelve known errors, the two dropped or
+softened 8 and 9 of them. No meaningful difference.
 
-Set that beside the framing result above. Varying **who writes** changed
-nothing; varying **what you ask** changed everything. Two experiments, different
-authors, different domains, run in opposite directions, landing on the same
-claim: **the question carries most of the weight.**
+That is a null result about persona, on a different task, with small numbers.
+It is **consistent** with the framing result above but does not test it: the
+question was never varied. Read the two together as a hint that what you ask
+moves the result more than the persona you give, not as proof.
 
-The writer's *situation* carries a little of the rest, from a third and less
-controlled comparison in the same study: summaries written at the end of a long
-live session dropped 11 of 12, against 8–9 for fresh writers given the same
-transcripts cold. Small numbers, so treat it as a hint.
+## Check the pipeline before you blame the reader
 
-In both studies the actor is the same thing — an agent handed material and a
-task — whether that study calls it a writer or this skill calls it a reader. So
-the finding transfers: **who** they are matters least of the three. What you ask
-them, and the state they are in when you ask, is what moves the result.
-
-## The harness is the unreliable component, not the readers
-
-**Nine false findings across nine rounds, and every one was the author's
-pipeline.** Not once was it a reader's judgement. All nine:
+**Nine false findings across nine rounds, and all nine traced to the author's
+pipeline rather than a reader's judgement.** That makes the pipeline the first
+place to look. It does not make readers reliable: a reader can also be
+confident, specific and wrong, which is why a single reader's claim must be
+checked before it is fixed (step 4). The nine:
 
 - a capture whose viewport stretched every section
 - animations frozen mid-reveal, so text measured 1.6:1 against a declared 9.2:1
@@ -110,9 +107,9 @@ one: *"I found no case where the later draft hides a supported result."* The cos
 migrated inside the claims until the claims could not be found. Splitting them
 into separate sentences conceded nothing.
 
-This is a general property of review, not an agent problem. Code review does it.
-Editing does it. Any process where the reviewer sees only the current state does
-it. The A/B reader is a cheap fix for an old flaw.
+This is very likely a general property of review rather than an agent
+problem: any process in which the reviewer sees only the current state is
+exposed to it. The A/B reader is a cheap fix.
 
 ## The record format is the second weakest joint
 
@@ -122,9 +119,10 @@ ten episode summaries audited against the raw transcripts behind them — 7 of 1
 had softened or dropped one of the author's own mistakes. Of 14 errors: **1
 stated plainly, 6 softened, 5 omitted outright**, 1 omitted but trivial, and 1
 lost with an episode that had been deleted. A preserve-mistakes rule was
-already in force and did not stop it. The authorship A/B under *The framing
-result* — same question, different writers, 8 of 12 against 9 of 12 — shows it
-is not the author and not the model. It is the genre.
+already in force and did not stop it. The persona A/B under *The framing
+result* — same question, different personas, 8 of 12 against 9 of 12 —
+suggests the cause is not who writes. The likelier cause is the genre: a
+summary is asked what is true now, and the wrong path is not.
 
 This is a direct threat to `LEDGER.md`, which is a summary. It will read
 perfectly well while having deleted the only data that could stop the next
@@ -137,8 +135,8 @@ this method written before the answer was known.
 
 Nothing in steps 4 and 5 is independent: the author triages findings about their
 own work, and an agent that wants to feel finished will quietly tier-3 anything
-expensive. The disposition auditor has caught this every time it has run,
-including:
+expensive. In every run recorded so far, the disposition auditor caught at
+least one instance, including:
 
 - declines justified by a reason that turned out to be false
 - the same expensive items deferred two rounds running under "reserved for the
@@ -163,8 +161,9 @@ auditor is a mitigation, not a cure.
   but cannot tell you whether the bolt actually fits.
 - **Large artifacts.** Readers have a finite context; give each the slice their
   lens needs, and say in the brief what you left out.
-- **Specialist casts do not transfer between genres.** Tested, twice. Expect to
-  write a new profile and keep only the frame.
+- **Specialist casts probably do not transfer between genres.** Expected rather
+  than shown: the cold-pickup tests were hypothetical. Plan to write a new
+  profile and keep only the frame.
 - **Readers drawn from one model have correlated errors.** Raised by a reader,
   not by the author: *"if the readers share one underlying model, their errors
   may be correlated, and agreement between them is weaker evidence than

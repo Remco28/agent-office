@@ -11,8 +11,7 @@ about which of their answers you believe.
 It measures an artifact against **its own stated goal**, along two axes it is
 genuinely good at: **coherence** — does the thing contradict itself, or its
 source — and **comprehension** — does a stranger come away with what you
-intended. Both are real components of quality, and both improve under it. Do
-not undersell that.
+intended. Both are real components of quality.
 
 What it is blind to is **merit**: whether the thing was worth making, whether
 the argument is right, whether a sentence sings. Only a human can say that, and
@@ -27,9 +26,10 @@ Evidence behind the rules, and the biases to correct for:
 ## Step 0 — Verify what is checkable, before you spend a reader on it
 
 **Most artifacts contain claims that can be checked mechanically against a source
-of truth.** Do that first. It is cheaper than a reader, it returns tier-1
-findings that need no further confirmation, and it leaves the reader budget for
-the thing only readers can do: whether a stranger understands.
+of truth.** Do that first. It is cheaper than a reader, its findings are
+tier 1 once you have confirmed the check itself is not the fault, and it leaves
+the reader budget for the thing only readers can do: whether a stranger
+understands.
 
 | Artifact | Source of truth | The check |
 |---|---|---|
@@ -38,20 +38,19 @@ the thing only readers can do: whether a stranger understands.
 | Explainer | the paper or source it explains | every claim traced to a verbatim quote — necessary, **not sufficient**: see below |
 | Any | its own text | a quote contradicting another quote; a rule it states then breaks |
 
-Write these as a script you can re-run each round, not a one-off pass. Whatever
-it finds needs no further confirmation — it goes straight to the top tier of the
-triage in step 4, and gets fixed.
+Write these as a script you can re-run each round, not a one-off pass. Check
+the first few hits by hand: a checker is code, and a buggy one produces
+confident false findings. Once it is trusted, what it finds goes straight to
+tier 1.
 
 **Know what the check does not reach.** Tracing a claim to its source proves the
 source says it. It does not prove the source *bears the weight you put on it* —
 the chain is your artifact → the source's prose → the data behind the source,
-and a mechanical check only ever verifies the first link. On this project the
-claims checker ran clean for weeks and the paper's own author still found
-wording that overstated the findings; the same project had separately
-documented two places where the paper's prose ran ahead of its own figures, and
-never connected the two. **When a domain expert is reachable, that second link
-is the thing to ask them about, and it is the one thing no cast and no script
-can do for you.**
+and a mechanical check only ever verifies the first link. A trace can run
+clean while the source's own author still finds the artifact overstating what
+was shown. **When a domain expert is reachable, that second link is the thing to
+ask them about, and it is the one thing no cast and no script can do for
+you.**
 
 ## Step 1 — Write the success question
 
@@ -78,7 +77,7 @@ the house rules the artifact must obey, and what is out of scope. See
 its cast, and write your house rules as *rules with a test attached* — "every
 step has one checkable action", not "steps should be clear". Start from
 [`profiles/_template.md`](profiles/_template.md). Writing a profile for a new
-genre takes about twenty minutes and is reusable forever.
+genre is usually quick, and the profile is reusable.
 
 ## Step 3 — Prepare, freeze, and run the cast
 
@@ -141,10 +140,14 @@ Comprehension readers answer four questions, in this order:
 
 | Tier | Test | Do |
 |---|---|---|
-| **1** | Two or more **independent** readers, **or** checkable against the artifact itself | Fix |
+| **1** | Two or more **independent** readers, **or** one reader whose claim you have **checked** against the artifact itself | Fix |
 | **2** | One reader, checkable against an outside source | Verify. Survives → treat as tier 1. Dies → record why |
 | **3** | Taste, framing, tone | Collect. Surface to the human. Do not act |
 | **0** | An artifact of how you showed it to them | Reject, out loud |
+
+**A single reader's claim becomes tier 1 when you have checked it, not because
+it could be checked.** Readers can be confident, specific and wrong; a claim
+that is easy to verify is cheap to verify, so verify it before fixing.
 
 **"Independent" is doing the work in tier 1, and a large cast makes it cheap.**
 Two readers agreeing is evidence when they are different people asked different
@@ -211,8 +214,8 @@ Three kinds. A profile's list is a **floor, not a ceiling** — before each roun
 ask *what did I just change, what am I afraid of, and who would notice?* and
 write a reader for each answer. The best readers are usually bespoke.
 
-**Readers are cheap; your own context is not.** The bottleneck has never been
-the cost of running a reader, it is your capacity to read what comes back. So
+**Readers are cheap; your own context is not.** The bottleneck is usually not
+the cost of running readers but your capacity to read what comes back. So
 run more readers than feels necessary and spend the effort compressing their
 reports, rather than rationing the cast. If the reports stop fitting, have a
 separate agent group and rank them — that agent never decides.
@@ -229,10 +232,12 @@ non-obvious part, and [`briefs.md`](briefs.md) has each one written out:
 | **Fix auditor** | last round's fixes, and nothing else | did each land? |
 | **Disposition auditor** | the findings and what you did with each | was the triage fair? |
 | **Cost reader** | a **measurement** taken on the real target, plus a control | what does this cost its user — time, money, CPU, attention, quota? An impression is not evidence here; if you cannot measure it on the thing the audience actually uses, say so rather than clearing it |
-| **A/B reader** | two drafts, unlabelled, both orderings | which is better? |
+| **A/B reader** | two drafts, unlabelled, both orderings | which reads better, which do you trust, and is either over-qualified? |
 
-Retire a persona after two rounds with no tier-1 or tier-2 finding, and record it
-so nobody re-adds it.
+Retire any other persona after two rounds with no tier-1 or tier-2 finding, and
+record it so nobody re-adds it. **The four standing readers are exempt:** a
+quiet round is their expected result, and the failures they exist to catch are
+the ones nobody else is looking for.
 
 ## Keeping the records
 
