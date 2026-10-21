@@ -13,10 +13,24 @@ genuinely good at: **coherence** — does the thing contradict itself, or its
 source — and **comprehension** — does a stranger come away with what you
 intended. Both are real components of quality.
 
-What it is blind to is **merit**: whether the thing was worth making, whether
-the argument is right, whether a sentence sings. Only a human can say that, and
-that review is never optional. When you report results, say which of the three
-you are reporting on.
+What it cannot settle is **merit**: whether the thing was worth making,
+whether the argument is right, whether it is good. Readers can and should give
+merit judgements — an A/B reader asked which draft it would publish is making
+one — and those judgements are real signal. They are not a verdict, for three
+reasons:
+
+- **Merit is relative to a purpose and an audience** that the human knows more
+  fully than any brief can say.
+- **A merit judgement cannot be checked** the way step 0 checks a fact. When
+  readers disagree about whether a section earns its place, nothing in the loop
+  can resolve it.
+- **Agent taste is less independent than it looks.** Models share training
+  habits and lean toward the fluent and the familiar, so agreement on merit is
+  weaker evidence than agreement on a checkable fact.
+
+So collect merit readings, weigh them, and hand them to the human, who decides.
+That review is never optional. When you report results, say which of the three
+— coherence, comprehension, merit — you are reporting on.
 
 Evidence behind the rules, and the biases to correct for:
 [`evidence.md`](evidence.md). Read it once, not before your first round.
@@ -142,7 +156,7 @@ Comprehension readers answer four questions, in this order:
 |---|---|---|
 | **1** | Two or more **independent** readers, **or** one reader whose claim you have **checked** against the artifact itself | Fix |
 | **2** | One reader, checkable against an outside source | Verify. Survives → treat as tier 1. Dies → record why |
-| **3** | Taste, framing, tone | Collect. Surface to the human. Do not act |
+| **3** | Merit, taste, framing, tone | Collect. Surface to the human, convergent ones first. Do not act on your own |
 | **0** | An artifact of how you showed it to them | Reject, out loud |
 
 **A single reader's claim becomes tier 1 when you have checked it, not because
