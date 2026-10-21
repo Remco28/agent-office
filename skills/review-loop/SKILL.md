@@ -183,6 +183,18 @@ variant, every alternative representation (alt text, captions, transcripts,
 fallbacks), and every string in the code that builds the artifact. Where two code
 paths produce the same thing, make them call one function.
 
+**Assert on the claim, not on the sentence.** Replacing three occurrences with
+three exact-sentence checks, each requiring one match, passes three times and
+still ships a fourth occurrence worded slightly differently. Instead: count the
+retired phrase across the whole tree, make the change, count again, **require
+zero** — and search whitespace-insensitively, because `grep` is line-based and
+the same claim wrapped across two lines is invisible to it.
+
+**And verify against the thing the audience will get.** If there is a build or
+a deploy between your edit and the reader, a check that runs too early reads
+the *previous* build and reports success. Wait for the published artifact to
+carry the commit you just made, then look.
+
 **Then write `PREDICTIONS-R<n>.md` before the next round**, at two levels.
 *Per fix:* what should a reader now say that they could not have said last round?
 Outcomes: landed / didn't land / landed and broke something adjacent — the last
