@@ -74,6 +74,12 @@ A **profile** supplies the audience: the cast, the materials each reader gets,
 the house rules the artifact must obey, and what is out of scope. See
 [`profiles/`](profiles/).
 
+**If the piece has a confirmed voice brief** (see
+[`../voice-brief/SKILL.md`](../voice-brief/SKILL.md), usually `docs/VOICE.md`),
+start there: its audience is your comprehension cast, its purpose is your
+success question, and its style rules are house rules already written with a
+test attached.
+
 **No profile fits? That is the normal case.** Copy the closest one, throw away
 its cast, and write your house rules as *rules with a test attached* — "every
 step has one checkable action", not "steps should be clear". Start from
