@@ -136,15 +136,21 @@ original.
 
 ## Handing off to review-loop
 
-When the piece matters enough for a review round, the brief already holds
-three of review-loop's inputs:
+When the piece matters enough for a review round, carry the confirmed brief
+into review:
 
 | Voice brief | Becomes in [review-loop](../review-loop/SKILL.md) |
 |---|---|
+| Full brief, including writer, relationship to the reader, stance, scope and sample | Materials for a reviewer checking adherence to the brief |
 | Audience (and the least experienced reader) | The comprehension readers in the cast |
 | Purpose | The success question, unchanged |
-| Style rules and is-not halves | House rules with a test attached |
+| Checkable style rules | House rules with a test attached |
+| Tone and is-not halves | Interpretive readings, reported as judgments |
 
-Review-loop can check that rules were followed and that strangers understood.
-Whether the voice is *right* — whether it sounds like the writer it should — is
-tier 3 there: taste, for the human. Say so when you report.
+Ask the brief-compliance reviewer for quoted departures from the agreed
+speaker or explicit rules, and verify those against the brief. Choosing whether
+that speaker suits the piece is a different question: it remains tier 3, along
+with interpretive judgments about tone. Say which kind you are reporting.
+
+Ordinary readers should meet the work as its audience does. Do not give them
+the brief or sample as an explanation of how they ought to react.

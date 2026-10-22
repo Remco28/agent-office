@@ -68,18 +68,27 @@ you.**
 
 ## Step 1 — Write the success question
 
-One sentence a reader must satisfy. **If you cannot write it, stop — you do not
-yet know what the work is for.** It is the single most important input, and its
-*shape* depends on how the artifact is read:
+One question that tests the work's intended effect on its audience. **If you
+cannot write it, stop — you do not yet know what the work is for.** If a
+confirmed voice brief exists, use its purpose unchanged.
 
-- **Read start to finish** (explainer, essay, report) → *can they say X in their
-  own words, from memory, after one pass?*
-- **Consulted in fragments** (reference, manual, API docs) → *can they complete
-  a named task with a verifiable outcome, looking things up as they go?* Recall
-  is the wrong test here; the task passing or failing is the measurement, and
-  every lookup that failed is a finding.
+Choose the test by the purpose and reading context. These are examples, not an
+exhaustive division by genre:
 
-Make it about the reader's task, not the document's contents.
+- **Understanding** → *can they explain X in their own words after one pass?*
+  Recall can test an explainer's purpose; it is not the default for all
+  start-to-finish writing.
+- **Using instructions or looking something up** → *can they complete a named
+  task with a verifiable outcome, consulting the work as needed?* Test the
+  action, not their ability to remember the instructions.
+- **Experience or persuasion** → *did they finish unsettled, want to read on,
+  or find the argument persuasive?* Ask about the intended response rather
+  than substituting a recall test.
+
+State what evidence would answer the question. Distinguish observed task
+performance and comprehension from reported feelings or conviction. Subjective
+responses are useful signal, not verified facts; merit judgments remain tier 3.
+Make the question about the audience's outcome, not the document's contents.
 
 ## Step 2 — Choose or write a profile
 
@@ -89,9 +98,14 @@ the house rules the artifact must obey, and what is out of scope. See
 
 **If the piece has a confirmed voice brief** (see
 [`../voice-brief/SKILL.md`](../voice-brief/SKILL.md), usually `docs/VOICE.md`),
-start there: its audience is your comprehension cast, its purpose is your
-success question, and its style rules are house rules already written with a
-test attached.
+start there: its audience informs your comprehension cast, its purpose is your
+success question, and its checkable style rules become house rules. Give a
+brief-compliance reviewer the **full confirmed brief**, including the writer,
+relationship to the reader, stance, scope and sample. Ask for quoted departures
+from the agreed speaker or explicit rules, then verify them. Whether the chosen
+speaker suits the piece, and interpretive judgments about tone, remain tier 3.
+Keep ordinary readers' materials representative of what the audience sees;
+do not explain their intended reaction through the brief or sample.
 
 **No profile fits? That is the normal case.** Copy the closest one, throw away
 its cast, and write your house rules as *rules with a test attached* — "every
