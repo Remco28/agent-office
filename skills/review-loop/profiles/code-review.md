@@ -47,17 +47,26 @@ matters.
 
 ## Materials bundle
 
-- The repository, read-only, at a named commit.
+- The repository at a named commit, not to be changed, **and a copy of the app
+  they may run**: a local server, a test database, a scratch folder. A reviewer
+  who can run the code reproduces its own findings; one who can only read hands
+  that work back to you, and only for what it already suspected.
 - The project's review notes, so reviewers don't re-report what was settled.
 - What is intended and not a finding (e.g. "anyone can edit anything"), named in
   the brief.
 
 ## Cast
 
+### A whole-code reviewer (every round)
+The whole codebase, no focus, a short brief: who uses the app and how, *"review
+this code"*, and the shape of the answer. On efc-expenses, after seven rounds of
+focused lenses, one such review found a HIGH and three MEDIUM the lenses had
+missed (see [`../evidence.md`](../evidence.md)).
+
 ### Specialists
 One lens each, taken from the codebase's own seams. On efc-expenses those were
-server data integrity, money logic, and browser input handling. Rotate lenses
-across reviewers between rounds.
+server data integrity, money logic, and browser input handling. Name the lens,
+not the functions: a list of where to look is your hypothesis, handed over.
 
 ### Fix auditor (required from round 2)
 The previous round's diff and nothing else, read hunk by hunk: *what did this

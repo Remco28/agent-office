@@ -112,9 +112,12 @@ strong hint rather than proof.
 **A round-one default, if you want one:** six comprehension readers across at
 least two models, plus one or two specialists. Adjust from there.
 
-**Every brief has six parts.** This skeleton is the minimum;
-[`briefs.md`](briefs.md) is how to make them good, and is worth reading before
-you write the first one.
+**Every brief has six parts.** This skeleton is the minimum, and close to the
+maximum: [`briefs.md`](briefs.md) is how to make them good, and is worth reading
+before you write the first one. **Watch for briefs that grow.** Round by round
+they drift longer and more specific — where to look, which functions, what to
+skip — until the outcome is decided before the reader starts. Readers need room
+to find what you did not think of.
 
 1. **Who they are** — concrete, one or two sentences, not a job title.
 2. **The materials**, by absolute path, with what each one is.

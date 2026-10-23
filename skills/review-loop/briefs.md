@@ -66,6 +66,14 @@ attribute."* That single sentence removed the most common false finding.
   model likes.
 - **Materials without their caveats.** Four readers across two rounds filed an
   extraction marker as a visible page error.
+- **A brief that grows each round.** Each addition looks reasonable — a scope to
+  stop a timeout, the names of the functions you changed, where to look hardest —
+  and together they hand the reader your map of where the problems are. It
+  searches the map and returns it confirmed; what lies off the map is never
+  looked at. A worry is one sentence (*"is anything I changed now worse?"*); a
+  map is your hypothesis. If a brief is longer than the last one, ask what each
+  new line takes away from the reader. See the code-review episode in
+  [`evidence.md`](evidence.md).
 
 ---
 

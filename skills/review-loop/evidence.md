@@ -9,7 +9,9 @@ Everything here comes from **one author, two artifacts, nine rounds** — a
 long-form public explainer (seven rounds) and a one-page diagram (two) —
 reviewed by small cheap model agents. Two cold-read tests on other genres (a
 lab manual, an API reference) found that the *loop structure* carried over and
-the *cast and house rules* did not.
+the *cast and house rules* did not. Since then, one code review (efc-expenses,
+seven rounds, outside reviewers on four models) has added the episode in *Briefs
+drift toward the answer*.
 
 So: treat the procedure's steps as general and **treat every specific persona,
 house rule and threshold as a hypothesis** until another genre confirms it. The
@@ -46,6 +48,35 @@ In both studies the actor is the same thing — an agent handed material and a
 task — whether that study calls it a writer or this skill calls it a reader. So
 the finding transfers: **who** they are matters least of the three. What you ask
 them, and the state they are in when you ask, is what moves the result.
+
+## Briefs drift toward the answer
+
+**efc-expenses, 2026-10-22 and 23, a code review** (see
+[`profiles/code-review.md`](profiles/code-review.md)). Seven rounds of outside
+reviewers on four different models. Round 3's briefs were a role, a focus area
+and a severity scale. By round 5 they named internal functions, said where to
+look hardest, and told two reviewers to stop early to fit a time limit; and they
+said *read-only, do not run the app*. The rounds found many real issues, mostly
+where the briefs pointed — including a run of regressions in the author's own
+fixes.
+
+Then the human asked one reviewer, with no brief beyond "review this code", to
+look at the code the seven rounds had left. It ran the server against a test
+database and the PDF exporter against a real receipt, reproduced every finding,
+and returned one HIGH and three MEDIUM that the rounds had missed: the most
+ordinary shared-editing failure (an editor left open overwrites a newer
+correction), an area no brief had named since round 2, and a severity the author
+had rated LOW and it showed was not.
+
+Two things went wrong, and they are worth separating. The **briefs**
+predetermined the search: every addition was reasonable, and together they were
+a map. The **materials** withheld the most useful tool: the reviewers could have
+run the code and were told not to. **The human recognised the drift from other
+projects**, which makes it more than a one-off.
+
+What this does not show: that one generic review beats a structured loop. It ran
+once, on code seven rounds had already cleaned. A fair comparison runs both on
+the same code.
 
 ## The harness is the unreliable component, not the readers
 
