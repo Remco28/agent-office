@@ -15,8 +15,10 @@ judge merit, so the human always reviews at the end. When you report, say which
 of the three you are reporting on.
 
 **Only run it when the user asks.** It costs many agents and many rounds. If
-something looks important enough, ask the user. Then size it with judgment: two
-paragraphs don't need twenty readers.
+something looks important enough, ask the user, with a rough size (how many
+readers, how many rounds). Then size it with judgment: two paragraphs need a
+reader or two and one round, not twenty readers; the budget is whatever the
+user agreed to.
 
 ## Never skip these
 
@@ -54,7 +56,10 @@ go?* Make it about the reader's task, not the document's contents.
 rules from outside itself (how a business charges, what a regulation requires,
 how a group actually works), write them in plain words, one per line, and have
 the person who knows confirm them. Readers check the artifact against *your*
-idea of it; none of them can tell you the idea is wrong. Once written, the rules
+idea of it; none of them can tell you the idea is wrong. For a short piece the
+rules may just be its facts (times, dates, names): get them from the user. If
+the person who knows can't be reached, mark the rules unconfirmed in the ledger
+and tell the user. Once written, the rules
 are a source of truth for step 0 and a lens for a reader.
 
 ## Step 2: choose a profile
@@ -64,8 +69,8 @@ each reader gets, the house rules, what's out of scope, and for some genres the
 stop rule. A profile's rules override this file's for its genre.
 
 Some work needs two profiles (an app's code, and how people use it). The user
-usually says; if unsure, ask. With two, take both casts, and the stricter stop
-rule.
+usually says; if unsure, ask. With two, take both casts. If one has its own
+stop rule (code does), that one decides.
 
 No profile fits? That's normal. Copy the closest, replace its cast, and write
 house rules as *rules with a test attached* ("every step has one checkable
@@ -88,9 +93,10 @@ audience is your cast and its style rules are house rules.
 - **Brief them in six parts**, kept short ([`briefs.md`](briefs.md) has worked
   examples): who they are; the materials, by absolute path; the artifact's goal,
   quoted; their questions, numbered; *"Do not hunt for problems to fill space.
-  'Nothing wrong' is a real and useful answer"*; and the known quirks. **Briefs
-  grow** round by round (where to look, what to skip) until they decide the
-  answer. Keep them to the role and the question.
+  'Nothing wrong' is a real and useful answer"*; and the known quirks. **Don't
+  let briefs grow.** The temptation is to add, each round, where to look and
+  what to skip, until the brief decides the answer. Keep it to the role and the
+  question.
 - **Ask whether it worked, not what's wrong.** An agent sent looking for problems
   returns problems, present or not. Comprehension readers answer: did it work
   for you; what worked; anything actually broken (only what they're sure of);
@@ -101,7 +107,7 @@ audience is your cast and its style rules are house rules.
 
 | Tier | Test | Do |
 |---|---|---|
-| **1, verified** | Two or more **independent** readers, or checkable against the artifact | Fix |
+| **1, verified** | Two or more **independent** readers, or checked against the artifact (including reproducing it yourself) | Fix |
 | **2** | One reader, checkable against an outside source | Give a second agent the finding and the source, and tell it to *kill* the finding. Survives: tier 1. Dies: record why |
 | **3** | Taste, framing, tone | Collect for the human. Don't act |
 | **0** | Caused by how you showed it (a rendering, an extract, a screenshot) | Reject, out loud, after checking the real artifact |
@@ -111,17 +117,18 @@ same-model readers agreeing may be one habit counted twice; when in doubt,
 treat it as tier 2 and check.
 
 Where a profile adds a severity scale (code: HIGH, MEDIUM, LOW), the tier says
-whether to believe a finding and the severity how much it matters. **Fix every
-verified HIGH and MEDIUM. A verified LOW is fixed or declined, with the reason
-written down** for the auditor.
+whether to believe a finding and the severity how much it matters. Verify first
+(tier 1, or tier 2 that survived its kill), then: **fix every verified HIGH and
+MEDIUM; a verified LOW is fixed or declined, with the reason written down** for
+the auditor. Without a severity scale, fix tier 1.
 
 **Each finding's record says how it was checked**: reproduced, read in the
 source, or taken on the reader's word.
 
 ## Step 5: fix, then predict
 
-**Fix tier 1 only, and leave the rest**: fixing forty things teaches you nothing
-about which mattered.
+**Fix what's verified, and leave the rest**: fixing forty things teaches you
+nothing about which mattered.
 
 **Read the tier-3 pile for the opposite signal.** Several readers saying *too
 long, over-hedged* is the only evidence the loop produces against itself; the
@@ -187,7 +194,8 @@ record it so nobody re-adds it.
 ## The ledger
 
 In the project, in a folder named **`review-loop/`** so it can be removed
-cleanly when the work is done: `review-loop/LEDGER.md`, starting with this line
+cleanly when the work is done (no project folder, as for an email: ask the user
+where, or keep it in your scratch space): `review-loop/LEDGER.md`, starting with this line
 and following this shape:
 
 ```markdown
