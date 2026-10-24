@@ -27,7 +27,12 @@ Whatever the size of the job:
 1. **Run the checks you can run yourself first** (step 0).
 2. **Confirm the rules with the person who knows** (step 1).
 3. **Have the disposition auditor check your ratings before you stop** (the cast).
-4. **Hand it to the human at the end.**
+4. **Hand it to the human at the end**, and show them each round on a page they
+   can see at a glance ([`human-page.md`](human-page.md)).
+
+**Agree the stakes with the human first**: what the thing is, who relies on it,
+what a failure would cost them. The stakes size the cast and the rounds, and set
+when to stop.
 
 Everything else (how many readers, which specialists, how many rounds) scales
 with how big and how important the thing is.
@@ -236,7 +241,18 @@ profile's stop rule replaces these for its genre.
 - For something read in pieces: every section has been exercised once.
 - The budget is spent.
 
+- What's left is rare-timing edge cases the stakes don't justify chasing: say so,
+  in one line, and stop.
+
 Then hand it to the human. That was always the point.
+
+## Showing the human
+
+After every round, rebuild the human's page: one self-contained HTML file next to
+the ledger, diagrams first, every finding in their terms, the decisions in one
+box. What it must do is in [`human-page.md`](human-page.md); how it looks is up to
+the project. Keep the chat message to the round in one line, the decision needed,
+and the path to the page.
 
 ---
 
