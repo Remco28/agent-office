@@ -46,6 +46,13 @@ Rating rules, because your ratings drift soft:
 - **The reviewer's rating is evidence, not the verdict.** A column that copies
   the reviewer's is a column nobody judged.
 
+## Fixing
+
+**Every HIGH or MEDIUM fix gets SKILL.md's peer step before any code**: write
+the plan plainly, give it to critics, give the problem alone to blind solvers,
+then a fresh group. However small and obvious the fix looks: that feeling is
+what the step is for. A LOW fix doesn't need it.
+
 ## What readers get
 
 - The repository at a named commit, **and a copy they may run**: a local server,
