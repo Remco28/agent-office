@@ -59,3 +59,15 @@ Readers: D (the user asks for a review of a two-paragraph email) on Haiku; E (mi
 | The web-app profile names one project's tools (its server, its browser tool) | G | Made general |
 
 **Believed, and wrong:** that round 1's stop-rule fix was complete. The general rule and the code rule now agreed, but nothing said what a MEDIUM fix leaves behind.
+
+## Round 3 (skill at 59fa090)
+
+Readers: H (mid-review of a food bank's inventory app: one MEDIUM fixed, one LOW to decline, no HIGH; and write the next round's brief) on Sonnet; I (a one-page waiver, the club's lawyer away, no project folder) on Haiku. Reports in round3/.
+
+**Against the predictions: right.** H ran the auditor first, wrote the LOW's reason down and checked it as a claim, did not stop (a round with a MEDIUM fix has another round, with a fix auditor), and wrote a short brief with no map; it noticed the temptation to point the reader at the fixed area and left that to the fix auditor. I told the user first that the legal side couldn't be checked without the lawyer, marked the rules unconfirmed, asked where to keep the ledger, kept the cast to three readers and a specialist, would not invent legal wording, and put the caveat in the first line of the hand-back. Neither raised round 2's points.
+
+Small points, fixed: the code stop rule's two sentences read as a contradiction to a hurried reader (H): now one sentence. With only one model, how a finding reaches tier 1 (H, I, and B in round 1): reproduce it yourself. Predictions must be written before the round, but nothing said to commit them (H, I): now says so. Scratch space is lost when the session ends (I): ask the user where to keep the ledger.
+
+**Believed, and wrong:** none this round.
+
+The skill review stops here: two rounds running with the intended behaviour, and only small wording points left.

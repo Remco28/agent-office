@@ -114,7 +114,8 @@ audience is your cast and its style rules are house rules.
 
 Independent means different questions, personas and models. Two of twelve
 same-model readers agreeing may be one habit counted twice; when in doubt,
-treat it as tier 2 and check.
+treat it as tier 2 and check. With only one model available, reproducing a
+finding yourself is the surer way to tier 1.
 
 Where a profile adds a severity scale (code: HIGH, MEDIUM, LOW), the tier says
 whether to believe a finding and the severity how much it matters. Verify first
@@ -159,10 +160,10 @@ take it to the human. If each pass makes it smaller, build it.
 each saying what the user will see or do. Plain words show the parts that cost
 users effort for rare cases.
 
-**Before the next round, write your predictions** in the ledger: per fix, what a
-reader should now say that they couldn't before; per round, how many verified
-findings and of what kind. A prediction written after the results is worth
-nothing.
+**Before the next round, write your predictions** in the ledger, and commit or
+save them before the round runs: per fix, what a reader should now say that
+they couldn't before; per round, how many verified findings and of what kind. A
+prediction written after the results is worth nothing.
 
 ---
 
@@ -195,7 +196,7 @@ record it so nobody re-adds it.
 
 In the project, in a folder named **`review-loop/`** so it can be removed
 cleanly when the work is done (no project folder, as for an email: ask the user
-where, or keep it in your scratch space): `review-loop/LEDGER.md`, starting with this line
+where to keep it; scratch space is lost when the session ends): `review-loop/LEDGER.md`, starting with this line
 and following this shape:
 
 ```markdown

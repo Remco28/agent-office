@@ -73,10 +73,10 @@ Retired readers: none yet.
 
 ## When to stop
 
-This replaces SKILL.md's stop rules for code: **stop when a round has no HIGH,
-after the disposition auditor has checked the ratings.** A round that ended
-with HIGH or MEDIUM fixes still has a round after it, with a fix auditor on
-them: the fixes are new code.
+This replaces SKILL.md's stop rules for code: **stop after a round that has no
+HIGH, by ratings the disposition auditor has checked, and needed no HIGH or
+MEDIUM fixes.** A round that ended with such fixes has a round after it, with a
+fix auditor on them: the fixes are new code.
 
 ## Out of scope
 
