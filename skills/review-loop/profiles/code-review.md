@@ -3,9 +3,10 @@
 For a codebase reviewed by outside reviewers who read the code (not the running
 app), each with one lens, looking for failures users would actually hit.
 
-**Draft, from one project.** First used on efc-expenses (rounds 3 to 7 of its
+**Draft, from one project.** First used on efc-expenses (eleven rounds of its
 code review, 2026-10-22 and 23). Kept deliberately small until a second project
-tests it. Do not add rules here on the strength of this one use.
+tests it. The rules added after round 7 each held across at least two rounds;
+do not add more on the strength of a single one.
 
 ---
 
@@ -45,6 +46,19 @@ Severity is a second axis beside SKILL.md's confidence tiers, not a replacement
 for them: the tiers say whether to believe a finding, severity says how much it
 matters.
 
+Rating rules, because the author's ratings drift soft:
+
+- **The same mechanism gets the same rating in every round.** A past rating is a
+  precedent; rating it lower the second time needs a reason that is new.
+- **"Only in a rare timing" is MEDIUM**, never LOW: the scale says so.
+- **"Visible" or "recoverable" alone never makes a finding LOW.** The scale
+  already counts visible and recoverable as MEDIUM.
+- **A reason you give for a rating or for not fixing is a claim.** Check it
+  against the code like a finding; false reasons are the most common thing the
+  disposition auditor finds.
+- **The reviewer's rating is evidence, not the verdict.** Rate on the scale's
+  words; a column that copies the reviewer's is a column nobody judged.
+
 ## Materials bundle
 
 - The repository at a named commit, not to be changed, **and a copy of the app
@@ -68,6 +82,17 @@ One lens each, taken from the codebase's own seams. On efc-expenses those were
 server data integrity, money logic, and browser input handling. Name the lens,
 not the functions: a list of where to look is your hypothesis, handed over.
 
+### Rules reviewer (when the rules are written down)
+The code against the rules confirmed with the human (SKILL.md step 1): does the
+app do what they say, everywhere a user sees or pays? Where the two disagree,
+the rules decide. See *Rules nobody checked* in [`../evidence.md`](../evidence.md).
+
+### Disposition auditor (required, every round)
+Our ratings and decisions, after triage and before any decision to stop: which
+don't hold up against the scale, which reasons are convenient, which mechanism
+is rated differently in different places. See *The audit that kept moving the
+stop line* in [`../evidence.md`](../evidence.md).
+
 ### Fix auditor (required from round 2)
 The previous round's diff and nothing else, read hunk by hunk: *what did this
 change break that used to work?* SKILL.md lists the fix auditor as a standing
@@ -81,8 +106,14 @@ round 4 came from the previous round's fixes.
 ## Records
 
 Per round, in the project: a table of finding, reviewer (their rating), ours
-(with the reason if different), and what was done. Save each reviewer's report
-beside it.
+(with the reason if different), how it was checked, and what was done. Save each
+reviewer's report beside it.
+
+## When to stop
+
+When a round has no HIGH **after the disposition auditor has checked the
+ratings**. A round whose HIGHs are all fixed still has a round after it: the
+fixes are new code.
 
 ## Out of scope
 

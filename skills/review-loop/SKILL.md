@@ -68,6 +68,14 @@ yet know what the work is for.** It is the single most important input, and its
 
 Make it about the reader's task, not the document's contents.
 
+**Confirm the rules before any reader sees the thing.** If the artifact applies
+rules from outside itself (how a business charges, what a regulation requires,
+how a group actually works), write them down in plain words, one per line, and
+have the person who knows confirm them before the first round. Readers check
+the artifact against *your* idea of it; none of them can tell you the idea is
+wrong. Once the rules are written, they are a source of truth for step 0 and a
+lens for the cast.
+
 ## Step 2 — Choose or write a profile
 
 A **profile** supplies the audience: the cast, the materials each reader gets,
@@ -190,7 +198,9 @@ only evidence the loop generates against itself. See the ratchet in
 A claim lives in more places than the sentence you are editing: every content
 variant, every alternative representation (alt text, captions, transcripts,
 fallbacks), and every string in the code that builds the artifact. Where two code
-paths produce the same thing, make them call one function.
+paths produce the same thing, make them call one function. **Then use it the way
+its audience will** (run it, click through it, follow the steps) before the next
+round: readers who only read miss what one real use finds.
 
 **Assert on the claim, not on the sentence.** Replacing three occurrences with
 three exact-sentence checks, each requiring one match, passes three times and
@@ -203,6 +213,26 @@ the same claim wrapped across two lines is invisible to it.
 a deploy between your edit and the reader, a check that runs too early reads
 the *previous* build and reports success. Wait for the published artifact to
 carry the commit you just made, then look.
+
+**The owner decides what changes outcomes.** When a fix or a build needs a
+choice that changes what users get or pay (a default, a threshold, a rule for
+an edge case), put it to the human in plain words, with your recommendation.
+Don't settle it in the artifact because it looks like a detail; a choice
+written into a comment is still a choice nobody made.
+
+**Before a fix that changes what is stored or computed, think it through with
+peers, not alone.** Write the problem plainly. Give your plan to one or two
+critics to break, and the problem alone to one or two others to solve blind.
+None of them writes code. Take the best plan, improve it, and give it to a
+*fresh* group: never reuse one, because what you added since the last pass is
+the part nothing has checked. Stop when a pass finds only details. **Watch which
+way the plan moves:** if each pass makes it bigger (more parts, more state, more
+places it touches), it is not a fix but a design problem, so stop and take the
+design question to the human. If each pass makes it smaller, build it.
+
+**Explain a design to the human before building it**, in short numbered points,
+each saying what the user will see or do. Plain words show up the parts that
+cost users effort for rare cases, which jargon hides from both of you.
 
 **Then write `PREDICTIONS-R<n>.md` before the next round**, at two levels.
 *Per fix:* what should a reader now say that they could not have said last round?
@@ -240,8 +270,13 @@ non-obvious part, and [`briefs.md`](briefs.md) has each one written out:
 | **Cost reader** | a **measurement** taken on the real target, plus a control | what does this cost its user — time, money, CPU, attention, quota? An impression is not evidence here; if you cannot measure it on the thing the audience actually uses, say so rather than clearing it |
 | **A/B reader** | two drafts, unlabelled, both orderings | which is better? |
 
+**The disposition auditor is required, every round, after triage and before any
+decision to stop.** You rate findings about your own work, and the ratings drift
+soft in ways you can't see from inside: the same mechanism rated lower the
+second time, a reason that sounds right and isn't, "rare" asserted, not shown.
+
 Retire a persona after two rounds with no tier-1 or tier-2 finding, and record it
-so nobody re-adds it.
+so nobody re-adds it. The disposition auditor is never retired.
 
 ## Keeping the records
 
@@ -253,6 +288,10 @@ the records are not.
 **Changing the method invalidates the comparison.** Tier-1 counts across rounds
 run with different casts, framings or gates are not comparable. Reset the
 baseline when the method settles, and say so in the ledger.
+
+**Each finding's record says how it was checked**: reproduced, read in the
+source, or taken on the reader's word. A finding fixed on the reader's word is a
+bet, and the record should say so.
 
 **Give the ledger a required `Believed, and wrong:` field each round** — the
 claim as you held it, quoted, not its correction. A summary deletes the wrong
@@ -270,6 +309,9 @@ record failed. Without that list your lessons are unfalsifiable: nobody is in a
 position to check them, including you.
 
 ## When to stop
+
+Every condition below is judged on ratings the disposition auditor has checked,
+not on your own.
 
 - Two consecutive rounds with **zero tier-1 findings**.
 - All tier-1 findings in one area — fix that area and stop.

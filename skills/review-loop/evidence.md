@@ -10,8 +10,9 @@ long-form public explainer (seven rounds) and a one-page diagram (two) —
 reviewed by small cheap model agents. Two cold-read tests on other genres (a
 lab manual, an API reference) found that the *loop structure* carried over and
 the *cast and house rules* did not. Since then, one code review (efc-expenses,
-seven rounds, outside reviewers on four models) has added the episode in *Briefs
-drift toward the answer*.
+eleven rounds, outside reviewers on four models for rounds 1 to 7, Claude
+subagents after) has added the episodes from *Briefs drift toward the answer* to
+*Running it finds what reading doesn't*.
 
 So: treat the procedure's steps as general and **treat every specific persona,
 house rule and threshold as a hypothesis** until another genre confirms it. The
@@ -77,6 +78,55 @@ projects**, which makes it more than a one-off.
 What this does not show: that one generic review beats a structured loop. It ran
 once, on code seven rounds had already cleaned. A fair comparison runs both on
 the same code.
+
+## The audit that kept moving the stop line
+
+**efc-expenses, rounds 8 to 11.** After each round the author rated the findings
+and decided whether the round was clean. Four times running, the disposition
+auditor showed it wasn't: the same mechanism rated HIGH one round and LOW the
+next, "only in a rare timing" rated LOW when the scale calls it MEDIUM, "visible"
+given as the reason for LOW, and twice a reason for not fixing that was simply
+false (a check described as covering a case it didn't). Each time the re-rating
+added a HIGH and a further round. The author had written the rating rules down
+after the first audit and still broke them in the next three. That is why the
+auditor is required before any stop decision, rather than offered.
+
+## Rules nobody checked
+
+**efc-expenses, after round 10.** Ten rounds of reviewers checked the code
+against the author's idea of the app: that families on a trip eat together, so
+a meal is split among everyone there that day. The human, asked in plain words
+how the club actually pays, said in a few minutes that this was wrong (meals
+are opt-in; attendance days aren't needed at all), and the split was rebuilt.
+No reader could have found it: every one was checking the code against the same
+wrong idea. In the next round, a reader given the written rules found a default
+the author had chosen without asking (every new fencer charged for every day),
+which moved money silently. Hence step 1's *confirm the rules*, the rules
+reviewer, and *the owner decides what changes outcomes*.
+
+## A fix that grew and a design that shrank
+
+**efc-expenses, rounds 9 and 10.** The author's fixes for duplicate saves on a
+bad signal went to peers before any code: critics on the plan, others solving
+the problem blind, then the improved plan to a fresh group. Pass one beat the
+author's plan outright; pass two broke details the author had added between
+passes; by pass three the fix touched the server, the phone's storage and every
+kind of record, and was stopped as a design problem. The design that replaced it
+went through the same loop with the human choosing the direction ("hold new
+expenses on the phone until there's a signal"), and each pass made it smaller:
+two critics independently proposed cutting the same feature. It was built after
+three passes. The direction of change, not the number of passes, told the two
+apart.
+
+## Running it finds what reading doesn't
+
+**efc-expenses, rounds 9 to 11.** Three times, the author's own run of the app
+in a browser, after the peers and before the reviewers, found what no reader had:
+a screen that couldn't load offline right after the app said an expense was
+"waiting", so the waiting expense couldn't be seen; a button that redrew by
+reloading, which needs a signal; a removed piece of dead code whose one leftover
+reference broke a page. All three passed every API check, because all three
+were in what the screen does, not what the server returns.
 
 ## The harness is the unreliable component, not the readers
 
