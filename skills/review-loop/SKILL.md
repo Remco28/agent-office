@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: Review something you made by giving it to many cheap reader agents and being disciplined about which answers you believe. Use when a document, page, manual, API reference, UI or proposal is drafted and you want to know whether it works for a stranger, before a human reviews it. Not a substitute for human review.
+description: Review something you made by giving it to fresh reader agents and being disciplined about which answers you believe. Heavy, so use it only when the user asks for it; if a piece of work looks important enough, ask the user first. Fits a document, page, manual, API reference, UI, design or codebase that should work for a stranger. Not a substitute for human review.
 ---
 
 # The review loop
@@ -8,316 +8,228 @@ description: Review something you made by giving it to many cheap reader agents 
 Give a thing you made to readers who have never seen it, then be disciplined
 about which of their answers you believe.
 
-It measures an artifact against **its own stated goal**, along two axes it is
-genuinely good at: **coherence** — does the thing contradict itself, or its
-source — and **comprehension** — does a stranger come away with what you
-intended. Both are real components of quality, and both improve under it. Do
-not undersell that.
+It is good at two things: **coherence** (does the thing contradict itself or its
+source?) and **comprehension** (does a stranger get what you meant?). It is blind
+to **merit** (was it worth making? is the argument right?). Only a human can
+judge merit, so the human always reviews at the end. When you report, say which
+of the three you are reporting on.
 
-What it is blind to is **merit**: whether the thing was worth making, whether
-the argument is right, whether a sentence sings. Only a human can say that, and
-that review is never optional. When you report results, say which of the three
-you are reporting on.
+**Only run it when the user asks.** It costs many agents and many rounds. If
+something looks important enough, ask the user. Then size it with judgment: two
+paragraphs don't need twenty readers.
 
-Evidence behind the rules, and the biases to correct for:
-[`evidence.md`](evidence.md). Read it once, not before your first round.
+## Never skip these
+
+Whatever the size of the job:
+
+1. **Run the checks you can run yourself first** (step 0).
+2. **Confirm the rules with the person who knows** (step 1).
+3. **Have the disposition auditor check your ratings before you stop** (the cast).
+4. **Hand it to the human at the end.**
+
+Everything else (how many readers, which specialists, how many rounds) scales
+with how big and how important the thing is.
 
 ---
 
-## Step 0 — Verify what is checkable, before you spend a reader on it
+## Step 0: check what can be checked
 
-**Most artifacts contain claims that can be checked mechanically against a source
-of truth.** Do that first. It is cheaper than a reader, it returns tier-1
-findings that need no further confirmation, and it leaves the reader budget for
-the thing only readers can do: whether a stranger understands.
+Many claims can be checked mechanically against a source of truth: run every
+example, diff against the spec, check every name against the list, run the
+tests. Do that before spending a reader, as a script you can re-run each round.
+What it finds is verified and gets fixed.
 
-| Artifact | Source of truth | The check |
-|---|---|---|
-| API reference | the server, the schema | run every example, diff against the spec |
-| Manual | the equipment spec, the safety standard | every part named is in the parts list; every warning precedes its step |
-| Explainer | the paper or source it explains | every claim traced to a verbatim quote — necessary, **not sufficient**: see below |
-| Any | its own text | a quote contradicting another quote; a rule it states then breaks |
+Know its limit: a check proves the source *says* it, not that the source is
+right. Where a domain expert is reachable, that is the question to ask them.
 
-Write these as a script you can re-run each round, not a one-off pass. Whatever
-it finds needs no further confirmation — it goes straight to the top tier of the
-triage in step 4, and gets fixed.
+## Step 1: the success question, and the rules
 
-**Know what the check does not reach.** Tracing a claim to its source proves the
-source says it. It does not prove the source *bears the weight you put on it* —
-the chain is your artifact → the source's prose → the data behind the source,
-and a mechanical check only ever verifies the first link. On this project the
-claims checker ran clean for weeks and the paper's own author still found
-wording that overstated the findings; the same project had separately
-documented two places where the paper's prose ran ahead of its own figures, and
-never connected the two. **When a domain expert is reachable, that second link
-is the thing to ask them about, and it is the one thing no cast and no script
-can do for you.**
-
-## Step 1 — Write the success question
-
-One sentence a reader must satisfy. **If you cannot write it, stop — you do not
-yet know what the work is for.** It is the single most important input, and its
-*shape* depends on how the artifact is read:
-
-- **Read start to finish** (explainer, essay, report) → *can they say X in their
-  own words, from memory, after one pass?*
-- **Consulted in fragments** (reference, manual, API docs) → *can they complete
-  a named task with a verifiable outcome, looking things up as they go?* Recall
-  is the wrong test here; the task passing or failing is the measurement, and
-  every lookup that failed is a finding.
-
-Make it about the reader's task, not the document's contents.
+**Write one sentence a reader must satisfy.** If you can't, stop: you don't yet
+know what the work is for. For something read start to finish: *can they say X
+in their own words after one read?* For something consulted in pieces (a
+reference, a manual): *can they complete a named task, looking things up as they
+go?* Make it about the reader's task, not the document's contents.
 
 **Confirm the rules before any reader sees the thing.** If the artifact applies
 rules from outside itself (how a business charges, what a regulation requires,
-how a group actually works), write them down in plain words, one per line, and
-have the person who knows confirm them before the first round. Readers check
-the artifact against *your* idea of it; none of them can tell you the idea is
-wrong. Once the rules are written, they are a source of truth for step 0 and a
-lens for the cast.
+how a group actually works), write them in plain words, one per line, and have
+the person who knows confirm them. Readers check the artifact against *your*
+idea of it; none of them can tell you the idea is wrong. Once written, the rules
+are a source of truth for step 0 and a lens for a reader.
 
-## Step 2 — Choose or write a profile
+## Step 2: choose a profile
 
-A **profile** supplies the audience: the cast, the materials each reader gets,
-the house rules the artifact must obey, and what is out of scope. See
-[`profiles/`](profiles/).
+A **profile** (in [`profiles/`](profiles/)) sets the audience: the cast, what
+each reader gets, the house rules, what's out of scope, and for some genres the
+stop rule. A profile's rules override this file's for its genre.
 
-**If the piece has a confirmed voice brief** (see
-[`../voice-brief/SKILL.md`](../voice-brief/SKILL.md), usually `docs/VOICE.md`),
-start there: its audience is your comprehension cast, its purpose is your
-success question, and its style rules are house rules already written with a
-test attached.
+Some work needs two profiles (an app's code, and how people use it). The user
+usually says; if unsure, ask. With two, take both casts, and the stricter stop
+rule.
 
-**No profile fits? That is the normal case.** Copy the closest one, throw away
-its cast, and write your house rules as *rules with a test attached* — "every
-step has one checkable action", not "steps should be clear". Start from
-[`profiles/_template.md`](profiles/_template.md). Writing a profile for a new
-genre takes about twenty minutes and is reusable forever.
+No profile fits? That's normal. Copy the closest, replace its cast, and write
+house rules as *rules with a test attached* ("every step has one checkable
+action", not "steps should be clear"). Start from
+[`profiles/_template.md`](profiles/_template.md). If the piece has a confirmed
+voice brief ([`../voice-brief/SKILL.md`](../voice-brief/SKILL.md)), its
+audience is your cast and its style rules are house rules.
 
-## Step 3 — Prepare, freeze, and run the cast
+## Step 3: prepare, freeze, run
 
-**Prepare.** Give readers the artifact as its audience meets it — rendered, not
-source. Mark your own annotations so a stranger cannot mistake them for content,
-and **name any known artifact of your materials as deliberate** ("the
-screenshots show animations finished; that is intentional"). Skip that and you
-will spend a round triaging your own harness. For a large artifact, give each
-reader the slice their lens needs rather than the whole thing.
+- **Give readers the artifact as its audience meets it**: rendered, not source
+  (code readers get the code and a copy they can run). Name any quirk of your
+  materials as deliberate ("the screenshots show animations finished"), or you
+  will spend a round on your own harness. For a large artifact, give each reader
+  the slice their lens needs.
+- **Freeze it.** Commit or snapshot what readers get, and record the version.
+- **Run readers in parallel, blind to each other.** Spread them across models
+  where you can and write the model beside each finding: readers from one model
+  share blind spots, so their agreement is weaker than it looks.
+- **Brief them in six parts**, kept short ([`briefs.md`](briefs.md) has worked
+  examples): who they are; the materials, by absolute path; the artifact's goal,
+  quoted; their questions, numbered; *"Do not hunt for problems to fill space.
+  'Nothing wrong' is a real and useful answer"*; and the known quirks. **Briefs
+  grow** round by round (where to look, what to skip) until they decide the
+  answer. Keep them to the role and the question.
+- **Ask whether it worked, not what's wrong.** An agent sent looking for problems
+  returns problems, present or not. Comprehension readers answer: did it work
+  for you; what worked; anything actually broken (only what they're sure of);
+  the one thing you'd change. Fault-hunting goes to named specialists, told
+  that nitpicking is their job.
 
-**Freeze.** If readers will *run* the artifact, commit or snapshot first and hand
-them the frozen copy — otherwise a reader tests a state no version contains. For
-a static document, give every reader the identical file and record its version.
-
-**Run.** All readers in parallel, each blind to the others. A small cheap model
-has been enough for the reading itself.
-
-**Spread the cast across models, and write the model beside each finding.**
-Readers drawn from one model share its blind spots, so their agreement is worth
-less than the count suggests. Two models disagreeing about what they noticed is
-information; two instances of one model agreeing may only be one opinion. If
-you have a single model, say so in the record and treat every convergence as a
-strong hint rather than proof.
-
-**A round-one default, if you want one:** six comprehension readers across at
-least two models, plus one or two specialists. Adjust from there.
-
-**Every brief has six parts.** This skeleton is the minimum, and close to the
-maximum: [`briefs.md`](briefs.md) is how to make them good, and is worth reading
-before you write the first one. **Watch for briefs that grow.** Round by round
-they drift longer and more specific — where to look, which functions, what to
-skip — until the outcome is decided before the reader starts. Readers need room
-to find what you did not think of.
-
-1. **Who they are** — concrete, one or two sentences, not a job title.
-2. **The materials**, by absolute path, with what each one is.
-3. **The artifact's stated goal**, quoted.
-4. **Their questions**, numbered.
-5. *"Do not hunt for problems to fill space. 'Nothing wrong' is a real and
-   useful answer."*
-6. **Known artifacts of the materials**, named as deliberate.
-
-> **Ask whether it succeeded. Do not make fault-finding the job.** Ask an agent
-> to go looking for problems and it will return problems, present or not; that
-> is not evidence. Hunting is given to named **specialists** who are told that
-> nitpicking is their job.
->
-> This is about the *frame*, not about refusing defect reports. A comprehension
-> reader is asked what it understood, and then — question 3 below — whether
-> anything was broken, *limited to what it is confident about*. That is a
-> reader volunteering a fault, which is worth a great deal. What you must not do
-> is set someone loose to find faults and then read their list as a verdict on
-> whether the thing worked.
-
-Comprehension readers answer four questions, in this order:
-
-1. **Did it work, for you?** Plus the success criterion met in their own terms.
-2. **What worked.** *(Not a courtesy — it tells you what to protect when you cut.)*
-3. **Anything actually broken or wrong** — only what they are confident about.
-4. **The one thing you would change.**
-
-## Step 4 — Triage by confidence
+## Step 4: sort what comes back
 
 | Tier | Test | Do |
 |---|---|---|
-| **1** | Two or more **independent** readers, **or** checkable against the artifact itself | Fix |
-| **2** | One reader, checkable against an outside source | Verify. Survives → treat as tier 1. Dies → record why |
-| **3** | Taste, framing, tone | Collect. Surface to the human. Do not act |
-| **0** | An artifact of how you showed it to them | Reject, out loud |
+| **1, verified** | Two or more **independent** readers, or checkable against the artifact | Fix |
+| **2** | One reader, checkable against an outside source | Give a second agent the finding and the source, and tell it to *kill* the finding. Survives: tier 1. Dies: record why |
+| **3** | Taste, framing, tone | Collect for the human. Don't act |
+| **0** | Caused by how you showed it (a rendering, an extract, a screenshot) | Reject, out loud, after checking the real artifact |
 
-**"Independent" is doing the work in tier 1, and a large cast makes it cheap.**
-Two readers agreeing is evidence when they are different people asked different
-questions on different models. Two of twelve same-model readers agreeing may be
-one habit counted twice. Weigh a convergence against how many readers *could*
-have said it and how differently they were asked — and when in doubt, treat it
-as tier 2 and go and check.
+Independent means different questions, personas and models. Two of twelve
+same-model readers agreeing may be one habit counted twice; when in doubt,
+treat it as tier 2 and check.
 
-Two gates before you believe anything:
+Where a profile adds a severity scale (code: HIGH, MEDIUM, LOW), the tier says
+whether to believe a finding and the severity how much it matters. **Fix every
+verified HIGH and MEDIUM. A verified LOW is fixed or declined, with the reason
+written down** for the auditor.
 
-- **Anything a reader could only have seen through your pipeline is tier 0 until
-  you reproduce it against the real artifact** — a rendering, a screenshot, a
-  text extract, a conversion. This is not a licence to dismiss layout faults: if
-  page breaks, figure placement or cross-references are how your audience meets
-  the thing, they are real findings. The test is whether the fault is in the
-  artifact or in the copy you handed over.
-- **For every tier-2 finding, give a second cheap agent the finding and the
-  source and tell it to *kill* the finding.** Not assess — kill. It returns
-  confirmed or dead, with the evidence it used.
+**Each finding's record says how it was checked**: reproduced, read in the
+source, or taken on the reader's word.
 
-## Step 5 — Fix tier 1 only, check the counterweight, then predict
+## Step 5: fix, then predict
 
-**Fix tier 1 — including any tier-2 finding that survived its kill attempt —
-and leave the rest.** High-confidence fixes collapse low-confidence
-ones, and if you change forty things and the next round is clean you have learned
-nothing about which thirty-nine mattered.
+**Fix tier 1 only, and leave the rest**: fixing forty things teaches you nothing
+about which mattered.
 
-**Read the tier-3 pile for the opposite signal before acting.** Several readers
-saying *over-corrected, over-hedged, too long* is convergence too, and it is the
-only evidence the loop generates against itself. See the ratchet in
-[`evidence.md`](evidence.md).
+**Read the tier-3 pile for the opposite signal.** Several readers saying *too
+long, over-hedged* is the only evidence the loop produces against itself; the
+loop otherwise only ever adds caution.
 
-**Prove each fix, do not describe it.** Your own account is not evidence.
-A claim lives in more places than the sentence you are editing: every content
-variant, every alternative representation (alt text, captions, transcripts,
-fallbacks), and every string in the code that builds the artifact. Where two code
-paths produce the same thing, make them call one function. **Then use it the way
-its audience will** (run it, click through it, follow the steps) before the next
-round: readers who only read miss what one real use finds.
+**Prove each fix; don't describe it.** A claim lives in more places than the
+sentence you edited (other versions, alt text, captions, the code that builds
+it). Count the old wording across the whole thing, change it, count again, and
+require zero. Check the published thing, not your local copy. **Then use it the
+way its audience will** (run it, click through it, follow the steps): readers
+who only read miss what one real use finds.
 
-**Assert on the claim, not on the sentence.** Replacing three occurrences with
-three exact-sentence checks, each requiring one match, passes three times and
-still ships a fourth occurrence worded slightly differently. Instead: count the
-retired phrase across the whole tree, make the change, count again, **require
-zero** — and search whitespace-insensitively, because `grep` is line-based and
-the same claim wrapped across two lines is invisible to it.
-
-**And verify against the thing the audience will get.** If there is a build or
-a deploy between your edit and the reader, a check that runs too early reads
-the *previous* build and reports success. Wait for the published artifact to
-carry the commit you just made, then look.
-
-**The owner decides what changes outcomes.** When a fix or a build needs a
-choice that changes what users get or pay (a default, a threshold, a rule for
-an edge case), put it to the human in plain words, with your recommendation.
-Don't settle it in the artifact because it looks like a detail; a choice
-written into a comment is still a choice nobody made.
+**The owner decides what changes outcomes.** When a fix or build needs a choice
+that changes what users get or pay (a default, a threshold, an edge-case rule),
+put it to the human in plain words with your recommendation. A choice written
+into a comment is still a choice nobody made.
 
 **Before a fix that changes what is stored or computed, think it through with
-peers, not alone.** Write the problem plainly. Give your plan to one or two
-critics to break, and the problem alone to one or two others to solve blind.
-None of them writes code. Take the best plan, improve it, and give it to a
-*fresh* group: never reuse one, because what you added since the last pass is
-the part nothing has checked. Stop when a pass finds only details. **Watch which
-way the plan moves:** if each pass makes it bigger (more parts, more state, more
-places it touches), it is not a fix but a design problem, so stop and take the
-design question to the human. If each pass makes it smaller, build it.
+peers.** Write the problem plainly. Give your plan to one or two critics to
+break, and the problem alone to one or two others to solve blind; nobody writes
+code. Improve the plan and give it to a *fresh* group, never the same one: what
+you added since the last pass is what nothing has checked. Stop when a pass
+finds only details. **Watch which way it moves:** if each pass makes the plan
+bigger (more parts, more state, more places), it's a design problem: stop and
+take it to the human. If each pass makes it smaller, build it.
 
 **Explain a design to the human before building it**, in short numbered points,
-each saying what the user will see or do. Plain words show up the parts that
-cost users effort for rare cases, which jargon hides from both of you.
+each saying what the user will see or do. Plain words show the parts that cost
+users effort for rare cases.
 
-**Then write `PREDICTIONS-R<n>.md` before the next round**, at two levels.
-*Per fix:* what should a reader now say that they could not have said last round?
-Outcomes: landed / didn't land / landed and broke something adjacent — the last
-is the most valuable, because you have mapped a dependency.
-*Per round:* the tier-1 count and the shape of what will come back.
-
-A prediction written after the results is worth nothing.
+**Before the next round, write your predictions** in the ledger: per fix, what a
+reader should now say that they couldn't before; per round, how many verified
+findings and of what kind. A prediction written after the results is worth
+nothing.
 
 ---
 
 ## The cast
 
-Three kinds. A profile's list is a **floor, not a ceiling** — before each round
-ask *what did I just change, what am I afraid of, and who would notice?* and
-write a reader for each answer. The best readers are usually bespoke.
+Three kinds: **comprehension readers** (the real audience, across its range),
+**specialists** (one lens each), **adversaries** (testing one claim the work
+makes about itself). A profile's cast is a floor; before each round ask *what
+did I just change, what am I afraid of, and who would notice?* The best readers
+are usually written for the job.
 
-**Readers are cheap; your own context is not.** The bottleneck has never been
-the cost of running a reader, it is your capacity to read what comes back. So
-run more readers than feels necessary and spend the effort compressing their
-reports, rather than rationing the cast. If the reports stop fitting, have a
-separate agent group and rank them — that agent never decides.
+Standing readers ([`briefs.md`](briefs.md) has each brief):
 
-- **Comprehension readers** — the real audience, across its range of abilities.
-- **Specialists** — one lens each, told that nitpicking is the job.
-- **Adversaries** — testing one claim the work makes about itself.
+| Reader | Gets | Asks | When |
+|---|---|---|---|
+| **Disposition auditor** | the findings, your ratings and what you did | was the sorting fair? | **Every round, after sorting, before any decision to stop.** Never retired |
+| **Fix auditor** | last round's fixes and nothing else | did each land, and break anything? | From round 2 |
+| **Cost reader** | a measurement on the real target, and a control | what does this cost its user? | When cost matters |
+| **A/B reader** | two drafts, unlabelled, both orders | which is better? | When you have two drafts |
 
-Four earn a standing place from round two onward. Their materials are the
-non-obvious part, and [`briefs.md`](briefs.md) has each one written out:
+You rate findings about your own work, and the ratings drift soft in ways you
+can't see from inside: the same mechanism rated lower the second time, a reason
+that sounds right and isn't. That is why the disposition auditor is never
+skipped.
 
-| Reader | Materials | Asks |
-|---|---|---|
-| **Fix auditor** | last round's fixes, and nothing else | did each land? |
-| **Disposition auditor** | the findings and what you did with each | was the triage fair? |
-| **Cost reader** | a **measurement** taken on the real target, plus a control | what does this cost its user — time, money, CPU, attention, quota? An impression is not evidence here; if you cannot measure it on the thing the audience actually uses, say so rather than clearing it |
-| **A/B reader** | two drafts, unlabelled, both orderings | which is better? |
+Retire any other reader after two rounds with no tier-1 or tier-2 finding, and
+record it so nobody re-adds it.
 
-**The disposition auditor is required, every round, after triage and before any
-decision to stop.** You rate findings about your own work, and the ratings drift
-soft in ways you can't see from inside: the same mechanism rated lower the
-second time, a reason that sounds right and isn't, "rare" asserted, not shown.
+## The ledger
 
-Retire a persona after two rounds with no tier-1 or tier-2 finding, and record it
-so nobody re-adds it. The disposition auditor is never retired.
+In the project, in a folder named **`review-loop/`** so it can be removed
+cleanly when the work is done: `review-loop/LEDGER.md`, starting with this line
+and following this shape:
 
-## Keeping the records
+```markdown
+# Review-loop ledger: <the thing>
+*Kept by the review-loop skill. Safe to delete this folder once the work is done.*
 
-In the **project**, not in this skill: a `review/loop/` folder with `LEDGER.md`
-(rounds, tier-1 counts, false findings, what each round bought, **and which
-model each reader ran on**) and `PREDICTIONS-R<n>.md`. The skill is reusable;
-the records are not.
+Success question: <one sentence>
+Rules confirmed with: <who, when>
 
-**Changing the method invalidates the comparison.** Tier-1 counts across rounds
-run with different casts, framings or gates are not comparable. Reset the
-baseline when the method settles, and say so in the ledger.
+## Round <n>, <date>, <version reviewed>
+Predictions (written before the round): <per fix; per round>
+Cast: <reader, model, what each got>
+| Finding | Reader (their rating) | Ours | How checked | Done |
+What happened against the predictions: <one line each>
+Believed, and wrong: <the claim as you held it, quoted; or "none this round">
 
-**Each finding's record says how it was checked**: reproduced, read in the
-source, or taken on the reader's word. A finding fixed on the reader's word is a
-bet, and the record should say so.
+## Mistakes the next author will make
+<specific enough that the human would recognise one when it happens>
+```
 
-**Give the ledger a required `Believed, and wrong:` field each round** — the
-claim as you held it, quoted, not its correction. A summary deletes the wrong
-path by construction (see [`evidence.md`](evidence.md)), so it has to be asked
-for separately or it is gone. Write `none this round` explicitly when there is
-none: a blank field is invisible, a written assertion can be checked.
+Save each reader's report beside it. **Believed, and wrong** is required each
+round: a summary deletes the wrong path, so it has to be asked for. The closing
+list of mistakes is for the human, the only reader who persists across sessions
+and can tell you the record failed.
 
-**End the ledger by predicting its reader.** A record of what went wrong is
-read, agreed with, and changes nothing — agreement is free, and it looks
-exactly like understanding. So close the ledger with a short list of the
-mistakes *the next author will make*, named specifically enough that **the
-human** would recognise one when it happens. They are the only reader who
-persists across sessions, and therefore the only one who can ever tell you the
-record failed. Without that list your lessons are unfalsifiable: nobody is in a
-position to check them, including you.
+Changing the method (cast, briefs, gates) makes rounds incomparable: say so in
+the ledger and count from there.
 
 ## When to stop
 
-Every condition below is judged on ratings the disposition auditor has checked,
-not on your own.
+Judged on ratings the disposition auditor has checked, never on your own. A
+profile's stop rule replaces these for its genre.
 
-- Two consecutive rounds with **zero tier-1 findings**.
-- All tier-1 findings in one area — fix that area and stop.
-- Everything left is tier 3. The question has become *is this good*.
-- For an artifact read in fragments, **coverage**: every endpoint, procedure or
-  section has been exercised at least once.
+- Two rounds in a row with no tier-1 finding.
+- Everything verified is in one area: fix it and stop.
+- All that's left is tier 3: the question has become *is it good*.
+- For something read in pieces: every section has been exercised once.
 - The budget is spent.
 
 Then hand it to the human. That was always the point.
+
+---
+
+Why each rule is here, and where the method is thin, is in
+[`evidence.md`](evidence.md): for maintaining this skill, not for running it.

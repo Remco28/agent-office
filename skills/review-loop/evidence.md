@@ -1,7 +1,8 @@
 # Why the rules are the way they are
 
-**Read once, not before your first round.** `SKILL.md` is the procedure; this is
-what it is built on and where it is thin.
+**For maintaining the skill, not for running it.** `SKILL.md` is the procedure;
+this is what it is built on and where it is thin. Read it before changing a rule,
+so a rule isn't simplified away without knowing what it protects against.
 
 ## The evidence base, stated honestly
 
@@ -207,12 +208,12 @@ already in force and did not stop it. The authorship A/B under *The framing
 result* — same question, different writers, 8 of 12 against 9 of 12 — shows it
 is not the author and not the model. It is the genre.
 
-This is a direct threat to `LEDGER.md`, which is a summary. It will read
+This is a direct threat to the ledger, which is a summary. It will read
 perfectly well while having deleted the only data that could stop the next
 author repeating you. The counter is not a better rule — rules lose to genres.
 It is a **separate field that asks a different question of the same material**,
-which is why `PREDICTIONS-R<n>.md` is not optional: it is the only artifact in
-this method written before the answer was known.
+which is why the ledger's predictions, written before each round, are not
+optional: they are the only part of the method written before the answer was known.
 
 ## The author is the weakest joint
 

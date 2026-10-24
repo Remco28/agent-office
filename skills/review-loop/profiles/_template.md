@@ -60,7 +60,7 @@ artifact, say which slice each lens gets and what was left out.
 
 **A starting cast, not a fixed one.** Before each round ask *what did I just
 change, what am I afraid of, and who would notice?* and write a reader for each
-answer. The four standing auditors are in SKILL.md and apply to every genre.
+answer. The standing readers are in SKILL.md and apply to every genre; the disposition auditor runs every round.
 
 ### Comprehension readers
 | Persona | Why they are in the cast |
