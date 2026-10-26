@@ -3,27 +3,28 @@
 A profile supplies the **audience**. The engine ([`../SKILL.md`](../SKILL.md))
 supplies the epistemics and does not change.
 
-**No existing profile is likely to fit a new genre.** That is expected: the
-loop structure is general, the cast and house rules are specific to an audience.
-Copy the closest profile, delete its cast and house rules, and fill these in.
+**No existing profile will fit a new genre.** That is expected — tested twice,
+and both times the loop structure carried over and the cast did not. Copy the
+closest profile, delete its cast and house rules, and fill these in. Twenty
+minutes, reusable forever.
 
 ---
 
 ## Success question
 
-> One question about the intended effect on the audience. Use the confirmed
-> voice brief's purpose unchanged, if one exists.
+> One sentence. The reader must satisfy it, and you must be able to tell whether
+> they did.
 
-Choose evidence that fits the purpose and reading context. For example:
+Choose the shape by how the artifact is read:
 
-- Understanding: an explanation in the reader's own words after one pass.
-- Use: a named task completed with a verifiable outcome, consulting the work.
-- Experience or persuasion: the reader's reported response to the work.
+- **Start to finish** → *"Can they say X in their own words, from memory, after
+  one pass?"*
+- **Consulted in fragments** → *"Can they complete <named task> with a verifiable
+  outcome, looking things up as they go?"* Recall is the wrong test; the task
+  passing is the measurement, and every failed lookup is a finding.
 
-These are examples, not an exhaustive menu. State what evidence would answer
-the question and distinguish observed outcomes from subjective responses;
-merit judgments remain tier 3. If you cannot write the question, stop — you do
-not yet know what the work is for.
+Make it about the reader's **task**, not the document's contents. If you cannot
+write it, stop — you do not yet know what the work is for.
 
 ## Checkable against a source of truth
 
@@ -55,16 +56,11 @@ audience actually meets it. Say which known artifacts of the extraction or
 rendering are **deliberate**, so they are not filed as defects. For a large
 artifact, say which slice each lens gets and what was left out.
 
-If there is a confirmed voice brief, give its full text and sample to a
-brief-compliance reviewer checking the agreed speaker and explicit rules.
-Record its path here. Ordinary readers get the audience-facing work, without
-the brief or sample explaining how they ought to react.
-
 ## Cast
 
 **A starting cast, not a fixed one.** Before each round ask *what did I just
 change, what am I afraid of, and who would notice?* and write a reader for each
-answer. The four standing auditors are in SKILL.md and apply to every genre.
+answer. The standing readers are in SKILL.md and apply to every genre; the disposition auditor runs every round.
 
 ### Comprehension readers
 | Persona | Why they are in the cast |

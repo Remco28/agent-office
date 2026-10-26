@@ -72,7 +72,7 @@ most were invented for a particular round and are not in this table.
 | Defects | Against the real page, driven in a browser. **Must also test with JavaScript disabled** — three rounds running, the no-JS path carried faults no other reader could see |
 | Structure | Order, seams, threads raised and dropped |
 | Repetition and tells | Repeated constructions, caveats stated more often than a reader needs, prose that reads as generated |
-| **Cost to the reader** | *Standing reader (SKILL.md).* For this genre: what the page costs to have open — idle CPU, memory, battery, data — measured in a real browser against a control page, reported as numbers |
+| **Cost to the reader** | What the page costs to have open: idle CPU, memory, battery, data. Must measure against a control page, and report numbers. **Added after six rounds in which nobody asked, while the page burned 26 points of idle CPU** |
 
 ### Adversaries
 | Persona | The claim they test |
@@ -81,10 +81,9 @@ most were invented for a particular round and are not in this table.
 | Ninety-second skimmer | That a fast reader does not leave with something **false** |
 | The author of the source work | That the page read the work with attention and did not oversell it |
 | Would-you-share | That it reads as made with care rather than generated |
-
-
-Plus the four **standing readers** from SKILL.md — fix auditor, disposition
-auditor, cost reader, A/B reader — from round two onward.
+| **A/B against an earlier draft** | That the rounds are improving it and not only hardening it. Unlabelled, both orderings. **The only reader that can detect regression** |
+| Fix auditor | That last round's fixes actually landed for a reader |
+| Disposition auditor | That the author triaged last round's findings fairly |
 
 ### Retired
 | Persona | Rounds run | Why retired |

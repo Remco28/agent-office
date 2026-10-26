@@ -42,7 +42,7 @@ cannot tell a clean result from a lazy one.
 
 **Ask for the good as well as the bad, and say why.** *"The three best sentences,
 and what makes them good. This is not a courtesy — it tells us what to protect."*
-A named strength is what lets a later cut leave it alone.
+Twice a sentence survived a later cut only because a reader had named it.
 
 **Make them distinguish kinds of gap.** *"Distinguish clearly between 'the page
 forgot' and 'science doesn't know yet, and the page says so.'"* Otherwise open
@@ -57,9 +57,8 @@ attribute."* That single sentence removed the most common false finding.
 
 - **One persona asked to judge success and hunt faults.** It will hunt, every
   time. Split them.
-- **"Find the friction / what's wrong / where it breaks down."** In the rounds
-  that used this framing, fourteen readers produced no tier-1 findings (see
-  `evidence.md`).
+- **"Find the friction / what's wrong / where it breaks down."** Rounds 1 and 2
+  used this and produced zero tier-1 findings across fourteen readers.
 - **A vague role.** "Review this page" returns prose about the page. "You have
   ninety seconds and you are going to scroll fast and then leave" returns
   evidence.
@@ -67,6 +66,14 @@ attribute."* That single sentence removed the most common false finding.
   model likes.
 - **Materials without their caveats.** Four readers across two rounds filed an
   extraction marker as a visible page error.
+- **A brief that grows each round.** Each addition looks reasonable — a scope to
+  stop a timeout, the names of the functions you changed, where to look hardest —
+  and together they hand the reader your map of where the problems are. It
+  searches the map and returns it confirmed; what lies off the map is never
+  looked at. A worry is one sentence (*"is anything I changed now worse?"*); a
+  map is your hypothesis. If a brief is longer than the last one, ask what each
+  new line takes away from the reader. See the code-review episode in
+  [`evidence.md`](evidence.md).
 
 ---
 
@@ -80,9 +87,8 @@ been worth reusing.)
 artifact. For each change: GONE / STILL THERE / REPLACED BY A NEW PROBLEM, with a
 quote. Then the two questions that matter: *"Did any of these changes make it
 worse in a way the change did not intend?"* and *"Is there any change applied in
-one place and missed in another?"* In every run recorded so far it found at
-least one fix that had not landed, including one the author had written up and
-never made.
+one place and missed in another?"* It has never run without finding a fix that
+did not land, including one the author had written up and never made.
 
 **The disposition auditor.** Materials: *every finding and what the author did
 with it*, plus the triage rules the author claims to follow. Asks which declines
@@ -102,11 +108,10 @@ processor story in [`evidence.md`](evidence.md) is what this reader exists for,
 and it is also the one it missed.
 
 **The A/B reader.** Materials: two unlabelled drafts, *both orderings run
-separately* to control for position. Asks five things: which is better to
-**read**; which do you **trust**; which would you **publish**; is either
-over-qualified; does either fail to state its own result plainly. It is the only
-reader that can detect regression, because every other reader sees one version
-and can only add caution.
+separately* to control for position. Asks four things: which is better to
+**read**; which do you **trust**; is either over-qualified; does either fail to
+state its own result plainly. The only reader that can detect regression, because every other reader
+sees one version and can only add caution.
 
 **A targeted recall reader.** *Not standing — bespoke, but worth reusing.* Materials: the artifact, read once, no going back.
 Then specific questions from memory about the thing last round's fix was supposed
@@ -118,8 +123,8 @@ merely reaching the file.
 
 ## Running them
 
-Parallel, blind to each other. Framing is the strongest lever measured so far —
-but **spread the cast across models anyway and record which model said what.**
+Parallel, blind to each other. Framing matters more than model tier — but
+**spread the cast across models anyway and record which model said what.**
 Readers from one model share its blind spots, so their agreement counts for
 less than the number suggests.
 

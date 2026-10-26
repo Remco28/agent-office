@@ -2,7 +2,7 @@
 
 For a small web app that real, non-technical people use to get a job done: a club tool, a sign-up form, a tracker. Readers use the running app the way its users would, in a browser, and never see the code.
 
-First used on efc-expenses (fencing trip expense splitter), 2026-10-22.
+A draft, from one project.
 
 ---
 
@@ -34,8 +34,8 @@ Before spending readers, check the app against what it claims (SKILL.md step 0).
 
 ## Materials bundle
 
-- **One private copy of the app per reader**, each with its own state, so readers never collide. Example with Cloudflare Workers: `wrangler dev --port 880N --persist-to <dir>` after running `wrangler d1 migrations apply --local --persist-to <dir>`. Seed each copy with the state its task needs, using a script that only calls the app's API.
-- **A headless browser**, driven with `agent-browser`, using one named session per reader. Readers must look at their screenshots with the Read tool, because the look is part of the test.
+- **One private copy of the app per reader**, each with its own state, so readers never collide. For example, a local server per reader on its own port with its own database. Seed each copy with the state its task needs, using a script that only calls the app's API.
+- **A headless browser** (whichever this machine has; check its tool list), with one session per reader. Readers must look at their screenshots with the Read tool, because the look is part of the test.
 - **Files the persona would have**, such as a receipt photo, by absolute path.
 - **Name in every brief as deliberate:** features switched off in the test copy (for example, no API key), made-up data, clipboard behaviour in a headless browser, and sticky bars that look misplaced in full-page screenshots.
 - **The isolation rule, stated in every brief:** no reading files except your own screenshots and the given materials, no source, no repo, no direct API calls. It is a rule, not a sandbox, so check reports for signs it was broken.
