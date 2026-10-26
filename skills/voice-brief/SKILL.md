@@ -98,9 +98,9 @@ plausible voices are in tension, write a sample of each and let them pick.
 
 ## Step 4 — Confirm with the human
 
-Show the brief and the sample together, and ask. Use your structured question
-tool if you have one, with options such as *confirm*, *adjust* (they say
-what), or *try the other voice*. Then:
+Show the whole brief and the sample together as plain text in your reply, and
+ask in words: confirm it, or say what to change (or, with two samples, which
+voice). Then:
 
 - **Adjust and show again** until they confirm. Each round, change the sample
   too — a revised brief with an old sample proves nothing.
