@@ -35,13 +35,15 @@ describe("CLI and daemon integration", () => {
     return realpathSync(path);
   }
 
-  test("a nameless begin inside a repo does not retarget the shared unnamed slot", async () => {
-    await cli(["begin", "--project", "/p/shared"]);
+  test("outside a repository, a call inherits nothing from the begin before it", async () => {
+    const begun = await cli(["begin", "--project", "/p/shared", "--by", "test-3333"]);
+    expect(lastStderr).toContain("not a git repository");
+    expect(begun.project).toBe("/p/shared");
+    expect((await cli(["context", "--by", "test-3333"])).project).toBeNull();
     const repo = gitRepo("repo-x");
     const inRepo = await cli(["begin"], {}, repo);
     expect(inRepo.project).toBe(repo);
     expect(inRepo.project_source).toBe("folder");
-    expect((await cli(["context"])).project).toBe("/p/shared");
   });
 
   test("a write from another repository is filed there and says so on stderr", async () => {
@@ -67,10 +69,10 @@ describe("CLI and daemon integration", () => {
       OFFICE_PROJECT: undefined, OFFICE_SOURCE: undefined, OFFICE_ROLE: undefined };
     await cli(["begin", "--project", "/p/alpha", "--by", "test-1111"]);
     await cli(["begin", "--project", "/p/beta", "--by", "test-2222"]);
-    await cli(["remember", "alpha notes", "--by", "test-1111"]);
-    await cli(["remember", "beta notes", "--by", "test-2222"]);
-    await cli(["work", "open", "alpha task", "--by", "test-1111"]);
-    await cli(["work", "open", "beta task", "--by", "test-2222"]);
+    await cli(["remember", "alpha notes", "--project", "/p/alpha", "--by", "test-1111"]);
+    await cli(["remember", "beta notes", "--project", "/p/beta", "--by", "test-2222"]);
+    await cli(["work", "open", "alpha task", "--project", "/p/alpha", "--by", "test-1111"]);
+    await cli(["work", "open", "beta task", "--project", "/p/beta", "--by", "test-2222"]);
   });
 
   afterEach(() => {
@@ -82,29 +84,23 @@ describe("CLI and daemon integration", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  test("named reads inherit their own project; explicit overrides do not replace it", async () => {
+  test("a read's project is its --project or OFFICE_PROJECT, never its session's", async () => {
     for (const args of [["context"], ["search", "notes"], ["work"]]) {
-      const mine = await cli([...args, "--by", "test-1111"]);
+      // test-1111 began on /p/alpha, but a read that names no project, outside
+      // any repository, has none
+      const bare = await cli([...args, "--by", "test-1111"]);
+      expect(bare.project).toBeNull();
+      expect(bare.project_source).toBe("none");
+      const mine = await cli([...args, "--by", "test-1111", "--project", "/p/alpha"]);
       expect(mine.project).toBe("/p/alpha");
-      expect(mine.project_source).toBe("active");
+      expect(mine.project_source).toBe("declared");
       expect(mine.hits?.map((h: any) => h.content) ?? mine.work.map((w: any) => w.title))
         .toEqual([args[0] === "work" ? "alpha task" : "alpha notes"]);
-      const override = await cli([...args, "--by", "test-1111", "--project", "/p/beta"]);
-      expect(override.project).toBe("/p/beta");
-      expect(override.project_source).toBe("declared");
-      expect((await cli([...args, "--by", "test-1111"])).project).toBe("/p/alpha");
-    }
-  });
-
-  test("reads honor caller environment and flag precedence", async () => {
-    for (const args of [["context"], ["search", "notes"], ["work"]]) {
-      expect((await cli(args, { OFFICE_AUTHOR: "test-2222" })).project).toBe("/p/beta");
       for (const key of ["OFFICE_PROJECT", "OFFICE_SOURCE"]) {
         const vars = { OFFICE_AUTHOR: "test-1111", [key]: "/p/beta" };
         expect((await cli(args, vars)).project).toBe("/p/beta");
         expect((await cli([...args, "--project", "/p/alpha"], vars)).project).toBe("/p/alpha");
       }
-      expect((await cli([...args, "--by", "test-1111"], { OFFICE_AUTHOR: "test-2222" })).project).toBe("/p/alpha");
     }
   });
 

@@ -16,7 +16,6 @@ import {
   claimIdentity,
   normalizeAuthor,
   pruneSessions,
-  getActive,
   listSessions,
   peekSession,
   resolveScope,
@@ -132,7 +131,6 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
     if (req.method === "GET" && (path === "/health" || path === "/status" || path === "/")) {
       const files = fileStats(dbPath());
       const stats = queryStore(db);
-      const active = getActive(db);
       return json({
         ok: true,
         name: "agent-office",
@@ -142,11 +140,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         work: { open: stats.workOpen, total: stats.workTotal },
         tools: stats.tools,
         log_chars: stats.logChars,
-        active: active
-          ? { project: active.project, author: active.author, since: active.updated_at }
-          : null,
-        // Every session the machine remembers. `active` is null once there
-        // are two, because then there is no single answer to give.
+        // Every session the machine remembers, newest check-in first.
         sessions: listSessions(db).map((session) => ({
           project: session.project,
           author: session.author,
@@ -194,7 +188,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         return json({ error: "a read-only visit cannot take a role: use begin, not peek" }, 400);
       }
       // The project is this call's --project, else the repository the caller
-      // runs in (sent separately, as cwd_project), else what is remembered.
+      // runs in (sent separately, as cwd_project), else none.
       // The row this call replaces is the watermark, so it is read first.
       // A bare name becomes a numbered run (`codex` -> `codex-4821`); a
       // numbered name resumes. A peek writes nothing, so it mints nothing.

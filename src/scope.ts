@@ -3,7 +3,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
-import { ROOT } from "./paths";
 
 export type GitProjectInfo = {
   /** Canonical main repository root (resolves through git worktrees). */
@@ -214,22 +213,15 @@ export function resolveGitProject(dir: string): GitProjectInfo | null {
 
 /**
  * Infer the project from a working directory when no `--project` flag or
- * `OFFICE_PROJECT` variable was provided.
- *
- * Sitting inside the `agent-office` checkout itself (`ROOT`) does not infer a
- * project — the office checkout is the historic doorway, so working on the
- * office itself still uses `--project .` (unless working in a separate git
- * worktree). A repository rooted at the home folder is not a project either.
- * Any other git repository or worktree resolves to its canonical project root.
+ * `OFFICE_PROJECT` variable was provided: the canonical root of the git
+ * repository or worktree it is in. The agent-office checkout is an ordinary
+ * project like any other. A repository rooted at the home folder is not a
+ * project.
  */
 export function detectCwdProject(cwd = process.cwd()): string | null {
   const info = resolveGitProject(realPath(cwd));
   if (!info) return null;
-  const officeRoot = realPath(ROOT);
   const canonical = info.repoRoot;
-  if (canonical === officeRoot && info.worktreeRoot === officeRoot) {
-    return null;
-  }
   // Home's own checkout is never a project, whichever folder git keeps its data in.
   if (isHome(canonical) || isHome(info.worktreeRoot)) return null;
   return canonical;

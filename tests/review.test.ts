@@ -8,7 +8,7 @@ import {
   claimIdentity,
   listSessions,
   pruneSessions,
-  resolveScope,
+  getSession,
 } from "../src/session";
 import { groupedEmbedder, tempDb } from "./helpers";
 
@@ -66,7 +66,7 @@ describe("review fixes", () => {
     const db = tempDb();
     dbs.push(db);
     beginSession(db, { project: "/p/one", author: "Buffy-1234" });
-    expect(resolveScope(db, { author: "buffy-1234" }).project).toBe("/p/one");
+    expect(getSession(db, "buffy-1234")?.project).toBe("/p/one");
     expect(listSessions(db).length).toBe(1);
   });
 

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { ROLE_MANAGER, UNNAMED_SESSION, type SessionRow } from "./db";
+import { ROLE_MANAGER, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
 import {
   NO_PROJECT_NOTE,
@@ -103,15 +103,11 @@ export function pruneSessions(
   const cutoff = new Date(now - days * DAY_MS).toISOString();
   return db
     .query("DELETE FROM session_state WHERE updated_at < ? AND author <> ?")
-    .run(cutoff, sessionKey(keep)).changes;
+    .run(cutoff, normalizeAuthor(keep) ?? "").changes;
 }
 
-/**
- * `ambiguous` is not a failure: it is the office declining to guess. More than
- * one *named* session is recorded and this call named no author, so the honest
- * answer is nothing rather than somebody else's name.
- */
-export type ScopeSource = "declared" | "folder" | "active" | "ambiguous" | "none";
+/** Where a project or an author came from. Nothing is ever taken from memory. */
+export type ScopeSource = "declared" | "folder" | "none";
 
 export type Scope = {
   project: string | null;
@@ -121,23 +117,14 @@ export type Scope = {
   active_since: string | null;
   /**
    * Said when the folder decided the project and this session's own record
-   * named a different one. One agent works in one repository, so the folder
-   * wins — but silently filing somewhere other than where the session began is
-   * the kind of slip nobody notices later, so it is said at the moment it happens.
+   * named a different one, when --project names one the folder does not, or
+   * when a name is not the numbered one a check-in hands out. Each is the kind
+   * of slip nobody notices later, so it is said at the moment it happens.
    */
   scope_note: string | null;
 };
 
 export type AuthorWarning = { level: "warn" | "alert"; text: string };
-
-type StoredSession = {
-  /** The primary key: an author's name, or `''` for the unnamed slot. */
-  key: string;
-  project: string | null;
-  author: string | null;
-  updated_at: string;
-  role: string | null;
-};
 
 type StoredRow = {
   author: string;
@@ -146,34 +133,14 @@ type StoredRow = {
   role: string | null;
 };
 
-function sessionKey(author: string | null | undefined): string {
-  return normalizeAuthor(author) ?? UNNAMED_SESSION;
-}
-
-function storedSessions(db: Database): StoredSession[] {
-  const rows = db
+/** Every recorded session, newest check-in first. Only named callers have one. */
+export function listSessions(db: Database): SessionRow[] {
+  return db
     .query(
       `SELECT author, project, updated_at, role FROM session_state
        ORDER BY updated_at DESC, author ASC`,
     )
     .all() as StoredRow[];
-  return rows.map((row) => ({
-    key: row.author,
-    project: row.project,
-    author: row.author || null,
-    updated_at: row.updated_at,
-    role: row.role,
-  }));
-}
-
-/** Every recorded session, newest check-in first. */
-export function listSessions(db: Database): SessionRow[] {
-  return storedSessions(db).map(({ project, author, updated_at, role }) => ({
-    project,
-    author,
-    updated_at,
-    role,
-  }));
 }
 
 /** The session holding the manager role, if one does. At most one ever does. */
@@ -194,55 +161,38 @@ export function normalizeRole(raw: string | null | undefined): "manager" | "none
   throw new Error(`unknown role "${raw}" — the only role is "manager" ("none" gives it up)`);
 }
 
-/** One author's row. The stored key is never null; the unnamed slot is `''`. */
+/** One author's row, or null for a caller that gave no name. */
 export function getSession(db: Database, author: string | null | undefined): SessionRow | null {
-  const row = db
+  const key = normalizeAuthor(author);
+  if (!key) return null;
+  return (db
     .query("SELECT project, author, updated_at, role FROM session_state WHERE author = ?")
-    .get(sessionKey(author)) as StoredRow | null;
-  if (!row) return null;
-  return {
-    project: row.project,
-    author: row.author || null,
-    updated_at: row.updated_at,
-    role: row.role,
-  };
+    .get(key) as StoredRow | null) ?? null;
 }
 
 /**
- * The session this machine remembers, when there is only one to remember.
- * Two sessions and no declaration is not an answer, so nothing is returned.
- */
-export function getActive(db: Database): SessionRow | null {
-  const sessions = listSessions(db);
-  return sessions.length === 1 ? sessions[0] : null;
-}
-
-/**
- * Record what this session is working on. Called by `office begin`, which is
- * the one moment a CLI is asked to name its target — every later write
- * inherits it, and a write that cannot resolve a project is stored
- * unattributed rather than guessed.
+ * Record a named session's check-in: where it checked in from and when. The
+ * project is written as given, even when it is none, so a session is never
+ * listed under a project it has left. The project only labels the session; it
+ * never decides where a later command files anything.
  *
- * The row is keyed by author, so this cannot touch another agent's session.
- * Only the fields this call declared are written — a field left out is kept,
- * not cleared, so `begin --by X` can no longer wipe X's remembered project as
- * a side effect of not repeating the flag.
+ * The row is keyed by author, so this cannot touch another agent's session. A
+ * caller with no name has no row.
  */
 export function setActive(
   db: Database,
   input: { project?: string | null; author?: string | null; role?: string | null },
 ): SessionRow | null {
-  const project = input.project?.trim() ? normalizeProject(input.project) : null;
-  const key = sessionKey(input.author);
+  const key = normalizeAuthor(input.author);
   const role = normalizeRole(input.role);
-  // A role belongs to someone. The unnamed slot is nobody in particular, so it
-  // cannot hold one — it would hand the manager's authority to whoever next
-  // forgot to give a name.
-  if (role === "manager" && key === UNNAMED_SESSION) {
-    throw new Error("the manager role needs a name: pass --by <agent>");
+  if (!key) {
+    // A role belongs to someone; a caller with no name is nobody in particular.
+    if (role === "manager") throw new Error("the manager role needs a name: pass --by <agent>");
+    return null;
   }
+  const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const now = new Date().toISOString();
-  const existing = getSession(db, key === UNNAMED_SESSION ? null : key);
+  const existing = getSession(db, key);
   // Claiming moves the role rather than sharing it: one manager at a time.
   if (role === "manager") {
     db.query("UPDATE session_state SET role = NULL WHERE role = ? AND author <> ?").run(
@@ -251,16 +201,12 @@ export function setActive(
     );
   }
   const nextRole = role === "manager" ? ROLE_MANAGER : role === "none" ? null : existing?.role ?? null;
-  if (existing) {
-    db.query(
-      "UPDATE session_state SET project = ?, updated_at = ?, role = ? WHERE author = ?",
-    ).run(project ?? existing.project, now, nextRole, key);
-  } else {
-    db.query(
-      "INSERT INTO session_state (author, project, updated_at, role) VALUES (?, ?, ?, ?)",
-    ).run(key, project, now, nextRole);
-  }
-  return getSession(db, key === UNNAMED_SESSION ? null : key);
+  db.query(
+    `INSERT INTO session_state (author, project, updated_at, role) VALUES (?, ?, ?, ?)
+     ON CONFLICT(author) DO UPDATE SET
+       project = excluded.project, updated_at = excluded.updated_at, role = excluded.role`,
+  ).run(key, project, now, nextRole);
+  return getSession(db, key);
 }
 
 export type BeginResult = {
@@ -270,14 +216,10 @@ export type BeginResult = {
 };
 
 /**
- * Start a session: remember the target, and report the row as it was first.
+ * Start a session: record the check-in, and report the row as it was first.
  * `previous` is the watermark "what happened since you were last here" is
  * measured against, and it only exists until the write below replaces it.
- *
- * The watermark is the caller's own row — a declared author has one, and a
- * caller that named nobody belongs to the unnamed slot. Reading it by identity
- * rather than resolving the machine's active session is what keeps a declared
- * author from being handed somebody else's history.
+ * A caller that gave no name has no row, so no watermark, and writes nothing.
  */
 export function beginSession(
   db: Database,
@@ -285,31 +227,21 @@ export function beginSession(
     project?: string | null;
     author?: string | null;
     role?: string | null;
-    /** The repository the caller runs in. Stored only for a named session. */
+    /** The repository the caller runs in. */
     cwdProject?: string | null;
   },
 ): BeginResult {
   // The name is whatever the caller declared — there is deliberately no
   // process.env fallback here. This runs inside the daemon, and the daemon is a
   // long-lived shared process whose environment belongs to whoever started it,
-  // not to the caller. See resolveScope for the full reasoning.
+  // not to the caller.
   const author = normalizeAuthor(input.author);
-  // A named session remembers the repository it checked in from, so a later
-  // command from a folder outside any repo still knows where it was. The
-  // unnamed slot is shared by everyone who gave no name, so only an explicit
-  // --project changes it: one nameless agent's folder must not become every
-  // other nameless agent's project.
   const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
-  const folderProject =
-    author && input.cwdProject?.trim() ? normalizeProject(input.cwdProject) : null;
-  const project = declaredProject ?? folderProject;
+  const folderProject = input.cwdProject?.trim() ? normalizeProject(input.cwdProject) : null;
   const previous = getSession(db, author);
-  // Asking for a role is a declaration too, so that it reaches setActive and is
-  // refused there if it came with no name, instead of being silently dropped.
-  const declared = author !== null || project !== null || normalizeRole(input.role) !== null;
   return {
     previous,
-    current: declared ? setActive(db, { project, author, role: input.role }) : null,
+    current: setActive(db, { project: declaredProject ?? folderProject, author, role: input.role }),
   };
 }
 
@@ -338,43 +270,17 @@ export function peekSession(
 }
 
 /**
- * Where the project and author come from, in order: what this call declared,
- * then (for the project) the repository the caller is running in, then what
- * the office still remembers *when that is unambiguous*, then nothing. Agents
- * are started inside the project they work on, one agent to one repository, so
- * the folder outranks anything remembered; the office checkout itself and
- * folders outside any repository give no folder project.
- *
- * Project and author do not follow the same rule, and the difference is the
- * point of this function:
- *
- * - The **project** may come from a remembered session. A project is not an
- *   identity: a wrong one is visible in the record, and the single-agent
- *   convenience is real. An undeclared caller belongs to the unnamed slot,
- *   which is not a person — it never makes the office ambiguous and can only
- *   hand back an anonymous project. This matters more than it looks: if an
- *   unnamed row counted toward ambiguity, then a single `begin --project`
- *   without a name would leave the machine unable to resolve a project for
- *   *any* undeclared caller from then on, permanently, which is a worse
- *   failure than the one being protected against. Failing the unnamed slot,
- *   the machine's only row is the convenience the office has always had. Two
- *   or more *named* sessions and no name is not an answer, so nothing is
- *   returned.
- * - The **author is never inherited.** It is only ever declared. A caller that
- *   named nobody gets no name at all — not even the machine's only one. That
- *   fallback is exactly how one agent's work came to be signed with another
- *   agent's name, silently: the wrong name is invisible to precisely the agent
- *   it happens to be right for, who therefore has no reason to look. An
- *   anonymous write shows up as a gap somebody can close; a plausible one
- *   never does.
+ * Where a call's project and author come from. The project is what this call
+ * declared (`--project`, or `OFFICE_PROJECT` folded in by the CLI), else the
+ * repository the caller runs in, else none. The author is what this call
+ * declared, else none. Nothing is taken from what the office remembers: you
+ * can tell where a command files its work from where it ran.
  *
  * `OFFICE_PROJECT`/`OFFICE_AUTHOR` are resolved by the *caller*, never here.
  * This function runs inside the daemon — a long-lived, shared process — so its
  * environment belongs to whoever started it. A daemon started with
  * `OFFICE_AUTHOR=probe` would otherwise sign every unnamed write on the machine
- * with that name and report it as `declared`. The CLI folds its own
- * environment into the request body; a caller that reaches the daemon directly
- * must put the name and project there too.
+ * with that name.
  */
 export function resolveScope(
   db: Database,
@@ -389,61 +295,36 @@ export function resolveScope(
 ): Scope {
   const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
   const cwdProject = input.cwdProject?.trim() ? normalizeProject(input.cwdProject) : null;
-  const declaredAuthor = normalizeAuthor(input.author);
+  const author = normalizeAuthor(input.author);
+  const mine = getSession(db, author);
 
-  const rows = storedSessions(db);
-  const mine = declaredAuthor
-    ? (rows.find((row) => row.key === sessionKey(declaredAuthor)) ?? null)
-    : null;
-  const unnamed = rows.find((row) => row.key === UNNAMED_SESSION) ?? null;
-  const named = rows.filter((row) => row.key !== UNNAMED_SESSION);
-  const remembered = declaredAuthor ? mine : (unnamed ?? (rows.length === 1 ? rows[0] : null));
-  const ambiguous = !declaredAuthor && !remembered && named.length > 1;
-
-  // This call's own --project, then the folder it runs in, then what is
-  // remembered. One agent works in one repository, so the folder is the truth
-  // about where it is; a remembered project only fills in where the folder says
-  // nothing — the office checkout itself, or a folder that is not a repo.
-  const project = declaredProject ?? cwdProject ?? remembered?.project ?? null;
-  const projectSource: ScopeSource = declaredProject
-    ? "declared"
-    : cwdProject
-      ? "folder"
-      : remembered?.project
-        ? "active"
-        : "none";
-  // Only ever declared — the remembered name is not borrowed. See the note
-  // above: lending it is how the office signed one agent's work with
-  // another's, and the agent it suited had no reason to look.
-  const author = declaredAuthor ?? null;
-  const authorSource: ScopeSource = declaredAuthor
-    ? "declared"
-    : ambiguous
-      ? "ambiguous"
-      : remembered
-        ? "active"
-        : "none";
+  const project = declaredProject ?? cwdProject ?? null;
+  const projectSource: ScopeSource = declaredProject ? "declared" : cwdProject ? "folder" : "none";
   const before = input.projectBefore !== undefined ? input.projectBefore : (mine?.project ?? null);
   // A named project that is not the folder's own is said too: it may be a
   // leftover OFFICE_PROJECT in a launcher rather than a choice made now.
-  const scopeNote =
-    projectSource === "folder" && declaredAuthor && before && before !== project
+  const projectNote =
+    projectSource === "folder" && author && before && before !== project
       ? `filed under ${project} (this folder); this session began on ${before}. ` +
         "One agent works in one repository — to work on that one, start a new agent there"
       : projectSource === "declared" && cwdProject && cwdProject !== project
         ? `filed under ${project}, as named by --project or OFFICE_PROJECT; this folder is ` +
           `${cwdProject}. One agent works in one repository — if that name is left over, unset it`
         : null;
+  // A check-in hands out a numbered name; a bare one with no session behind it
+  // signs this write as the tool, not the run.
+  const authorNote =
+    author && !mine && !INSTANCE_RE.test(author)
+      ? `"${author}" is a name with no check-in behind it — did you mean the numbered ` +
+        "name `office begin` gave you?"
+      : null;
   return {
     project,
     author,
     project_source: projectSource,
-    author_source: authorSource,
-    // "Active since" describes the remembered row, so it is only said when that
-    // row is where this call is filed.
-    active_since:
-      remembered && (remembered.project ?? null) === project ? remembered.updated_at : null,
-    scope_note: scopeNote,
+    author_source: author ? "declared" : "none",
+    active_since: mine && (mine.project ?? null) === project ? mine.updated_at : null,
+    scope_note: [projectNote, authorNote].filter(Boolean).join(" · ") || null,
   };
 }
 
@@ -460,33 +341,13 @@ export function sessionBanner(scope: { project: string | null; author: string | 
   return `Agent Office · no project for this folder${who} (start the agent inside a project's repository, set one up with \`office init\`, or pass --project <path>)`;
 }
 
-/**
- * What to say when a session declined to name itself. Silence only when the
- * name was actually declared — a default that is plausible for one agent is
- * invisible to exactly that agent, so the office says it out loud.
- */
+/** What to say when a call gave no name: its writes are unsigned. */
 export function authorWarnings(scope: Scope): AuthorWarning[] {
-  if (scope.author_source === "declared") return [];
-  if (scope.author_source === "active") {
-    return [
-      {
-        level: "warn",
-        text: "no --by declared; you are in the unnamed slot, so nothing is attributed to you — the office will not sign your work with a session it merely remembers. Pass --by <agent> or export OFFICE_AUTHOR.",
-      },
-    ];
-  }
-  if (scope.author_source === "ambiguous") {
-    return [
-      {
-        level: "alert",
-        text: "more than one session is recorded and this one named no author — this call inherits nothing and its writes stay unattributed rather than guessed. Pass --by <agent> or export OFFICE_AUTHOR.",
-      },
-    ];
-  }
+  if (scope.author) return [];
   return [
     {
       level: "warn",
-      text: "no --by declared and no session recorded — writes will be stored unattributed. Pass --by <agent> or export OFFICE_AUTHOR.",
+      text: "no --by declared, so what you write is unsigned. Pass --by <agent> or export OFFICE_AUTHOR.",
     },
   ];
 }
@@ -702,7 +563,17 @@ export async function briefing(
     author: scope.author,
     author_source: scope.author_source,
     active_since: scope.active_since,
-    scope_note: scope.scope_note,
+    // A project named in a folder that is not a repository holds for this call
+    // only; nothing remembers it for the next one.
+    scope_note:
+      [
+        scope.scope_note,
+        scope.project_source === "declared" && !opts.cwdProject
+          ? "this folder is not a git repository, so later commands here need --project too (or export OFFICE_PROJECT)"
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || null,
     tools: listTools(db),
     skills: skills.skills,
     skills_elsewhere: skills.elsewhere,

@@ -8,7 +8,6 @@ import {
   authorWarnings,
   beginSession,
   briefing,
-  getActive,
   getSession,
   listSessions,
   peekSession,
@@ -36,11 +35,8 @@ describe("session", () => {
     await remember(db, embedder, { content: "beta only note", project: "beta" });
     openWork(db, { title: "alpha refactor", project: "alpha" });
     openWork(db, { title: "beta cleanup", project: "beta" });
-    setActive(db, { project: "alpha", author: "freebuff" });
-
-    const result = await briefing(db, embedder);
+    const result = await briefing(db, embedder, { cwdProject: "alpha" });
     expect(result.project).toBe("alpha");
-    // the project is remembered for the undeclared caller; the name is not
     expect(result.author).toBeNull();
     expect(result.note).toBeNull();
     expect(result.tools.map((t) => t.name)).toEqual(["rg"]);
@@ -61,8 +57,7 @@ describe("session", () => {
   test("an empty project briefing says so instead of guessing", async () => {
     const db = tempDb();
     dbs.push(db);
-    setActive(db, { project: "nothing-here", author: null });
-    const result = await briefing(db, fakeEmbedder());
+    const result = await briefing(db, fakeEmbedder(), { cwdProject: "nothing-here" });
     expect(result.memories).toEqual([]);
     expect(result.note).toContain("nothing recorded");
   });
@@ -88,54 +83,44 @@ describe("session", () => {
     expect(result.store.work_open).toBe(1);
   });
 
-  test("naming a target replaces the remembered project, but never lends its author", () => {
+  test("a remembered project never decides where a call is filed", () => {
     const db = tempDb();
     dbs.push(db);
-    setActive(db, { project: "alpha", author: "freebuff" });
-    setActive(db, { project: "~/Projects/beta", author: "freebuff" });
+    beginSession(db, { project: "/p/alpha", author: "freebuff" });
 
-    const scope = resolveScope(db);
-    expect(scope.project).toBe(join(homedir(), "Projects", "beta"));
-    expect(scope.project_source).toBe("active");
-    // the project is remembered; the name is not handed over
-    expect(scope.author).toBeNull();
-    expect(scope.author_source).toBe("active");
-    expect(getActive(db)?.project).toBe(join(homedir(), "Projects", "beta"));
-  });
-
-  test("a declaration beats what the office remembers, field by field", () => {
-    const db = tempDb();
-    dbs.push(db);
-    setActive(db, { project: "alpha", author: "freebuff" });
-
-    const scope = resolveScope(db, { project: "/somewhere/else" });
-    expect(scope.project).toBe("/somewhere/else");
-    expect(scope.project_source).toBe("declared");
-    // an author is only ever declared: not restating it does not borrow it
-    expect(scope.author).toBeNull();
-    expect(scope.author_source).toBe("active");
-  });
-
-  test("the machine's only remembered session is not handed to a caller that named nobody", () => {
-    const db = tempDb();
-    dbs.push(db);
-    setActive(db, { project: "/p/alpha", author: "freebuff" });
-
-    // exactly one row and no declaration: the project is remembered, the name
-    // is not. This is the fallback that used to sign OpenCode's work 'freebuff'
-    const scope = resolveScope(db);
-    expect(scope.project).toBe("/p/alpha");
-    expect(scope.project_source).toBe("active");
-    expect(scope.author).toBeNull();
-    expect(scope.author_source).toBe("active");
-  });
-
-  test("with nothing declared and nothing remembered, nothing is invented", () => {
-    const db = tempDb();
-    dbs.push(db);
-    const scope = resolveScope(db);
+    // the session's own row says alpha, but nothing is taken from memory:
+    // a call that names no project and runs outside a repository has none
+    const scope = resolveScope(db, { author: "freebuff" });
     expect(scope.project).toBeNull();
     expect(scope.project_source).toBe("none");
+    expect(scope.author).toBe("freebuff");
+    expect(scope.author_source).toBe("declared");
+    expect(getSession(db, "freebuff")?.project).toBe("/p/alpha");
+  });
+
+  test("the project is what the call declared, else its folder, else none", () => {
+    const db = tempDb();
+    dbs.push(db);
+    expect(resolveScope(db, { project: "/p/declared", cwdProject: "/p/folder" })).toMatchObject({
+      project: "/p/declared",
+      project_source: "declared",
+    });
+    expect(resolveScope(db, { cwdProject: "/p/folder" })).toMatchObject({
+      project: "/p/folder",
+      project_source: "folder",
+    });
+    expect(resolveScope(db)).toMatchObject({ project: null, project_source: "none" });
+  });
+
+  test("an author is only what the call declared; another session's name is never lent", () => {
+    const db = tempDb();
+    dbs.push(db);
+    beginSession(db, { project: "/p/alpha", author: "freebuff" });
+
+    // exactly one session on the machine and no name declared: still nobody.
+    // This is the fallback that used to sign OpenCode's work 'freebuff'.
+    const scope = resolveScope(db, { cwdProject: "/p/alpha" });
+    expect(scope.author).toBeNull();
     expect(scope.author_source).toBe("none");
   });
 
@@ -146,82 +131,61 @@ describe("session", () => {
     await Bun.sleep(5);
     setActive(db, { project: "/p/beta", author: "opencode" });
 
-    // the second declaration left the first row exactly where it was
+    // the second check-in left the first row exactly where it was
     expect(getSession(db, "freebuff")?.project).toBe("/p/alpha");
-    expect(resolveScope(db, { author: "freebuff" }).project).toBe("/p/alpha");
-    expect(resolveScope(db, { author: "opencode" }).project).toBe("/p/beta");
+    expect(getSession(db, "opencode")?.project).toBe("/p/beta");
     expect(listSessions(db).map((s) => s.author)).toEqual(["opencode", "freebuff"]);
   });
 
-  test("a declared author with no row of its own inherits nothing", () => {
+  test("a caller with no name has no session and is told its writes are unsigned", () => {
     const db = tempDb();
     dbs.push(db);
-    setActive(db, { project: "/p/alpha", author: "freebuff" });
+    const begun = beginSession(db, { project: "/p/alpha", author: null });
+    expect(begun.previous).toBeNull();
+    expect(begun.current).toBeNull();
+    expect(listSessions(db)).toEqual([]);
 
-    const scope = resolveScope(db, { author: "newcomer" });
-    expect(scope.author).toBe("newcomer");
-    expect(scope.author_source).toBe("declared");
-    // somebody else's project is not this session's project
-    expect(scope.project).toBeNull();
-    expect(scope.project_source).toBe("none");
-  });
-
-  test("with two sessions and no declaration the office declines to guess", () => {
-    const db = tempDb();
-    dbs.push(db);
-    setActive(db, { project: "alpha", author: "freebuff" });
-    setActive(db, { project: "beta", author: "opencode" });
-
-    const scope = resolveScope(db);
-    expect(scope.author).toBeNull();
-    expect(scope.project).toBeNull();
-    expect(scope.author_source).toBe("ambiguous");
-    expect(scope.project_source).toBe("none");
-    // this is the bug: one agent's identity handed to another. There is no
-    // single session to remember, so there is no answer.
-    expect(getActive(db)).toBeNull();
-  });
-
-  test("a session that declines to name itself is told which case it is in", () => {
-    const db = tempDb();
-    dbs.push(db);
-    expect(authorWarnings(resolveScope(db))[0]?.text).toContain("no session recorded");
-
-    setActive(db, { project: "alpha", author: "freebuff" });
-    const remembered = authorWarnings(resolveScope(db));
-    expect(remembered[0]?.level).toBe("warn");
-    // it says the work is unsigned; it does not report the remembered name as
-    // though it were yours to use
-    expect(remembered[0]?.text).toContain("nothing is attributed to you");
-    expect(remembered[0]?.text).not.toContain("freebuff");
-
-    setActive(db, { project: "beta", author: "opencode" });
-    const ambiguous = authorWarnings(resolveScope(db));
-    expect(ambiguous[0]?.level).toBe("alert");
-    expect(ambiguous[0]?.text).toContain("unattributed rather than guessed");
+    const warnings = authorWarnings(resolveScope(db, { cwdProject: "/p/alpha" }));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.text).toContain("unsigned");
     // naming yourself is never a warning
     expect(authorWarnings(resolveScope(db, { author: "freebuff" }))).toEqual([]);
   });
 
-  test("the briefing reports what begin declared, not the fallback it matched", async () => {
+  test("a bare name with no check-in behind it is pointed out", () => {
     const db = tempDb();
     dbs.push(db);
-    beginSession(db, { project: "alpha", author: "freebuff" });
+    const note = resolveScope(db, { author: "codex", cwdProject: "/p/alpha" }).scope_note;
+    expect(note).toContain('"codex" is a name with no check-in behind it');
+    // a numbered name, or a name that checked in, is not
+    expect(resolveScope(db, { author: "codex-4821", cwdProject: "/p/alpha" }).scope_note).toBeNull();
+    beginSession(db, { project: "/p/alpha", author: "opencode" });
+    expect(resolveScope(db, { author: "opencode", cwdProject: "/p/alpha" }).scope_note).toBeNull();
+  });
 
-    // resolved without the declaration, the remembered session supplies the
-    // project but not the name — which is exactly what the warning is about
-    const inherited = await briefing(db, fakeEmbedder());
-    expect(inherited.author_warnings).toHaveLength(1);
-    expect(inherited.author_source).toBe("active");
-    expect(inherited.author).toBeNull();
-    expect(inherited.project).toBe("alpha");
+  test("a named check-in records where it checked in this time, even nowhere", () => {
+    const db = tempDb();
+    dbs.push(db);
+    beginSession(db, { author: "freebuff", cwdProject: "/p/alpha" });
+    expect(getSession(db, "freebuff")?.project).toBe("/p/alpha");
+    // checked in again from outside any repository: it is no longer listed as on alpha
+    beginSession(db, { author: "freebuff" });
+    expect(getSession(db, "freebuff")?.project).toBeNull();
+  });
 
-    const declared = await briefing(db, fakeEmbedder(), {
-      declared: { project: "alpha", author: "freebuff" },
+  test("begin with --project outside a repository says the next command needs it too", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    beginSession(db, { project: "/p/alpha", author: "freebuff" });
+    const result = await briefing(db, fakeEmbedder(), {
+      declared: { project: "/p/alpha", author: "freebuff" },
     });
-    expect(declared.author_warnings).toEqual([]);
-    expect(declared.author_source).toBe("declared");
-    expect(declared.project).toBe("alpha");
+    expect(result.scope_note).toContain("not a git repository");
+    const inRepo = await briefing(db, fakeEmbedder(), {
+      declared: { project: "/p/alpha", author: "freebuff" },
+      cwdProject: "/p/alpha",
+    });
+    expect(inRepo.scope_note).toBeNull();
   });
 
   test("begin reads the last visit before it overwrites it", async () => {
@@ -338,7 +302,7 @@ describe("session", () => {
     const db = tempDb();
     dbs.push(db);
     setActive(db, { project: "alpha", author: "freebuff" });
-    const result = await briefing(db, fakeEmbedder());
+    const result = await briefing(db, fakeEmbedder(), { declared: { author: "freebuff" } });
     expect(result.sessions[0]?.since).toBeTruthy();
     // a bare timestamp reads as if the session were still running
     expect(result.sessions[0]?.last_seen).toBe("just now");
@@ -356,7 +320,10 @@ describe("session", () => {
     // a launcher that exports OFFICE_AUTHOR attributes correctly without
     // touching what the office remembers for anyone else: the caller resolves
     // its own environment and declares the answer in the request
-    const result = await briefing(db, fakeEmbedder(), { declared: { author: "freebuff" } });
+    const result = await briefing(db, fakeEmbedder(), {
+      declared: { author: "freebuff" },
+      cwdProject: "alpha",
+    });
     // codex is on beta: another project's session is not listed, only counted
     expect(result.sessions.map((s) => s.author)).toEqual(["opencode", "freebuff"]);
     expect(result.sessions.map((s) => s.is_you)).toEqual([false, true]);
@@ -380,7 +347,7 @@ describe("session", () => {
     try {
       const scope = resolveScope(db);
       expect(scope.author).toBeNull();
-      expect(scope.author_source).toBe("ambiguous");
+      expect(scope.author_source).toBe("none");
       const result = await briefing(db, fakeEmbedder(), { declared: {} });
       expect(result.author).toBeNull();
       expect(result.sessions.every((s) => !s.is_you)).toBe(true);
@@ -388,55 +355,6 @@ describe("session", () => {
       if (previous === undefined) delete process.env.OFFICE_AUTHOR;
       else process.env.OFFICE_AUTHOR = previous;
     }
-  });
-
-  test("a bare begin does not leave a one-agent machine permanently ambiguous", async () => {
-    const db = tempDb();
-    dbs.push(db);
-    beginSession(db, { project: "/p/alpha", author: "freebuff" });
-    await Bun.sleep(5);
-    // a caller that declared a project but never named itself
-    beginSession(db, { project: "/p/beta", author: null });
-
-    // the named session is untouched...
-    expect(getSession(db, "freebuff")?.project).toBe("/p/alpha");
-    expect(resolveScope(db, { author: "freebuff" }).project).toBe("/p/alpha");
-    // ...and the undeclared caller has a slot of its own holding the project
-    // it declared, rather than the machine resolving to nothing for good
-    const scope = resolveScope(db);
-    expect(scope.author).toBeNull();
-    expect(scope.project).toBe("/p/beta");
-    expect(scope.author_source).toBe("active");
-    expect(authorWarnings(scope)[0]?.level).toBe("warn");
-    expect(listSessions(db).map((s) => [s.author, s.project])).toEqual([
-      [null, "/p/beta"],
-      ["freebuff", "/p/alpha"],
-    ]);
-  });
-
-  test("two agents that both decline to name themselves share one slot, and are told", () => {
-    const db = tempDb();
-    dbs.push(db);
-    const first = beginSession(db, { project: "/p/alpha", author: null });
-    const second = beginSession(db, { project: "/p/beta", author: null });
-
-    expect(first.current?.project).toBe("/p/alpha");
-    // nothing distinguishes them, so the office does not invent a second slot
-    expect(listSessions(db)).toHaveLength(1);
-    // the watermark is the caller's own row, so the second visit sees the first
-    expect(second.previous?.project).toBe("/p/alpha");
-    // and the shared slot says out loud that it is shared
-    expect(authorWarnings(resolveScope(db))[0]?.text).toContain("unnamed slot");
-  });
-
-  test("a begin that does not restate the project keeps the one it had", () => {
-    const db = tempDb();
-    dbs.push(db);
-    setActive(db, { project: "alpha", author: "freebuff" });
-    setActive(db, { author: "freebuff" });
-
-    expect(getSession(db, "freebuff")?.project).toBe("alpha");
-    expect(resolveScope(db, { author: "freebuff" }).project).toBe("alpha");
   });
 
   test("a peek is a begin with none of the writes", () => {

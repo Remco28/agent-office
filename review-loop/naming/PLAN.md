@@ -73,3 +73,26 @@ now wanted only as a signature: which provider and which run wrote a record. Wor
 - `begin` in a non-git folder with `--project X`, then later commands without `--project`: these
   now file as unclaimed. Is the warning loud enough at that moment?
 - Anything else that reads `session_state.project` to decide something.
+
+## Peer step results (2026-10-27)
+
+- Critic (Codex gpt-6-luna, read-only; critic-codex.md): one finding, MEDIUM — `/status.active`
+  stops reporting a machine's only session. Declined: the only reader is the desk (src/tui.ts),
+  which already falls back to the newest session, the same row on a one-session machine. The
+  desk now uses that directly. No other failures found.
+- Blind solver (Claude Opus; blind-claude.md): reached the same plan independently. Taken: the
+  bare-name note, the begin note for a project declared outside a repository, a named begin
+  writing where it checked in this time (no stale project), the checkout-key test, and CLI tests
+  that never write into a real office. Plan did not grow in parts: two notes, one simplification.
+- Stopped after one pass: both found only details, and the plan got smaller where it changed.
+
+## Fix audit (2026-10-27; fix-audit-codex.md)
+
+Codex gpt-6-luna, read-only, the diff hunk by hunk. No behaviour finding; no remaining caller of
+getActive or UNNAMED_SESSION.
+- MEDIUM: docs/sessions-and-notices.md still read as current about the unnamed slot. Fixed: a
+  note at the top says it is a history and that the last amendment replaces those sections.
+- LOW: the bare-name note said "signs this write", but it also shows on reads. Reworded.
+- LOW: a test title still named the unnamed slot. Renamed.
+- LOW: a server comment still said "else what is remembered". Fixed.
+169 tests pass (175 before: obsolete unnamed-slot and ambiguity tests removed, new-rule tests added).

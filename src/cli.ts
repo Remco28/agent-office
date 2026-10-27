@@ -147,8 +147,8 @@ function help(): string {
                               start a session from inside the project's repo (or
                               any worktree of it): the project is taken from the
                               folder. One agent works in one repository. Use
-                              --project where the folder gives no project (the
-                              agent-office checkout, a folder outside any repo).
+                              --project where the folder gives no project (a
+                              folder outside any repo), on every command there.
                               Returns tools, preferences,
                               sessions, activity, unfinished work, and memories
   office peek [--project <path>] [--by <agent>]
@@ -196,12 +196,10 @@ Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-
 --role manager  on begin: take the office manager role (one holder; the human
 designates it, or export OFFICE_ROLE). --role none gives it up
 --readonly  the read-only begin: use with begin, or just run peek
-The project is this command's --project, else the repository you run it in,
-else what your session remembers (only in the agent-office checkout or a folder
-outside any repo). --by names you; a session is keyed by author; a field you do
-not restate is kept. --by is expected: without it your work lands in the unnamed slot,
-unattributed, rather than filed under whoever else was here last. Export
-OFFICE_AUTHOR instead of repeating the flag.
+The project is this command's --project (or OFFICE_PROJECT), else the
+repository you run it in, else none: nothing is taken from what the office
+remembers. --by signs your work with the numbered name begin gave you; without
+it your writes are unsigned. Export OFFICE_AUTHOR instead of repeating the flag.
 Records written with no project are filed unclaimed: no project-scoped read
 returns them, so the office names them instead of losing them quietly.
 JSON is the default for agent commands. Pass --text for a short listing.

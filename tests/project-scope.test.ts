@@ -60,7 +60,7 @@ describe("which project a request is filed under", () => {
     expect(scope.active_since).toBeNull();
   });
 
-  test("an unnamed caller in a repo gets that repo, not the shared unnamed slot", () => {
+  test("an unnamed caller in a repo gets that repo, whatever another begin named", () => {
     const db = tempDb();
     const beta = repo(join(root, "beta"));
     beginSession(db, { project: "/p/alpha" });
@@ -82,28 +82,18 @@ describe("which project a request is filed under", () => {
   test("a named project that is the folder's own says nothing", () => {
     const db = tempDb();
     const beta = repo(join(root, "beta"));
-    const scope = resolveScope(db, { author: "codex-1", project: beta, cwdProject: beta });
+    const scope = resolveScope(db, { author: "codex-1111", project: beta, cwdProject: beta });
     expect(scope.scope_note).toBeNull();
   });
 
-  test("a nameless begin in a repo leaves the shared unnamed slot alone", () => {
+  test("a named begin records its folder, and a later call outside any repo inherits nothing", () => {
     const db = tempDb();
     const beta = repo(join(root, "beta"));
-    beginSession(db, { project: "/p/alpha" });
-    beginSession(db, { cwdProject: beta });
-    expect(getSession(db, null)?.project).toBe("/p/alpha");
-  });
-
-  test("a named begin remembers its folder; one with no folder keeps what it had", () => {
-    const db = tempDb();
-    const beta = repo(join(root, "beta"));
-    beginSession(db, { author: "claude-2", cwdProject: beta });
-    expect(getSession(db, "claude-2")?.project).toBe(beta);
-    beginSession(db, { author: "claude-2", cwdProject: null });
-    expect(getSession(db, "claude-2")?.project).toBe(beta);
-    const fromOutside = resolveScope(db, { author: "claude-2" });
-    expect(fromOutside.project).toBe(beta);
-    expect(fromOutside.project_source).toBe("active");
+    beginSession(db, { author: "claude-2222", cwdProject: beta });
+    expect(getSession(db, "claude-2222")?.project).toBe(beta);
+    const fromOutside = resolveScope(db, { author: "claude-2222" });
+    expect(fromOutside.project).toBeNull();
+    expect(fromOutside.project_source).toBe("none");
   });
 
   test("a subfolder or a symlink names the same project as the repository", () => {
@@ -116,10 +106,12 @@ describe("which project a request is filed under", () => {
     expect(normalizeProject("src")).toBe("src");
   });
 
-  test("an explicit path to the office checkout is the office, though the folder alone is not", () => {
+  test("the office checkout is an ordinary project, with the key --project . always gave it", () => {
     const office = realpathSync(ROOT);
-    expect(normalizeProject(join(ROOT, "src"))).toBe(office);
-    expect(detectCwdProject(ROOT)).toBeNull();
+    expect(detectCwdProject(ROOT)).toBe(office);
+    expect(detectCwdProject(join(ROOT, "src"))).toBe(office);
+    // the same key records filed with --project . carry, so none of them move
+    expect(normalizeProject(ROOT)).toBe(office);
   });
 
   test("a git-tracked home folder is never a project", () => {

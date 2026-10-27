@@ -194,13 +194,6 @@ const TOOLS_DDL = `
 `;
 
 /**
- * The slot for a session that never named an author. A sentinel rather than
- * NULL because it is a primary key: "nobody said who they were" is a session
- * of its own, not the absence of one.
- */
-export const UNNAMED_SESSION = "";
-
-/**
  * One row per author: which project that agent is working on, and when it
  * last checked in. Keyed by author rather than by a single machine-wide row,
  * so one agent cannot inherit or overwrite another's identity.
@@ -229,8 +222,8 @@ function tableColumns(db: Database, table: string): Set<string> {
 /**
  * The session table used to hold one machine-wide row (`id = 1`), which meant
  * two agents shared one identity. Recreate it keyed by author and move the
- * old row across; an old row that never named an author lands in the unnamed
- * slot, where it still answers for a single-agent machine.
+ * old row across. An old row that never named an author is not kept: only a
+ * named caller has a session.
  */
 function migrateSession(db: Database): void {
   if (!tableExists(db, "session_state")) return;
@@ -247,7 +240,7 @@ function migrateSession(db: Database): void {
        updated_at = excluded.updated_at`,
   );
   for (const row of rows) {
-    insert.run(row.author?.trim() || UNNAMED_SESSION, row.project, row.updated_at);
+    if (row.author?.trim()) insert.run(row.author.trim(), row.project, row.updated_at);
   }
 }
 
@@ -272,6 +265,8 @@ function migrate(db: Database): void {
   if (!tableColumns(db, "session_state").has("role")) {
     db.exec("ALTER TABLE session_state ADD COLUMN role TEXT");
   }
+  // The unnamed slot (key '') is gone: a caller with no name has no session.
+  db.exec("DELETE FROM session_state WHERE author = ''");
   backfillAttribution(db);
 }
 

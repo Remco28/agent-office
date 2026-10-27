@@ -59,7 +59,6 @@ async function snapshot(): Promise<DeskSnapshot> {
   const startedAt = typeof live?.started_at === "string" ? live.started_at : null;
   const pid = typeof live?.pid === "number" ? live.pid : null;
   const embedder = embedderState({ daemonUp, ready, startedAt });
-  const rawActive = live?.active as RawSession | null | undefined;
   const rawSessions = Array.isArray(live?.sessions) ? (live.sessions as RawSession[]) : [];
   const sessions = rawSessions.map(plainSession);
   const snap: DeskSnapshot = {
@@ -71,7 +70,6 @@ async function snapshot(): Promise<DeskSnapshot> {
     },
     embedder,
     model: typeof live?.model === "string" ? live.model : MODEL_NAME,
-    active: rawActive ? plainSession(rawActive) : null,
     sessions,
     store,
     warnings: [],
@@ -96,10 +94,8 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     store.missingEmbeddings != null && store.missingEmbeddings > 0
       ? `  ${store.missingEmbeddings} without vectors`
       : "";
-  // With two sessions there is no single active one, so the desk shows the
-  // most recent check-in and lists the rest on the line below.
-  const whose = snap.active ??
-    snap.sessions[0] ?? { project: null, author: null, since: null };
+  // The desk shows the most recent check-in and lists the rest on the line below.
+  const whose = snap.sessions[0] ?? { project: null, author: null, since: null };
   const lines = [
     `${BOLD}agent-office${RESET}  ${DIM}${now.toISOString().slice(11, 19)} UTC${RESET}`,
     "",

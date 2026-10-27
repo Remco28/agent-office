@@ -3,6 +3,12 @@
 Build spec for the changes that let two agents share this office. Written down
 because a decision stored in a conversation is a decision nobody can find later.
 
+> **Read the amendments last-first.** This is a history: later amendments replace
+> earlier sections. Since 27 Oct 2026 there is **no unnamed slot and no remembered
+> project** — a caller with no name has no session, and nothing is decided from a
+> session's memory (see the last amendment). The sections that describe either
+> are kept as the record of why, not as how the office works now.
+
 Context: the office was designed for one agent at a time. Exactly one thing
 assumed that — a single global session row. Everything else (the append-only
 log, declared identity, "unattributed rather than guessed") was already
@@ -419,3 +425,22 @@ from the one a named session began on, every scoped response carries a
 `scope_note` and the CLI prints it, because an agent that has wandered into
 another repository should hear it at the moment it writes. (Gemini's change,
 reviewed and fixed 26 Oct 2026; office work item #105.)
+
+## Amendment, 27 Oct 2026: nothing is decided from memory
+
+Frank's decisions: a name is a signature (which provider, which run), not a
+coordination mechanism; the agent-office checkout is an ordinary project; and the
+office never decides a project from a session's memory. A command's project is
+its `--project`/`OFFICE_PROJECT`, else the repository it runs in, else none; its
+author is what it declared, else none.
+
+That removes what made the remembered project safe: the unnamed slot (a caller
+with no name now has no session row and is told its writes are unsigned), the
+"two named sessions and no name gives no answer" rule, and two of the three
+author warnings. A session row only labels where an agent last checked in and
+when, for the watermark, the session list and the "you have wandered" note; a
+named `begin` writes where it checked in this time, even nowhere. Two notes were
+added: a bare name with no check-in behind it is pointed out, and a `begin` that
+names a project in a folder that is not a repository says later commands need it
+too. Accepted cost: a folder that is not a git repository gives no project.
+Plan, critic and blind solver: review-loop/naming/.

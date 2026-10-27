@@ -109,7 +109,7 @@ describe("migration", () => {
     db.close();
   });
 
-  test("a session that never named an author keeps working on its own", () => {
+  test("an old session that never named an author is not carried over", () => {
     const dir = mkdtempSync(join(tmpdir(), "office-legacy-session-"));
     const path = join(dir, "memory.db");
     const raw = new Database(path, { create: true });
@@ -121,10 +121,9 @@ describe("migration", () => {
     raw.close();
 
     const db = openDb(path);
-    // one row, so it still answers — a single-agent machine is unaffected
-    expect(resolveScope(db).project).toBe("/p/alpha");
-    expect(resolveScope(db).author).toBeNull();
-    expect(listSessions(db)).toHaveLength(1);
+    // only a named caller has a session, and nothing is decided from one
+    expect(listSessions(db)).toHaveLength(0);
+    expect(resolveScope(db).project).toBeNull();
     db.close();
   });
 

@@ -114,16 +114,16 @@ That records the target for the session and returns the tool list, the preferenc
 
 On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over the project's most recent activity. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
 
-The project for any command is its own `--project` if given, else the repository it runs in, else what the session remembers — which only matters in the agent-office checkout itself (where nothing is inferred, so the office is not mistaken for your target; use `--project .` to work on it) and in folders outside any repository (a repository whose checkout is your home folder, such as a dotfiles repo, counts as none). If the folder decides a different project from the one a named session began on, the command says so on stderr. `--by` names you; a field you do not restate is *kept*, not cleared. A read with no project at all is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
+The project for any command is its own `--project` (or `OFFICE_PROJECT`) if given, else the repository it runs in, else none. Nothing is taken from what the office remembers, so where a command files its work follows from where it ran. The agent-office checkout is an ordinary project. A folder outside any repository gives none (a repository whose checkout is your home folder, such as a dotfiles repo, counts as none), so commands there need `--project` each time. If the folder decides a different project from the one a named session began on, the command says so on stderr. A read with no project at all is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
 
 ### Two agents, one office
 
-A session is keyed by author, so one agent cannot inherit or overwrite another's. Name yourself and the office keeps the two apart:
+A name is a signature: which provider and which run wrote a record. Worktrees and one agent, one repository keep agents out of each other's files.
 
-- `begin --by <name>` records *that agent's* row. Its later commands resolve through it.
-- Declining to name yourself puts you in the **unnamed slot**: a project you declare is remembered there, nothing is ever attributed to you, and `begin` says so on stderr. That slot is not a person, so it never makes the office ambiguous.
-- **An author is never inherited.** An undeclared caller is handed no name at all, not even the machine's only remembered one — borrowing that is how one agent's work came to be signed with another's. The *project* may still be remembered; the name may not. Ambiguity (two or more *named* sessions and no name) reaches the same null author with a louder warning.
-- `begin` lists every session it remembers and what the others did since you were last here. That is measured against your own previous check-in, so a first visit is handed the recent activity instead — labelled by project — because there is no last visit of its own to measure from.
+- `begin --by codex` hands back a numbered name for this run, like `codex-4821`. Sign every later call with it.
+- A call with no name is unsigned, and says so on stderr. It has no session. An author is only ever what the call declared, never borrowed from another session.
+- A bare name like `codex` on a write, with no check-in behind it, is pointed out: it signs the tool, not the run.
+- `begin` lists this project's sessions and what the others did since you were last here, measured against your own previous check-in. A first visit is handed the project's recent activity instead.
 
 `--by` is expected and will be required in a future release. Export `OFFICE_AUTHOR` instead of repeating the flag. The reasoning is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
 
@@ -190,7 +190,7 @@ office tools remove ffmpeg
 
 `context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
 
-Reads are scoped to the repository they run in; outside any repository, named reads use the project the session remembers (pass the numbered `--by` name or set `OFFICE_AUTHOR`). A command's `--project` overrides both for that read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too, from a launcher. Reads do not change the remembered project. `office list` and `office work log` keep their explicit whole-store behavior.
+Reads are scoped to the repository they run in. A command's `--project` overrides that for the read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too, from a launcher. `office list` and `office work log` keep their explicit whole-store behavior.
 
 Queries also search the names and descriptions of skills available on this computer, whatever the project. JSON keeps memory results in `hits` and adds `skill_hits`, whose entries have `kind: "skill"`, `name`, `description`, and the absolute `SKILL.md` path, plus ranking evidence. `skills_searched` counts the available skills and `skills_problems` reports unreadable metadata. `--limit` caps each list independently; `--text` prints matching skills and their paths. Meaning-only skill matches use the same relevance floor; word matching works if the embedder is down. An empty `context` query still returns recent memories, without skill matches.
 
