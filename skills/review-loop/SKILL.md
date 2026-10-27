@@ -27,8 +27,10 @@ Whatever the size of the job:
 1. **Run the checks you can run yourself first** (step 0).
 2. **Confirm the rules with the person who knows** (step 1).
 3. **Have the disposition auditor check your ratings before you stop** (the cast).
+   In the light review, below, its step 5 stands in for this.
 4. **Hand it to the human at the end**, and show them each round on a page they
-   can see at a glance ([`human-page.md`](human-page.md)).
+   can see at a glance ([`human-page.md`](human-page.md)). In the light review,
+   a short account in the chat is enough.
 
 **Agree the stakes with the human first**: what the thing is, who relies on it,
 what a failure would cost them. The stakes size the cast and the rounds, and set
@@ -42,6 +44,33 @@ used?"). **The stakes are revisited, not set once** (the stakes check, step 4).
 
 Everything else (how many readers, which specialists, how many rounds) scales
 with how big and how important the thing is.
+
+## The light review
+
+For a small, contained change whose decisions the human has already made (a
+removal they asked for, a rule they chose), the full loop is more than the
+change needs. The light review is:
+
+1. **Write the plan plainly and commit it** before anyone reads it, in
+   `review-loop/<change>/PLAN.md`.
+2. **If the change alters what is stored or computed**, the peer step (step 5):
+   one critic to break the plan, and one blind solver given only the problem
+   and the human's decisions, on different models where you can. A plain
+   removal or a change of wording skips this.
+3. **Build it, run the tests, and use it once** the way its audience will.
+4. **One fix auditor on the diff**, as in the cast.
+5. **Every finding you decline gets a second opinion.** Put the critic's and
+   solver's findings you declined, with your reasons, in the fix auditor's
+   brief; send any of the fix auditor's own findings you decline back to it
+   once, with your reason. Record its answer. A decline is a rating, and with
+   no disposition auditor this is the only check on it.
+6. **Record it in the change's folder** (the plan, each report, what was taken
+   and what was declined, and why) and tell the human in the chat what was
+   found and what was done. No rounds, no page.
+
+It stops being light when the human has not made the decisions, when a
+critic, solver or auditor finds a HIGH, or when the plan grows as the peers see
+it. Say so, and run the loop.
 
 ---
 

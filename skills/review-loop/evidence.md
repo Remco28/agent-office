@@ -289,3 +289,16 @@ auditor is a mitigation, not a cure.
   the cast across them and write the model beside each finding.** Every round
   recorded here ran entirely on one cheap model, so every convergence in this
   file carries that caveat.
+
+## The light review, and the decline nobody checked
+
+**agent-office, 27 Oct 2026, six small changes** (the briefing trim, AGENTS.md, names as
+signatures, removing the manager role, refusing a memory with no project, one rule for unusual
+repositories). Each was run as: plan committed first, a critic and a blind solver where the change
+altered what is computed, then a fix auditor. Twice the blind solver reached the same plan as the
+author without seeing it, which was the strongest evidence of the day. The critics and fix
+auditors found real defects every time (a write path storing a key reads did not look up; a
+capitalised flag slipping past a refusal; a false claim in the docs carried over unchecked). What
+was missing: the author declined findings with nobody checking the reasons, which is the exact
+softness the disposition auditor exists for. The human agreed to write the mode down, with
+declines going back to the fix auditor. One episode, so treat it as a draft.
