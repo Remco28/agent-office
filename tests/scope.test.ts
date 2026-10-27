@@ -20,10 +20,11 @@ describe("project scope", () => {
       content: "60 req/min per IP",
       project: "fencing-team-draft-game",
     });
-    expect(matchingProjects(db, "~/Projects/fencing-team-draft-game")).toEqual([
+    // Paths that cannot exist, so the test never asks git about this machine's folders.
+    expect(matchingProjects(db, "/nonexistent-office-test/Projects/fencing-team-draft-game")).toEqual([
       "fencing-team-draft-game",
     ]);
-    expect(matchingProjects(db, "~/Projects/something-else")).toEqual([]);
+    expect(matchingProjects(db, "/nonexistent-office-test/Projects/something-else")).toEqual([]);
     db.close();
   });
 

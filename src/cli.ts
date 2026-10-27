@@ -12,7 +12,8 @@ import { baseUrl, dataDir, logPath, pidPath, port } from "./paths";
 import { serve } from "./server";
 import { formatAgo } from "./stats";
 import { runTui } from "./tui";
-import { normalizeProject } from "./scope";
+import { detectCwdProject, normalizeProject } from "./scope";
+import { initProject } from "./init";
 
 type Opts = {
   tags: string[];
@@ -131,14 +132,25 @@ function declaredRole(opts: Opts): string | null {
 function help(): string {
   return `agent-office — local working memory for coding agents
 
-  office begin --project <path> --by <agent>
-                              start a session: name the target and yourself,
-                              get the tools, preferences, who else is here
-                              (with how long ago each was last seen), what has
-                              happened here, and the unfinished work. On a
-                              first visit the activity is the office's most
-                              recent, since you have no last visit to measure
-                              from
+  office init [path]          set up a project repo for Agent Office: creates a
+                              local git repo if needed, links skills, adds the
+                              startup section to AGENTS.md unless it has one,
+                              and links CLAUDE.md to it if there is none.
+                              A missing folder is created and set up, unless it
+                              is inside an existing repository (init stops and
+                              names it) or holds other repositories a few
+                              folders down. Apart from adding that section, it
+                              changes no file it finds, never edits a link,
+                              never writes to git's config and never hides
+                              anything from git
+  office begin [--project <path>] --by <agent>
+                              start a session from inside the project's repo (or
+                              any worktree of it): the project is taken from the
+                              folder. One agent works in one repository. Use
+                              --project where the folder gives no project (the
+                              agent-office checkout, a folder outside any repo).
+                              Returns tools, preferences,
+                              sessions, activity, unfinished work, and memories
   office peek [--project <path>] [--by <agent>]
                               the same briefing, read-only: nothing is written
                               and your check-in time does not move. Use this
@@ -184,9 +196,10 @@ Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-
 --role manager  on begin: take the office manager role (one holder; the human
 designates it, or export OFFICE_ROLE). --role none gives it up
 --readonly  the read-only begin: use with begin, or just run peek
---project and --by replace what the office remembers, for you alone; a session
-is keyed by author; a field you do not restate is kept. Pass neither to just
-read. --by is expected: without it your work lands in the unnamed slot,
+The project is this command's --project, else the repository you run it in,
+else what your session remembers (only in the agent-office checkout or a folder
+outside any repo). --by names you; a session is keyed by author; a field you do
+not restate is kept. --by is expected: without it your work lands in the unnamed slot,
 unattributed, rather than filed under whoever else was here last. Export
 OFFICE_AUTHOR instead of repeating the flag.
 Records written with no project are filed unclaimed: no project-scoped read
@@ -211,6 +224,7 @@ function byline(author: string | null | undefined): string {
 }
 
 type BriefingView = {
+  banner?: string;
   project: string | null;
   project_source?: string;
   author: string | null;
@@ -286,6 +300,7 @@ type IssueView = {
 
 function printBriefing(data: BriefingView): void {
   const out: string[] = [];
+  if (data.banner) out.push(data.banner, "");
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
   if (data.identity_note) out.push(`         ${data.identity_note}`);
@@ -377,6 +392,16 @@ function printBriefing(data: BriefingView): void {
  * A session that declined to name itself is told so, on stderr, every time.
  * The office answers when asked; this is the one thing it volunteers.
  */
+/**
+ * Said on stderr by every command whose project came from the folder while the
+ * session's own record named another. One agent works in one repository; this
+ * is how an agent that wandered finds out at the moment it writes.
+ */
+function printScopeNote(data: unknown): void {
+  const note = (data as { scope_note?: string | null } | null)?.scope_note;
+  if (note) process.stderr.write(`warn: ${note}\n`);
+}
+
 function printAuthorWarnings(warnings: BriefingView["author_warnings"]): void {
   for (const warning of warnings ?? []) {
     process.stderr.write(`${warning.level}: ${warning.text}\n`);
@@ -394,6 +419,19 @@ export async function main(argv = process.argv): Promise<number> {
 
   if (cmd === "tui" || cmd === "desk") {
     return runTui();
+  }
+
+  if (cmd === "init") {
+    const target = opts.project ?? opts.rest[0] ?? process.cwd();
+    const result = initProject(target);
+    if (asText) {
+      process.stdout.write(result.message + "\n");
+    } else {
+      process.stderr.write(result.message + "\n");
+      printJson(result);
+    }
+    for (const warning of result.warnings) process.stderr.write(`warn: ${warning}\n`);
+    return 0;
   }
 
   if (cmd === "serve") {
@@ -463,14 +501,20 @@ export async function main(argv = process.argv): Promise<number> {
       method: "POST",
       body: {
         project: declaredProject(opts),
+        cwd_project: detectCwdProject(),
         author: declaredAuthor(opts),
         role: declaredRole(opts),
         readonly,
       },
     })) as BriefingView;
-    if (asText) printBriefing(data);
-    else printJson(data);
+    if (asText) {
+      printBriefing(data);
+    } else {
+      if (data.banner) process.stderr.write(`${data.banner}\n`);
+      printJson(data);
+    }
     printAuthorWarnings(data.author_warnings);
+    printScopeNote(data);
     return 0;
   }
 
@@ -488,6 +532,7 @@ export async function main(argv = process.argv): Promise<number> {
         content,
         tags: opts.tags,
         project: declaredProject(opts),
+        cwd_project: detectCwdProject(),
         author: declaredAuthor(opts),
         scope: opts.scope ?? null,
       },
@@ -496,6 +541,7 @@ export async function main(argv = process.argv): Promise<number> {
     // Said at the moment it is written, because now the agent can fix it for
     // free and later it is a record no project read will find.
     if (data.unattributed && data.note) process.stderr.write(`warn: ${data.note}\n`);
+    printScopeNote(data);
     return 0;
   }
 
@@ -508,6 +554,7 @@ export async function main(argv = process.argv): Promise<number> {
         q,
         limit: opts.limit ?? 8,
         project: declaredProject(opts),
+        cwd_project: detectCwdProject(),
         author: declaredAuthor(opts),
       },
     })) as {
@@ -523,6 +570,7 @@ export async function main(argv = process.argv): Promise<number> {
         process.stdout.write(["skills", ...printSkills(skills, 0, data.skills_problems ?? [], "  ")].join("\n") + "\n");
       }
     } else printJson(data);
+    printScopeNote(data);
     return 0;
   }
 
@@ -564,8 +612,10 @@ export async function main(argv = process.argv): Promise<number> {
         read: sub === "log" ? "trail" : "scoped",
       });
       const project = declaredProject(opts);
+      const cwdProject = detectCwdProject();
       const author = declaredAuthor(opts);
       if (project) params.set("project", project);
+      if (cwdProject) params.set("cwd_project", cwdProject);
       if (author) params.set("author", author);
       const data = (await api(`/work?${params}`)) as {
         work: Array<{
@@ -591,6 +641,7 @@ export async function main(argv = process.argv): Promise<number> {
       } else {
         printJson(data);
       }
+      printScopeNote(data);
       return 0;
     }
     if (sub === "open") {
@@ -598,10 +649,16 @@ export async function main(argv = process.argv): Promise<number> {
       if (!title) throw new Error("usage: office work open <title>");
       const data = (await api("/work/open", {
         method: "POST",
-        body: { title, project: declaredProject(opts), author: declaredAuthor(opts) },
+        body: {
+          title,
+          project: declaredProject(opts),
+          cwd_project: detectCwdProject(),
+          author: declaredAuthor(opts),
+        },
       })) as { unclaimed?: boolean; note?: string | null };
       printJson(data);
       if (data.unclaimed && data.note) process.stderr.write(`warn: ${data.note}\n`);
+      printScopeNote(data);
       return 0;
     }
     if (sub === "note" || sub === "close") {
@@ -645,12 +702,17 @@ export async function main(argv = process.argv): Promise<number> {
     if (sub === "open") {
       const title = opts.rest.slice(1).join(" ").trim();
       if (!title) throw new Error("usage: office issue open <title>");
-      printJson(
-        await api("/issues/open", {
-          method: "POST",
-          body: { title, project: declaredProject(opts), author: declaredAuthor(opts) },
-        }),
-      );
+      const data = await api("/issues/open", {
+        method: "POST",
+        body: {
+          title,
+          project: declaredProject(opts),
+          cwd_project: detectCwdProject(),
+          author: declaredAuthor(opts),
+        },
+      });
+      printJson(data);
+      printScopeNote(data);
       return 0;
     }
     if (sub === "note" || sub === "close") {

@@ -8,7 +8,7 @@ You are one in a long line of agents. You arrive with no memory, and the next on
 
 This folder is the thing that carries over: what the last agent was in the middle of, what was decided and why, which tools this machine has, and the conventions we are tired of repeating. Code goes in git. Everything that is not code goes here.
 
-You were started here on purpose. **This is the doorway, not the destination.** Say where you are going and what you are working on, take what the last agent learned, and get to work.
+You are started inside the project you work on, and the office is how you arrive there with what the last agent learned. **One agent, one repository:** work only in the repository you were started in. If you are asked to work in another one, suggest that the human start a new agent there instead of switching. Check in, say what you are working on, take what the last agent learned, and get to work.
 
 Two records live in one file: **memories** (decisions and conventions, found by meaning) and a **work log** (what agents did here, read by time). The log exists so the next agent can pick up where this one stopped. Both are written for an agent, not a person — the human has already been told all of this, and the office is how they stop having to say it twice.
 
@@ -16,11 +16,23 @@ Two records live in one file: **memories** (decisions and conventions, found by 
 
 ## Start here
 
+Set up any project repository once with:
+
 ```bash
-office begin --project ~/Projects/the-thing --by <your-agent-name>
+office init
 ```
 
-This records the target for the session and returns what you need first: the tools this machine has, preferences that apply everywhere, who else is working here, what happened here since your last visit, work nobody finished, and the memories for this project. Every later command inherits the project **for you**.
+`office init` initializes a local Git repository if none exists yet, links `.claude/skills` and `.agents/skills` where nothing is there yet, adds the startup procedure to `AGENTS.md` unless it has it, and links `CLAUDE.md` to `AGENTS.md` if there is no `CLAUDE.md`. It records nothing in `.git/config`: the project is always the repository folder git reports, shared by all its worktrees. It looks before it writes: run inside a folder that belongs to another repository, or on a folder that holds other repositories a few folders down, it stops and says why; it never edits, replaces or removes a link it finds, never writes outside the project, and never hides anything from git — what it leaves alone it says on stderr. Commit `AGENTS.md` and `CLAUDE.md`; the two skills links point at this machine's office folder, so add them to `.gitignore` if you do not want to see them. Running `office init` again in a project that is already set up simply confirms that it is already linked; if `AGENTS.md` still lacks the startup section (init left a link or a shared file alone), it says the project is not fully set up.
+
+At the start of a session:
+
+```bash
+office begin --by <your-agent-name>
+# only when working on agent-office itself, from its checkout:
+office begin --project . --by <your-agent-name>
+```
+
+When run inside a project repository (or any of its git worktrees, such as T3 Code worktrees), `office` automatically resolves the canonical project root. `begin` prints a startup banner (`Agent Office · working on <project> (<path>) as <author>`), records the target for the session, and returns what you need first: the tools this machine has, preferences that apply everywhere, who else is working here, what happened here since your last visit, work nobody finished, and the memories for this project. Every later command takes its project the same way: its own `--project` if it has one, else the repository it runs in, else the project your session remembers (which only matters in the agent-office checkout or a folder outside any repository). If the folder ever decides a different project from the one your session began on, the command says so on stderr — that is a sign you have wandered into another repository. Start your first reply to the human by confirming the active project and your numbered session ID.
 
 On your **first** visit there is no last visit to measure from, so instead of nothing you are handed the office's most recent activity, each item labelled with the project it belongs to. That is the "let's see what has been going on" half of arriving, and it is why you do not have to go hunting the machine for changes you do not remember making. Each session is also listed with how long ago it was last seen — a session that stopped days ago is labelled as such, not presented as a colleague who is here now.
 
@@ -34,9 +46,9 @@ Briefings list only sessions seen in the last two weeks (at most eight, plus you
 
 If you do not name yourself you land in the **unnamed slot**: the office says so on stderr, remembers a project you declare there, and attributes nothing to you. A name is never inherited — not even when the office remembers only one session, because that is how one agent's work ends up signed with another's. Two *named* sessions and no name declared reaches the same place with a louder warning.
 
-Nothing is inferred from the working directory — you are usually started in the office itself. If no project is declared, say so instead of guessing: `office begin` tells you.
+When started in the `agent-office` checkout itself with no `--project` flag, nothing is inferred from the working directory so the office checkout is not mistaken for your target project (pass `--project .` when working on `agent-office` itself). Inside any other git repository or git worktree, the canonical repository root is detected automatically — except a repository whose checkout is your home folder (a dotfiles repo), which is never a project.
 
-Scoping is a rule, not a default. With no project named, reads return only the memories marked as applying everywhere — never another project's notes, never its unfinished work. So an unscoped session gets empty answers plus a note explaining which kind of empty it is. Ask the human which project you are in, declare it, and read again.
+Scoping is a rule, not a default. With no project named, reads return only the memories marked as applying everywhere — never another project's notes, never its unfinished work. So an unscoped session gets empty answers plus a note explaining which kind of empty it is. That usually means you were started outside the project's repository: ask the human which project you are in, and either work from inside it or declare it, then read again.
 
 Two things are deliberately left unscoped, and both exist so a handoff is never lost:
 
@@ -61,7 +73,7 @@ office tools remove rg
 
 A skill is how we do a recurring, multi-step task: a `SKILL.md` with the procedure, plus any template or script it needs. Tools say what is installed; skills say how the work is done.
 
-Skills live in this repository under `skills/<name>/`, so git is what carries them to every computer. They apply to every project — you were started here, and the skills come with the room. `begin` lists them (name, description, path to the `SKILL.md`); `office skills` lists them again. Claude Code and Codex also load them natively through `.claude/skills` and `.agents/skills`, which point at the same folder. When a task matches a description, read that `SKILL.md` and follow it.
+Skills live in this repository under `skills/<name>/`, so git is what carries them to every computer. They apply to every project, and the skills come with the room. `begin` lists them (name, description, path to the `SKILL.md`); `office skills` lists them again. Claude Code and Codex also load them natively through `.claude/skills` and `.agents/skills`, which point at the same folder. When a task matches a description, read that `SKILL.md` and follow it.
 
 `context` and `search` also find relevant skills by their names and descriptions. JSON returns them in `skill_hits`, separately from memory `hits`, with `kind: "skill"` and the `SKILL.md` path to read. Skills apply across projects but respect their machine restrictions. An empty `context` query remains a recent-memory read.
 
@@ -155,6 +167,6 @@ When a project is ready for the human to evaluate, use the `human-feedback` skil
 
 - JSON is the default output. Parse it.
 - Humans open the desk with bare `office`. Do not run the desk from an agent session.
-- This file belongs only in folders that should use the office. Never in `$HOME`.
+- AGENTS.md goes in each project that uses the office (`office init` puts it there), and never in the home folder itself.
 - `office list --limit 20` and `office status` exist when you need them.
 - `office logs` names why an embedder is unwell. Read it to report a cause, not to review history.

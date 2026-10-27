@@ -13,7 +13,7 @@ No identity layer, no account, no cloud. Not source control: code is git, memory
 
 Coding agents start with no memory. Providers rarely let a session survive, and often it is better that it does not — a fresh agent is a clean slate. So every agent arrives not knowing what the last one was in the middle of, what was decided and why, which tools this machine has, or which conventions we keep repeating. Git holds the code, and none of that.
 
-**You start every agent in this repository on purpose.** The office is the doorway, not the destination. The agent lands here, names the project it is heading for and who it is, takes what the last agent learned, and gets to work. Nothing is inferred from the working directory — the point of the launch pad is that the folder says nothing, so the target has to be said out loud.
+**You start every agent inside the project it works on.** Set the project up once with `office init`, and from then on an agent started in that repository — or any git worktree of it — checks in, is told which project it is in by the folder, takes what the last agent learned, and gets to work. One agent works in one repository: to work on another, start another agent there.
 
 That is also how a human stops repeating themselves. Describe a tool or a convention once, here, and no later agent has to be told again. The record is written for the next agent, not for you: it is the version of "I already said this" that survives the session that heard it.
 
@@ -106,14 +106,15 @@ git pull
 ## Starting a session
 
 ```bash
-office begin --project ~/Projects/the-thing --by <your-agent-name>
+cd ~/Projects/the-thing && office init     # once per project
+office begin --by <your-agent-name>          # from inside the project, every session
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands inherit the project **for you**. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
+That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
 
 On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over its most recent activity, each item labelled with the project it came from. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
 
-Nothing is inferred from the working directory: agents are started in the office itself and name their target out loud. `--project` and `--by` replace what the office remembers under that name; a field you do not restate is *kept*, not cleared. Pass neither to just read — and note that a read with no project declared is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
+The project for any command is its own `--project` if given, else the repository it runs in, else what the session remembers — which only matters in the agent-office checkout itself (where nothing is inferred, so the office is not mistaken for your target; use `--project .` to work on it) and in folders outside any repository (a repository whose checkout is your home folder, such as a dotfiles repo, counts as none). If the folder decides a different project from the one a named session began on, the command says so on stderr. `--by` names you; a field you do not restate is *kept*, not cleared. A read with no project at all is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
 
 ### Two agents, one office
 
@@ -189,7 +190,7 @@ office tools remove ffmpeg
 
 `context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
 
-Named reads inherit the project declared at `begin`: pass the numbered `--by` name or set `OFFICE_AUTHOR`. A command's `--project` overrides that remembered project for that read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too. Reads do not change the remembered project. `office list` and `office work log` keep their explicit whole-store behavior.
+Reads are scoped to the repository they run in; outside any repository, named reads use the project the session remembers (pass the numbered `--by` name or set `OFFICE_AUTHOR`). A command's `--project` overrides both for that read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too, from a launcher. Reads do not change the remembered project. `office list` and `office work log` keep their explicit whole-store behavior.
 
 Queries also search the names and descriptions of skills available on this computer, whatever the project. JSON keeps memory results in `hits` and adds `skill_hits`, whose entries have `kind: "skill"`, `name`, `description`, and the absolute `SKILL.md` path, plus ranking evidence. `skills_searched` counts the available skills and `skills_problems` reports unreadable metadata. `--limit` caps each list independently; `--text` prints matching skills and their paths. Meaning-only skill matches use the same relevance floor; word matching works if the embedder is down. An empty `context` query still returns recent memories, without skill matches.
 
@@ -218,19 +219,19 @@ office forget 12
 
 Type `office` with no arguments to open the desk: one screen with daemon/embedder status, the active project (and every session, when more than one is recorded), database size, work log size, write volume, and warnings if the store is running away — including too much unfinished work. `s` start/stop, `r` restart, `f` fix, `q` leave.
 
-Agents still use the CLI. Office instructions are **opt-in per working directory**, not global — no `~/.AGENTS.md`. To give Freebuff (or another agent) the office, put `AGENTS.md` only in the folder you start that agent in:
+Agents still use the CLI. Office instructions are **opt-in per project**, not global — `AGENTS.md` goes in each project that uses the office and never in the home folder itself. To give a project the office, run `office init` in it:
 
 ```bash
-ln -s ~/Projects/agent-office/AGENTS.md /path/to/that/project/AGENTS.md
+office init /path/to/that/project
 ```
 
-Leave it out of every other project. The office database remains local to each computer; `AGENTS.md` and `skills/` travel with this repository when cloned.
+It creates the repository if there is none, links `.claude/skills` and `.agents/skills` to this checkout's skills (where nothing is there yet), adds the startup section to `AGENTS.md` unless it already has one (creating the file if needed), and links `CLAUDE.md` to it if there is no `CLAUDE.md`; whatever it leaves alone, it says so. The project is always the repository's folder as git reports it — nothing is recorded in `.git/config` — so a copied repository is a project of its own. It looks before it writes: a folder inside another repository is refused with the command to run instead, so is a folder that holds other repositories a few folders down (such as `~/Projects`), a link it finds is never edited or replaced, and nothing is hidden from git. Commit `AGENTS.md` and `CLAUDE.md`; the skills links point at this machine's checkout, so add them to `.gitignore` if you do not want to see them. Projects set up the old way, with `AGENTS.md` linked to this checkout's, keep working — init leaves those links alone and says so. The office database remains local to each computer; `AGENTS.md` and `skills/` travel with this repository when cloned.
 
 ## Skills
 
 Skills are checked in under `skills/<name>/SKILL.md`, in the format Claude Code and Codex load natively (YAML frontmatter with `name` and `description`, then the procedure; templates and scripts sit beside it). They are not in the database: git is what carries them to every computer, and the folder is the only copy.
 
-They apply to every project. Agents are started here, and `office begin` lists each skill's name, description, and path; `office skills` lists them on their own. `.claude/skills` and `.agents/skills` are symlinks to the same folder, so Claude Code and Codex started in this checkout also load them themselves.
+They apply to every project. `office begin` lists each skill's name, description, and path; `office skills` lists them on their own. `.claude/skills` and `.agents/skills` are symlinks to the same folder, so Claude Code and Codex started in this checkout — or in a project `office init` set up, which gets the same two links — also load them themselves.
 
 A skill tied to one computer sets `metadata.machine` to that computer's `hostname` (comma-separated for several; matched without case). Other computers count it rather than list it. `OFFICE_MACHINE` overrides the hostname, and `OFFICE_SKILLS` points the office at another folder.
 

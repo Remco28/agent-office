@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { serve, type Office } from "../src/server";
@@ -13,16 +13,45 @@ describe("CLI and daemon integration", () => {
   let env: Record<string, string | undefined>;
   const keys = ["OFFICE_HOME", "OFFICE_DB", "OFFICE_SKILLS"];
 
-  async function cli(args: string[], overrides: Record<string, string | undefined> = {}) {
+  async function cli(args: string[], overrides: Record<string, string | undefined> = {}, cwd?: string) {
     const proc = Bun.spawn([process.execPath, join(ROOT, "src/index.ts"), ...args], {
-      env: { ...env, ...overrides }, stdout: "pipe", stderr: "pipe",
+      // Run from a folder that is not a repository, so the results never
+      // depend on where the suite itself was started.
+      cwd: cwd ?? dir, env: { ...env, ...overrides }, stdout: "pipe", stderr: "pipe",
     });
     const [stdout, stderr, code] = await Promise.all([
       new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited,
     ]);
     if (code !== 0) throw new Error(stderr);
+    lastStderr = stderr;
     return args.includes("--text") ? stdout : JSON.parse(stdout);
   }
+  let lastStderr = "";
+
+  function gitRepo(name: string): string {
+    const path = join(dir, name);
+    mkdirSync(path);
+    Bun.spawnSync(["git", "init", "-q", path]);
+    return realpathSync(path);
+  }
+
+  test("a nameless begin inside a repo does not retarget the shared unnamed slot", async () => {
+    await cli(["begin", "--project", "/p/shared"]);
+    const repo = gitRepo("repo-x");
+    const inRepo = await cli(["begin"], {}, repo);
+    expect(inRepo.project).toBe(repo);
+    expect(inRepo.project_source).toBe("folder");
+    expect((await cli(["context"])).project).toBe("/p/shared");
+  });
+
+  test("a write from another repository is filed there and says so on stderr", async () => {
+    const repo = gitRepo("repo-y");
+    const written = await cli(["remember", "y fact", "--by", "test-1111"], {}, repo);
+    expect(written.memory.project).toBe(repo);
+    expect(written.project_source).toBe("folder");
+    expect(lastStderr).toContain("this session began on /p/alpha");
+    expect(lastStderr).toContain("start a new agent there");
+  });
 
   beforeEach(async () => {
     dir = mkdtempSync(join(tmpdir(), "office-cli-"));

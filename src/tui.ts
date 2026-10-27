@@ -108,7 +108,7 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
     `Python     ${DIM}${detectPython()}${RESET}`,
     "",
     `Project    ${whose.project ?? `${DIM}none declared${RESET}`}`,
-    `           ${DIM}${whose.project || whose.since ? `by ${whose.author ?? "unnamed"}  ${formatAgo(whose.since, now.getTime())}` : "agents name their target with: office begin --project <path> --by <agent>"}${RESET}`,
+    `           ${DIM}${whose.project || whose.since ? `by ${whose.author ?? "unnamed"}  ${formatAgo(whose.since, now.getTime())}` : "agents start inside the project and check in with: office begin --by <agent>"}${RESET}`,
     ...(snap.sessions.length > 1
       ? [
           `Sessions   ${snap.sessions.length}   ${DIM}${snap.sessions

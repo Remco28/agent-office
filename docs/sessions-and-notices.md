@@ -389,3 +389,32 @@ burden, and agents route around burdens.
 unclaimed work, with `open_work_note` explaining why, and `store.unattributed`
 now counts work as well as memories — "how many unattributed records exist" was
 never a memories-only question.
+
+## Amendment, 26 Oct 2026: the folder is the project
+
+Agents are no longer started in the office checkout and told where to go; they
+are started inside the project they work on (`office init` sets a project up),
+one agent to one repository. So the resolution order for the **project** gains
+a rung, and it sits above anything remembered:
+
+1. what this call declared (`--project`, `OFFICE_PROJECT`)
+2. **the repository the command runs in** (`cwd_project`, sent by the CLI) —
+   reported as `project_source: "folder"`
+3. the remembered session, under the same rules as before
+4. nothing
+
+The author order is unchanged: an author is still only ever declared.
+
+The folder gives nothing in the agent-office checkout itself (so the office is
+never mistaken for a target), in a folder outside any repository, and in a
+repository rooted at the home folder. Those are the only places a remembered
+project still decides.
+
+Two things keep this from becoming a new way to misfile. `begin` stores a
+folder project only on a *named* session's row; the unnamed slot changes only on
+an explicit `--project`, so one nameless agent's folder never becomes every
+other nameless agent's project. And when the folder decides a different project
+from the one a named session began on, every scoped response carries a
+`scope_note` and the CLI prints it, because an agent that has wandered into
+another repository should hear it at the moment it writes. (Gemini's change,
+reviewed and fixed 26 Oct 2026; office work item #105.)

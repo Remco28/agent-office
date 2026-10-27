@@ -31,6 +31,7 @@ import {
   UNATTRIBUTED_MEMORY_NOTE,
   UNCLAIMED_WORK_NOTE,
   UNCLAIMED_WRITE_NOTE,
+  withProjectMemo,
 } from "./scope";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
 import { dbPath, detectPython, logPath, MODEL_NAME, port, skillsDir } from "./paths";
@@ -119,326 +120,350 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   const server = Bun.serve({
     hostname: "127.0.0.1",
     port: listen,
-    async fetch(req) {
-      const url = new URL(req.url);
-      const path = url.pathname;
-
-      if (req.method === "GET" && (path === "/health" || path === "/status" || path === "/")) {
-        const files = fileStats(dbPath());
-        const stats = queryStore(db);
-        const active = getActive(db);
-        return json({
-          ok: true,
-          name: "agent-office",
-          memories: countMemories(db),
-          missing_embeddings: stats.missingEmbeddings,
-          last_write: stats.lastWrite,
-          work: { open: stats.workOpen, total: stats.workTotal },
-          tools: stats.tools,
-          log_chars: stats.logChars,
-          active: active
-            ? { project: active.project, author: active.author, since: active.updated_at }
-            : null,
-          // Every session the machine remembers. `active` is null once there
-          // are two, because then there is no single answer to give.
-          sessions: listSessions(db).map((session) => ({
-            project: session.project,
-            author: session.author,
-            since: session.updated_at,
-          })),
-          embedder: embedder.ready,
-          embedder_error: embedder.lastError,
-          model: MODEL_NAME,
-          python: detectPython(),
-          log_path: logPath(),
-          port: listen,
-          pid: process.pid,
-          started_at: startedAt,
-          db: files,
-        });
-      }
-
-      if (req.method === "POST" && path === "/checkpoint") {
-        db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-        return json({ ok: true, db: fileStats(dbPath()) });
-      }
-
-      if (req.method === "GET" && path === "/list") {
-        const limit = Number(url.searchParams.get("limit") ?? 20);
-        const project = url.searchParams.get("project");
-        return json({
-          memories: project
-            ? listMemoriesInScope(db, limit, project)
-            : listMemories(db, limit),
-        });
-      }
-
-      if (req.method === "POST" && path === "/begin") {
-        const body = await readBody(req);
-        const project = str(body.project);
-        // A read-only visit is the same briefing with the door left shut: the
-        // caller's check-in mark is read, never moved, and no row is written.
-        // It exists so an agent told not to modify state can still come in.
-        const readonly = body.readonly === true;
-        const role = str(body.role);
-        // A peek writes nothing, and a role is a write. Refused, not ignored:
-        // an ignored claim looks exactly like one that worked.
-        if (readonly && role) {
-          return json({ error: "a read-only visit cannot take a role: use begin, not peek" }, 400);
-        }
-        // Naming a target is the one declaration a session makes. Everything
-        // after this inherits it; nothing is inferred from the working dir.
-        // The row this call replaces is the watermark, so it is read first.
-        // A bare name becomes a numbered run (`codex` -> `codex-4821`); a
-        // numbered name resumes. A peek writes nothing, so it mints nothing.
-        const identity = readonly
-          ? { author: normalizeAuthor(str(body.author)), minted: false }
-          : claimIdentity(db, str(body.author));
-        const author = identity.author;
-        if (!readonly) pruneSessions(db, author);
-        let previous;
-        try {
-          ({ previous } = readonly
-            ? peekSession(db, { project, author })
-            : beginSession(db, { project, author, role }));
-        } catch (err) {
-          return fail(err);
-        }
-        // Passing the declaration in is what makes the briefing report the
-        // scope this call named, and the advice it gives match.
-        const result = await briefing(db, embedder, {
-          since: previous?.updated_at ?? null,
-          declared: { project, author },
-          readonly,
-          minted: identity.minted,
-        });
-        return json({ ...result, warnings: warnings() });
-      }
-
-      if (req.method === "POST" && path === "/remember") {
-        const body = await readBody(req);
-        const content = String(body.content ?? "").trim();
-        if (!content) return json({ error: "content required" }, 400);
-        const tags = Array.isArray(body.tags) ? body.tags.map((t) => String(t)) : [];
-        const scope = resolveScope(db, {
-          project: str(body.project),
-          author: str(body.author),
-        });
-        try {
-          const memory = await remember(db, embedder, {
-            content,
-            tags,
-            project: scope.project,
-            author: scope.author,
-            scope: str(body.scope),
-            source: str(body.source),
-          });
-          void backfill();
-          // Said on the way in, not discovered later: a memory with no project
-          // is one no project-scoped read will ever return.
-          const unattributed = memory.project === null && memory.scope === "project";
-          return json({
-            ok: true,
-            memory,
-            project_source: scope.project_source,
-            author_source: scope.author_source,
-            unattributed,
-            note: unattributed ? UNATTRIBUTED_MEMORY_NOTE : null,
-          });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && (path === "/search" || path === "/context")) {
-        const body = await readBody(req);
-        const q = String(body.q ?? body.query ?? "");
-        const limit = Number(body.limit ?? 8);
-        const project = str(body.project);
-        const scope = resolveScope(db, { project, author: str(body.author) });
-        const result = await searchDetailed(db, embedder, q, limit, {
-          project: scope.project,
-        });
-        const skills = await searchSkills(skillsDir(), q, limit);
-        return json({
-          ...result,
-          ...skills,
-          project_source: scope.project_source,
-          note: result.hits.length || skills.skill_hits.length ? null : emptyNote(result, scope.project),
-        });
-      }
-
-      if (req.method === "POST" && path === "/forget") {
-        const body = await readBody(req);
-        const id = Number(body.id);
-        if (!Number.isInteger(id) || id <= 0) return json({ error: "id required" }, 400);
-        return json({ ok: forget(db, id), id });
-      }
-
-      if (req.method === "GET" && path === "/tools") {
-        return json({ tools: listTools(db) });
-      }
-
-      if (req.method === "GET" && path === "/skills") {
-        return json(listSkills(skillsDir()));
-      }
-
-      if (req.method === "POST" && path === "/tools") {
-        const body = await readBody(req);
-        try {
-          const tool = upsertTool(db, {
-            name: String(body.name ?? ""),
-            summary: String(body.summary ?? ""),
-            usage: str(body.usage),
-            notes: str(body.notes),
-          });
-          return json({ ok: true, tool });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && path === "/tools/remove") {
-        const body = await readBody(req);
-        return json({ ok: removeTool(db, String(body.name ?? "")), name: body.name });
-      }
-
-      if (req.method === "GET" && path === "/work") {
-        const scope = resolveScope(db, {
-          project: url.searchParams.get("project"),
-          author: url.searchParams.get("author"),
-        });
-        // The whole trail is asked for by name (`office work log`), the same
-        // kind of read as `office list`. Everything else is scoped: what this
-        // project left unfinished, or — with no project — the items filed with
-        // no project, which are nobody's and so cannot be lent to the wrong
-        // project the way an unscoped list was.
-        const trailing = url.searchParams.get("read") === "trail";
-        const read: WorkRead = trailing
-          ? { kind: "all" }
-          : scope.project
-            ? { kind: "project", project: scope.project }
-            : { kind: "unclaimed" };
-        return json({
-          work: listWork(db, read, {
-            includeClosed: url.searchParams.get("all") === "1",
-            limit: Number(url.searchParams.get("limit") ?? 20),
-          }),
-          project: scope.project,
-          project_source: scope.project_source,
-          read: read.kind,
-          note: read.kind === "unclaimed" ? UNCLAIMED_WORK_NOTE : null,
-        });
-      }
-
-      if (req.method === "POST" && path === "/work/open") {
-        const body = await readBody(req);
-        const scope = resolveScope(db, {
-          project: str(body.project),
-          author: str(body.author),
-        });
-        try {
-          const item = openWork(db, {
-            title: String(body.title ?? ""),
-            project: scope.project,
-            author: scope.author,
-          });
-          const unclaimed = item.project === null;
-          return json({
-            ok: true,
-            work: item,
-            project_source: scope.project_source,
-            unclaimed,
-            note: unclaimed ? UNCLAIMED_WRITE_NOTE : null,
-          });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && path === "/work/note") {
-        const body = await readBody(req);
-        try {
-          const item = noteWork(db, Number(body.id), {
-            text: String(body.text ?? ""),
-            author: normalizeAuthor(str(body.author)),
-          });
-          return json({ ok: true, work: item });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && path === "/work/close") {
-        const body = await readBody(req);
-        try {
-          const item = closeWork(db, Number(body.id), {
-            text: str(body.text) ?? undefined,
-            author: normalizeAuthor(str(body.author)),
-          });
-          return json({ ok: true, work: item });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && path === "/work/get") {
-        const body = await readBody(req);
-        return json({ work: getWork(db, Number(body.id)) });
-      }
-
-      if (req.method === "GET" && path === "/issues") {
-        return json({
-          issues: listIssues(db, {
-            includeClosed: url.searchParams.get("all") === "1",
-            limit: Number(url.searchParams.get("limit") ?? 20),
-          }),
-        });
-      }
-
-      if (req.method === "POST" && path === "/issues/open") {
-        const body = await readBody(req);
-        // The project is where this surfaced, taken the way any write takes it.
-        // It is context for whoever triages — an issue with none is not
-        // unclaimed, because issues belong to the office, not to a project.
-        const scope = resolveScope(db, {
-          project: str(body.project),
-          author: str(body.author),
-        });
-        try {
-          const issue = openIssue(db, {
-            title: String(body.title ?? ""),
-            project: scope.project,
-            author: scope.author,
-          });
-          return json({ ok: true, issue, project_source: scope.project_source });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && (path === "/issues/note" || path === "/issues/close")) {
-        const body = await readBody(req);
-        const input = { text: String(body.text ?? ""), author: normalizeAuthor(str(body.author)) };
-        try {
-          const issue =
-            path === "/issues/note"
-              ? noteIssue(db, Number(body.id), input)
-              : closeIssue(db, Number(body.id), input);
-          return json({ ok: true, issue });
-        } catch (err) {
-          return fail(err);
-        }
-      }
-
-      if (req.method === "POST" && path === "/issues/get") {
-        const body = await readBody(req);
-        return json({ issue: getIssue(db, Number(body.id)) });
-      }
-
-      return json({ error: "not found" }, 404);
+    fetch(req) {
+      return withProjectMemo(() => handle(req));
     },
   });
+
+  async function handle(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    const path = url.pathname;
+
+    if (req.method === "GET" && (path === "/health" || path === "/status" || path === "/")) {
+      const files = fileStats(dbPath());
+      const stats = queryStore(db);
+      const active = getActive(db);
+      return json({
+        ok: true,
+        name: "agent-office",
+        memories: countMemories(db),
+        missing_embeddings: stats.missingEmbeddings,
+        last_write: stats.lastWrite,
+        work: { open: stats.workOpen, total: stats.workTotal },
+        tools: stats.tools,
+        log_chars: stats.logChars,
+        active: active
+          ? { project: active.project, author: active.author, since: active.updated_at }
+          : null,
+        // Every session the machine remembers. `active` is null once there
+        // are two, because then there is no single answer to give.
+        sessions: listSessions(db).map((session) => ({
+          project: session.project,
+          author: session.author,
+          since: session.updated_at,
+        })),
+        embedder: embedder.ready,
+        embedder_error: embedder.lastError,
+        model: MODEL_NAME,
+        python: detectPython(),
+        log_path: logPath(),
+        port: listen,
+        pid: process.pid,
+        started_at: startedAt,
+        db: files,
+      });
+    }
+
+    if (req.method === "POST" && path === "/checkpoint") {
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      return json({ ok: true, db: fileStats(dbPath()) });
+    }
+
+    if (req.method === "GET" && path === "/list") {
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const project = url.searchParams.get("project");
+      return json({
+        memories: project
+          ? listMemoriesInScope(db, limit, project)
+          : listMemories(db, limit),
+      });
+    }
+
+    if (req.method === "POST" && path === "/begin") {
+      const body = await readBody(req);
+      const project = str(body.project);
+      const cwdProject = str(body.cwd_project);
+      // A read-only visit is the same briefing with the door left shut: the
+      // caller's check-in mark is read, never moved, and no row is written.
+      // It exists so an agent told not to modify state can still come in.
+      const readonly = body.readonly === true;
+      const role = str(body.role);
+      // A peek writes nothing, and a role is a write. Refused, not ignored:
+      // an ignored claim looks exactly like one that worked.
+      if (readonly && role) {
+        return json({ error: "a read-only visit cannot take a role: use begin, not peek" }, 400);
+      }
+      // The project is this call's --project, else the repository the caller
+      // runs in (sent separately, as cwd_project), else what is remembered.
+      // The row this call replaces is the watermark, so it is read first.
+      // A bare name becomes a numbered run (`codex` -> `codex-4821`); a
+      // numbered name resumes. A peek writes nothing, so it mints nothing.
+      const identity = readonly
+        ? { author: normalizeAuthor(str(body.author)), minted: false }
+        : claimIdentity(db, str(body.author));
+      const author = identity.author;
+      if (!readonly) pruneSessions(db, author);
+      let previous;
+      try {
+        ({ previous } = readonly
+          ? peekSession(db, { project, author })
+          : beginSession(db, { project, author, role, cwdProject }));
+      } catch (err) {
+        return fail(err);
+      }
+      // Passing the declaration in is what makes the briefing report the
+      // scope this call named, and the advice it gives match.
+      const result = await briefing(db, embedder, {
+        since: previous?.updated_at ?? null,
+        declared: { project, author },
+        cwdProject,
+        projectBefore: previous?.project ?? null,
+        readonly,
+        minted: identity.minted,
+      });
+      return json({ ...result, warnings: warnings() });
+    }
+
+    if (req.method === "POST" && path === "/remember") {
+      const body = await readBody(req);
+      const content = String(body.content ?? "").trim();
+      if (!content) return json({ error: "content required" }, 400);
+      const tags = Array.isArray(body.tags) ? body.tags.map((t) => String(t)) : [];
+      const scope = resolveScope(db, {
+        project: str(body.project),
+        author: str(body.author),
+        cwdProject: str(body.cwd_project),
+      });
+      try {
+        const memory = await remember(db, embedder, {
+          content,
+          tags,
+          project: scope.project,
+          author: scope.author,
+          scope: str(body.scope),
+          source: str(body.source),
+        });
+        void backfill();
+        // Said on the way in, not discovered later: a memory with no project
+        // is one no project-scoped read will ever return.
+        const unattributed = memory.project === null && memory.scope === "project";
+        return json({
+          ok: true,
+          memory,
+          project_source: scope.project_source,
+          scope_note: scope.scope_note,
+          author_source: scope.author_source,
+          unattributed,
+          note: unattributed ? UNATTRIBUTED_MEMORY_NOTE : null,
+        });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && (path === "/search" || path === "/context")) {
+      const body = await readBody(req);
+      const q = String(body.q ?? body.query ?? "");
+      const limit = Number(body.limit ?? 8);
+      const project = str(body.project);
+      const scope = resolveScope(db, {
+        project,
+        author: str(body.author),
+        cwdProject: str(body.cwd_project),
+      });
+      const result = await searchDetailed(db, embedder, q, limit, {
+        project: scope.project,
+      });
+      const skills = await searchSkills(skillsDir(), q, limit);
+      return json({
+        ...result,
+        ...skills,
+        project_source: scope.project_source,
+        scope_note: scope.scope_note,
+        note: result.hits.length || skills.skill_hits.length ? null : emptyNote(result, scope.project),
+      });
+    }
+
+    if (req.method === "POST" && path === "/forget") {
+      const body = await readBody(req);
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id <= 0) return json({ error: "id required" }, 400);
+      return json({ ok: forget(db, id), id });
+    }
+
+    if (req.method === "GET" && path === "/tools") {
+      return json({ tools: listTools(db) });
+    }
+
+    if (req.method === "GET" && path === "/skills") {
+      return json(listSkills(skillsDir()));
+    }
+
+    if (req.method === "POST" && path === "/tools") {
+      const body = await readBody(req);
+      try {
+        const tool = upsertTool(db, {
+          name: String(body.name ?? ""),
+          summary: String(body.summary ?? ""),
+          usage: str(body.usage),
+          notes: str(body.notes),
+        });
+        return json({ ok: true, tool });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && path === "/tools/remove") {
+      const body = await readBody(req);
+      return json({ ok: removeTool(db, String(body.name ?? "")), name: body.name });
+    }
+
+    if (req.method === "GET" && path === "/work") {
+      const scope = resolveScope(db, {
+        project: url.searchParams.get("project"),
+        author: url.searchParams.get("author"),
+        cwdProject: url.searchParams.get("cwd_project"),
+      });
+      // The whole trail is asked for by name (`office work log`), the same
+      // kind of read as `office list`. Everything else is scoped: what this
+      // project left unfinished, or — with no project — the items filed with
+      // no project, which are nobody's and so cannot be lent to the wrong
+      // project the way an unscoped list was.
+      const trailing = url.searchParams.get("read") === "trail";
+      const read: WorkRead = trailing
+        ? { kind: "all" }
+        : scope.project
+          ? { kind: "project", project: scope.project }
+          : { kind: "unclaimed" };
+      return json({
+        work: listWork(db, read, {
+          includeClosed: url.searchParams.get("all") === "1",
+          limit: Number(url.searchParams.get("limit") ?? 20),
+        }),
+        project: scope.project,
+        project_source: scope.project_source,
+        scope_note: scope.scope_note,
+        read: read.kind,
+        note: read.kind === "unclaimed" ? UNCLAIMED_WORK_NOTE : null,
+      });
+    }
+
+    if (req.method === "POST" && path === "/work/open") {
+      const body = await readBody(req);
+      const scope = resolveScope(db, {
+        project: str(body.project),
+        author: str(body.author),
+        cwdProject: str(body.cwd_project),
+      });
+      try {
+        const item = openWork(db, {
+          title: String(body.title ?? ""),
+          project: scope.project,
+          author: scope.author,
+        });
+        const unclaimed = item.project === null;
+        return json({
+          ok: true,
+          work: item,
+          project_source: scope.project_source,
+          scope_note: scope.scope_note,
+          unclaimed,
+          note: unclaimed ? UNCLAIMED_WRITE_NOTE : null,
+        });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && path === "/work/note") {
+      const body = await readBody(req);
+      try {
+        const item = noteWork(db, Number(body.id), {
+          text: String(body.text ?? ""),
+          author: normalizeAuthor(str(body.author)),
+        });
+        return json({ ok: true, work: item });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && path === "/work/close") {
+      const body = await readBody(req);
+      try {
+        const item = closeWork(db, Number(body.id), {
+          text: str(body.text) ?? undefined,
+          author: normalizeAuthor(str(body.author)),
+        });
+        return json({ ok: true, work: item });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && path === "/work/get") {
+      const body = await readBody(req);
+      return json({ work: getWork(db, Number(body.id)) });
+    }
+
+    if (req.method === "GET" && path === "/issues") {
+      return json({
+        issues: listIssues(db, {
+          includeClosed: url.searchParams.get("all") === "1",
+          limit: Number(url.searchParams.get("limit") ?? 20),
+        }),
+      });
+    }
+
+    if (req.method === "POST" && path === "/issues/open") {
+      const body = await readBody(req);
+      // The project is where this surfaced, taken the way any write takes it.
+      // It is context for whoever triages — an issue with none is not
+      // unclaimed, because issues belong to the office, not to a project.
+      const scope = resolveScope(db, {
+        project: str(body.project),
+        author: str(body.author),
+        cwdProject: str(body.cwd_project),
+      });
+      try {
+        const issue = openIssue(db, {
+          title: String(body.title ?? ""),
+          project: scope.project,
+          author: scope.author,
+        });
+        return json({
+          ok: true,
+          issue,
+          project_source: scope.project_source,
+          scope_note: scope.scope_note,
+        });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && (path === "/issues/note" || path === "/issues/close")) {
+      const body = await readBody(req);
+      const input = { text: String(body.text ?? ""), author: normalizeAuthor(str(body.author)) };
+      try {
+        const issue =
+          path === "/issues/note"
+            ? noteIssue(db, Number(body.id), input)
+            : closeIssue(db, Number(body.id), input);
+        return json({ ok: true, issue });
+      } catch (err) {
+        return fail(err);
+      }
+    }
+
+    if (req.method === "POST" && path === "/issues/get") {
+      const body = await readBody(req);
+      return json({ issue: getIssue(db, Number(body.id)) });
+    }
+
+    return json({ error: "not found" }, 404);
+  }
 
   console.error(`office listening on 127.0.0.1:${server.port}`);
 

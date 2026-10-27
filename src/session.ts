@@ -5,6 +5,7 @@ import {
   NO_PROJECT_NOTE,
   RECENT_ACTIVITY_NOTE,
   UNCLAIMED_WORK_NOTE,
+  displayName,
   normalizeProject,
 } from "./scope";
 import { formatAgo } from "./stats";
@@ -110,7 +111,7 @@ export function pruneSessions(
  * one *named* session is recorded and this call named no author, so the honest
  * answer is nothing rather than somebody else's name.
  */
-export type ScopeSource = "declared" | "active" | "ambiguous" | "none";
+export type ScopeSource = "declared" | "folder" | "active" | "ambiguous" | "none";
 
 export type Scope = {
   project: string | null;
@@ -118,6 +119,13 @@ export type Scope = {
   project_source: ScopeSource;
   author_source: ScopeSource;
   active_since: string | null;
+  /**
+   * Said when the folder decided the project and this session's own record
+   * named a different one. One agent works in one repository, so the folder
+   * wins — but silently filing somewhere other than where the session began is
+   * the kind of slip nobody notices later, so it is said at the moment it happens.
+   */
+  scope_note: string | null;
 };
 
 export type AuthorWarning = { level: "warn" | "alert"; text: string };
@@ -273,14 +281,28 @@ export type BeginResult = {
  */
 export function beginSession(
   db: Database,
-  input: { project?: string | null; author?: string | null; role?: string | null },
+  input: {
+    project?: string | null;
+    author?: string | null;
+    role?: string | null;
+    /** The repository the caller runs in. Stored only for a named session. */
+    cwdProject?: string | null;
+  },
 ): BeginResult {
   // The name is whatever the caller declared — there is deliberately no
   // process.env fallback here. This runs inside the daemon, and the daemon is a
   // long-lived shared process whose environment belongs to whoever started it,
   // not to the caller. See resolveScope for the full reasoning.
   const author = normalizeAuthor(input.author);
-  const project = input.project?.trim() ? normalizeProject(input.project) : null;
+  // A named session remembers the repository it checked in from, so a later
+  // command from a folder outside any repo still knows where it was. The
+  // unnamed slot is shared by everyone who gave no name, so only an explicit
+  // --project changes it: one nameless agent's folder must not become every
+  // other nameless agent's project.
+  const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
+  const folderProject =
+    author && input.cwdProject?.trim() ? normalizeProject(input.cwdProject) : null;
+  const project = declaredProject ?? folderProject;
   const previous = getSession(db, author);
   // Asking for a role is a declaration too, so that it reaches setActive and is
   // refused there if it came with no name, instead of being silently dropped.
@@ -317,9 +339,11 @@ export function peekSession(
 
 /**
  * Where the project and author come from, in order: what this call declared,
- * then what the office still remembers *when that is unambiguous*, then
- * nothing. Nothing is inferred from the working directory — agents are
- * started in the office itself and name their target out loud.
+ * then (for the project) the repository the caller is running in, then what
+ * the office still remembers *when that is unambiguous*, then nothing. Agents
+ * are started inside the project they work on, one agent to one repository, so
+ * the folder outranks anything remembered; the office checkout itself and
+ * folders outside any repository give no folder project.
  *
  * Project and author do not follow the same rule, and the difference is the
  * point of this function:
@@ -354,9 +378,17 @@ export function peekSession(
  */
 export function resolveScope(
   db: Database,
-  input: { project?: string | null; author?: string | null } = {},
+  input: {
+    project?: string | null;
+    author?: string | null;
+    cwdProject?: string | null;
+    /** The caller's own project before this call wrote anything. Only `begin`
+     *  passes it: by the time its briefing runs, the row already says the folder. */
+    projectBefore?: string | null;
+  } = {},
 ): Scope {
   const declaredProject = input.project?.trim() ? normalizeProject(input.project) : null;
+  const cwdProject = input.cwdProject?.trim() ? normalizeProject(input.cwdProject) : null;
   const declaredAuthor = normalizeAuthor(input.author);
 
   const rows = storedSessions(db);
@@ -368,7 +400,18 @@ export function resolveScope(
   const remembered = declaredAuthor ? mine : (unnamed ?? (rows.length === 1 ? rows[0] : null));
   const ambiguous = !declaredAuthor && !remembered && named.length > 1;
 
-  const project = declaredProject ?? remembered?.project ?? null;
+  // This call's own --project, then the folder it runs in, then what is
+  // remembered. One agent works in one repository, so the folder is the truth
+  // about where it is; a remembered project only fills in where the folder says
+  // nothing — the office checkout itself, or a folder that is not a repo.
+  const project = declaredProject ?? cwdProject ?? remembered?.project ?? null;
+  const projectSource: ScopeSource = declaredProject
+    ? "declared"
+    : cwdProject
+      ? "folder"
+      : remembered?.project
+        ? "active"
+        : "none";
   // Only ever declared — the remembered name is not borrowed. See the note
   // above: lending it is how the office signed one agent's work with
   // another's, and the agent it suited had no reason to look.
@@ -380,13 +423,41 @@ export function resolveScope(
       : remembered
         ? "active"
         : "none";
+  const before = input.projectBefore !== undefined ? input.projectBefore : (mine?.project ?? null);
+  // A named project that is not the folder's own is said too: it may be a
+  // leftover OFFICE_PROJECT in a launcher rather than a choice made now.
+  const scopeNote =
+    projectSource === "folder" && declaredAuthor && before && before !== project
+      ? `filed under ${project} (this folder); this session began on ${before}. ` +
+        "One agent works in one repository — to work on that one, start a new agent there"
+      : projectSource === "declared" && cwdProject && cwdProject !== project
+        ? `filed under ${project}, as named by --project or OFFICE_PROJECT; this folder is ` +
+          `${cwdProject}. One agent works in one repository — if that name is left over, unset it`
+        : null;
   return {
     project,
     author,
-    project_source: declaredProject ? "declared" : remembered?.project ? "active" : "none",
+    project_source: projectSource,
     author_source: authorSource,
-    active_since: remembered?.updated_at ?? null,
+    // "Active since" describes the remembered row, so it is only said when that
+    // row is where this call is filed.
+    active_since:
+      remembered && (remembered.project ?? null) === project ? remembered.updated_at : null,
+    scope_note: scopeNote,
   };
+}
+
+/**
+ * One-line startup banner confirming the active project and session within
+ * the Agent Office framework.
+ */
+export function sessionBanner(scope: { project: string | null; author: string | null }): string {
+  const who = scope.author ? ` as ${scope.author}` : "";
+  if (scope.project) {
+    const name = displayName(scope.project);
+    return `Agent Office · working on ${name} (${scope.project})${who}`;
+  }
+  return `Agent Office · no project for this folder${who} (start the agent inside a project's repository, set one up with \`office init\`, or pass --project <path>)`;
 }
 
 /**
@@ -444,11 +515,13 @@ export type ManagerSummary = {
 
 export type Briefing = {
   ok: true;
+  banner: string;
   project: string | null;
   project_source: ScopeSource;
   author: string | null;
   author_source: ScopeSource;
   active_since: string | null;
+  scope_note: string | null;
   tools: Tool[];
   /**
    * Skills for every project, read from the checkout's `skills/` folder: name,
@@ -534,6 +607,11 @@ export async function briefing(
     /** What this call declared, so the briefing reports it rather than the
      *  fallback it happens to match. */
     declared?: { project?: string | null; author?: string | null };
+    /** The repository the caller runs in, kept apart from `declared` so the
+     *  briefing reports it as "folder", not as something the agent named. */
+    cwdProject?: string | null;
+    /** The caller's project before this check-in wrote anything. */
+    projectBefore?: string | null;
     /** A visit that wrote nothing, so the notice watermark did not move. */
     readonly?: boolean;
     /** This check-in was given a new numbered name. */
@@ -544,7 +622,11 @@ export async function briefing(
   } = {},
 ): Promise<Briefing> {
   const skills = listSkills(opts.skillsDir ?? skillsDir());
-  const scope = resolveScope(db, opts.declared);
+  const scope = resolveScope(db, {
+    ...opts.declared,
+    cwdProject: opts.cwdProject,
+    projectBefore: opts.projectBefore,
+  });
   const readOnly = Boolean(opts.readonly);
   const watermark = opts.since?.trim() || null;
   const result = await searchDetailed(db, embedder, "", BRIEFING_MEMORIES, {
@@ -605,11 +687,13 @@ export async function briefing(
     );
   return {
     ok: true,
+    banner: sessionBanner(scope),
     project: scope.project,
     project_source: scope.project_source,
     author: scope.author,
     author_source: scope.author_source,
     active_since: scope.active_since,
+    scope_note: scope.scope_note,
     tools: listTools(db),
     skills: skills.skills,
     skills_elsewhere: skills.elsewhere,
