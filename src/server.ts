@@ -31,6 +31,7 @@ import {
   NO_PROJECT_MEMORY_ERROR,
   UNCLAIMED_WORK_NOTE,
   UNCLAIMED_WRITE_NOTE,
+  projectsDir,
   withProjectMemo,
 } from "./scope";
 import { fileStats, embedderState, queryStore, warningsFor, type Warning } from "./stats";
@@ -87,7 +88,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
     const count = Object.keys(rekey.renamed).length;
     if (count) console.error(`office: renamed ${count} project key(s) to today's form`, rekey.renamed);
     if (rekey.unmapped.length) {
-      console.error("office: project names with no folder in ~/Projects, left as they are:", rekey.unmapped);
+      console.error(`office: project names with no folder in ${projectsDir()}, left as they are:`, rekey.unmapped);
     }
   } catch (err) {
     console.error("office: project key rename failed, nothing changed:", err);

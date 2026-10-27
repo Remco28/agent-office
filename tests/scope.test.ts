@@ -1,22 +1,28 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { normalizeProject, scopeClause, scopeProjects } from "../src/scope";
+import { dirname, join } from "node:path";
+import { normalizeProject, projectsDir, scopeClause, scopeProjects } from "../src/scope";
+import { ROOT } from "../src/paths";
 
 describe("project scope", () => {
   // A temporary home with its own ~/Projects, so nothing here looks at this machine's folders.
   let home: string;
   let previousHome: string | undefined;
+  let previousProjects: string | undefined;
   beforeEach(() => {
     previousHome = process.env.HOME;
+    previousProjects = process.env.OFFICE_PROJECTS_DIR;
     home = realpathSync(mkdtempSync(join(tmpdir(), "office-scope-home-")));
     mkdirSync(join(home, "Projects", "crokinole"), { recursive: true });
     process.env.HOME = home;
+    process.env.OFFICE_PROJECTS_DIR = join(home, "Projects");
   });
   afterEach(() => {
     if (previousHome === undefined) delete process.env.HOME;
     else process.env.HOME = previousHome;
+    if (previousProjects === undefined) delete process.env.OFFICE_PROJECTS_DIR;
+    else process.env.OFFICE_PROJECTS_DIR = previousProjects;
   });
 
   test("normalizeProject expands ~ and drops trailing slashes", () => {
@@ -24,7 +30,12 @@ describe("project scope", () => {
     expect(normalizeProject("  ")).toBe("");
   });
 
-  test("a bare name is the folder of that name in ~/Projects, when there is one", () => {
+  test("the projects folder is the one holding the office checkout, unless set", () => {
+    delete process.env.OFFICE_PROJECTS_DIR;
+    expect(projectsDir()).toBe(dirname(realpathSync(ROOT)));
+  });
+
+  test("a bare name is the folder of that name in the projects folder, when there is one", () => {
     expect(normalizeProject("crokinole")).toBe(join(home, "Projects", "crokinole"));
     // no such folder: the name is kept as typed
     expect(normalizeProject("no-such-project")).toBe("no-such-project");

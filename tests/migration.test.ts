@@ -75,7 +75,9 @@ describe("migration", () => {
     // A home with no ~/Projects/fencing-team-draft-game, so the plain name is
     // kept as typed and reaches the old row; never this machine's folders.
     const previousHome = process.env.HOME;
+    const previousProjects = process.env.OFFICE_PROJECTS_DIR;
     process.env.HOME = mkdtempSync(join(tmpdir(), "office-legacy-home-"));
+    process.env.OFFICE_PROJECTS_DIR = process.env.HOME;
     try {
       const hits = await search(db, fakeEmbedder(), "checkout 60", 5, {
         project: "fencing-team-draft-game",
@@ -83,6 +85,8 @@ describe("migration", () => {
       expect(hits.map((h) => h.content)).toContain("keep checkout under 60 req/min");
     } finally {
       process.env.HOME = previousHome;
+      if (previousProjects === undefined) delete process.env.OFFICE_PROJECTS_DIR;
+      else process.env.OFFICE_PROJECTS_DIR = previousProjects;
       db.close();
     }
   });

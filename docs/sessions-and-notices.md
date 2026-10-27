@@ -462,7 +462,8 @@ checkout, from any worktree); otherwise the project is the checkout you are in.
 The special handling for bare repositories, git folders kept elsewhere and
 submodules inside worktrees is gone; none is used here, and a bare repo's
 worktrees are now separate projects (accepted). A bare name such as `crokinole`
-means `~/Projects/crokinole` when that folder exists.
+means the folder of that name beside the office checkout when it exists
+(`~/Projects` here, `~/Dev` on the laptop; `OFFICE_PROJECTS_DIR` overrides it).
 
 Reads now match a project key exactly, instead of re-examining every key ever
 stored on each read. Old spellings (plain names from before keys were folders,

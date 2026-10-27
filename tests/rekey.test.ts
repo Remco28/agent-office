@@ -15,14 +15,19 @@ function git(cwd: string, ...args: string[]) {
 describe("renaming old project keys once", () => {
   let home: string;
   let previousHome: string | undefined;
+  let previousProjects: string | undefined;
   beforeEach(() => {
     previousHome = process.env.HOME;
+    previousProjects = process.env.OFFICE_PROJECTS_DIR;
     home = realpathSync(mkdtempSync(join(tmpdir(), "office-rekey-home-")));
     process.env.HOME = home;
+    process.env.OFFICE_PROJECTS_DIR = join(home, "Projects");
   });
   afterEach(() => {
     if (previousHome === undefined) delete process.env.HOME;
     else process.env.HOME = previousHome;
+    if (previousProjects === undefined) delete process.env.OFFICE_PROJECTS_DIR;
+    else process.env.OFFICE_PROJECTS_DIR = previousProjects;
   });
 
   function project(name: string): string {

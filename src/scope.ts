@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
+import { ROOT } from "./paths";
 
 export type GitProjectInfo = {
   /** Canonical main repository root (resolves through git worktrees). */
@@ -186,8 +187,8 @@ export function withProjectMemo<T>(fn: () => T): T {
 /**
  * Turn a user-supplied project reference into a stable key. A path stays a
  * path (expanded, absolute, no trailing slash). A bare name such as `crokinole`
- * is the folder of that name in ~/Projects when one exists, where every project
- * here lives; otherwise it is kept as typed.
+ * is the folder of that name in the projects folder when one exists; otherwise
+ * it is kept as typed.
  *
  * A path that exists inside a git checkout — its top, any subfolder, or a
  * symlink to either — normalizes to that repository's canonical project, so a
@@ -223,9 +224,13 @@ function looksLikePath(value: string): boolean {
   return value.includes("/");
 }
 
-/** Where every project on this machine lives; a bare project name is looked up here. */
+/**
+ * Where this machine's projects live, so a bare project name can be looked up:
+ * `OFFICE_PROJECTS_DIR`, else the folder holding the office checkout itself
+ * (~/Projects on one machine, ~/Dev on another) — no setting needed.
+ */
 export function projectsDir(): string {
-  return join(homeDir(), "Projects");
+  return process.env.OFFICE_PROJECTS_DIR?.trim() || dirname(realPath(ROOT));
 }
 
 function isDir(path: string): boolean {

@@ -254,6 +254,7 @@ The whole memory — and the work log — is that SQLite file. Stop the daemon, 
 | `OFFICE_PYTHON` | Python with sentence-transformers |
 | `OFFICE_MODEL` | Embedding model (default `all-MiniLM-L6-v2`) |
 | `OFFICE_PROJECT` | Default project for a session |
+| `OFFICE_PROJECTS_DIR` | Where a bare project name is looked up (default: the folder holding this checkout) |
 | `OFFICE_AUTHOR` | Your name — the `--by` default, so writes attribute correctly without repeating the flag |
 | `OFFICE_MIN_SIM` | Relevance floor for meaning-only hits (default `0.30`) |
 | `OFFICE_LOG_CAP` | Characters of work trail to keep (default `1000000`) |

@@ -19,7 +19,7 @@ export type RekeyResult = {
  * name from before keys were folders (`fencing-team-draft-game`), a subfolder of
  * a repository, a link to one — would otherwise never be found again. Each
  * stored value becomes `normalizeProject(value)`: a plain name with a folder of
- * that name in ~/Projects becomes that folder's project, and a path inside a
+ * that name in the projects folder becomes that folder's project, and a path inside a
  * repository becomes the repository. A value that resolves to nothing new (a
  * folder that was moved or removed, a name with no folder) is left as it was and
  * reported, never guessed.
