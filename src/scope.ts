@@ -314,12 +314,13 @@ export const UNCLAIMED_WRITE_NOTE =
   "filing that way";
 
 /**
- * What to say at the moment a memory lands with no project and no `--global`.
- * It is the sibling of the note above: the same trap, one record over.
+ * Why a memory with no project and no `--global` is refused. No read could ever
+ * return it, so storing it would only lose it quietly.
  */
-export const UNATTRIBUTED_MEMORY_NOTE =
-  "this memory has no project and is not marked --global, so no project-scoped " +
-  "read will find it. Pass --project <path>, or --global if it applies everywhere";
+export const NO_PROJECT_MEMORY_ERROR =
+  "nothing was saved: this memory has no project, so no read would ever find it. " +
+  "Run it inside the project's repository, or pass --project <path>; " +
+  "add --global if it applies to every project";
 
 /**
  * What to tell a session that has never been here before and is being handed

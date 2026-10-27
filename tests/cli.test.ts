@@ -46,6 +46,16 @@ describe("CLI and daemon integration", () => {
     expect(inRepo.project_source).toBe("folder");
   });
 
+  test("a memory with no project is refused, and nothing is saved", async () => {
+    // run from a folder that is not a repository, with no --project
+    await expect(cli(["remember", "lost fact", "--by", "test-1111"])).rejects.toThrow(/nothing was saved/);
+    expect((await cli(["list", "--by", "test-1111"])).memories.map((m: any) => m.content))
+      .not.toContain("lost fact");
+    expect((await cli(["remember", "everywhere fact", "--global", "--by", "test-1111"])).memory.scope).toBe("global");
+    expect((await cli(["remember", "alpha fact", "--project", "/p/alpha", "--by", "test-1111"])).memory.project)
+      .toBe("/p/alpha");
+  });
+
   test("the removed office manager role is refused, not silently ignored", async () => {
     await expect(cli(["begin", "--by", "test-4444", "--role", "manager"])).rejects.toThrow(/role was removed/);
     await expect(cli(["begin", "--by", "test-4444"], { OFFICE_ROLE: "manager" })).rejects.toThrow(/role was removed/);

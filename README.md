@@ -110,7 +110,7 @@ cd ~/Projects/the-thing && office init     # once per project
 office begin --by <your-agent-name>          # from inside the project, every session
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working on this project, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
+That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working on this project, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. Work that cannot resolve one is stored **unclaimed** rather than guessed; a memory that cannot is refused (unless it is `--global`), because no read would ever return it.
 
 On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over the project's most recent activity. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
 
@@ -200,7 +200,7 @@ Skill files remain the source of truth. Discovery re-reads their metadata each t
 
 One thing is deliberately left unscoped, so that a handoff is never lost:
 
-- **Unclaimed records.** Work filed with no project belongs to nobody, so a session with no project is shown it rather than finding it hidden from every scoped read. A memory filed with no project (and not `--global`) is returned by no scoped read; it is only counted. The office names a record as unclaimed at the moment it is written, while the agent can still fix it for free.
+- **Unclaimed work.** Work filed with no project belongs to nobody, so a session with no project is shown it rather than finding it hidden from every scoped read, and the office names it as unclaimed at the moment it is written. A memory with no project is not stored at all (unless it is `--global`): no read would ever return it.
 
 The whole-store reads are the ones asked for by name: `office list` for memories, and `office work log` for the entire trail.
 

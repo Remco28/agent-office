@@ -27,7 +27,7 @@ import { listSkills } from "./skills";
 import { createSkillSearch } from "./skill-search";
 import {
   NO_PROJECT_NOTE,
-  UNATTRIBUTED_MEMORY_NOTE,
+  NO_PROJECT_MEMORY_ERROR,
   UNCLAIMED_WORK_NOTE,
   UNCLAIMED_WRITE_NOTE,
   withProjectMemo,
@@ -227,6 +227,11 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         author: str(body.author),
         cwdProject: str(body.cwd_project),
       });
+      // A memory with no project and not --global is one no read returns, so
+      // it is refused at the door rather than stored and lost.
+      if (!scope.project && str(body.scope) !== "global") {
+        return json({ error: NO_PROJECT_MEMORY_ERROR }, 400);
+      }
       try {
         const memory = await remember(db, embedder, {
           content,
@@ -237,17 +242,12 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
           source: str(body.source),
         });
         void backfill();
-        // Said on the way in, not discovered later: a memory with no project
-        // is one no project-scoped read will ever return.
-        const unattributed = memory.project === null && memory.scope === "project";
         return json({
           ok: true,
           memory,
           project_source: scope.project_source,
           scope_note: scope.scope_note,
           author_source: scope.author_source,
-          unattributed,
-          note: unattributed ? UNATTRIBUTED_MEMORY_NOTE : null,
         });
       } catch (err) {
         return fail(err);

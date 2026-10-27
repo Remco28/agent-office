@@ -198,8 +198,8 @@ The project is this command's --project (or OFFICE_PROJECT), else the
 repository you run it in, else none: nothing is taken from what the office
 remembers. --by signs your work with the numbered name begin gave you; without
 it your writes are unsigned. Export OFFICE_AUTHOR instead of repeating the flag.
-Records written with no project are filed unclaimed: no project-scoped read
-returns them, so the office names them instead of losing them quietly.
+Work written with no project is filed unclaimed and named as such; a memory
+with no project is refused (add --global if it applies to every project).
 JSON is the default for agent commands. Pass --text for a short listing.
 Daemon binds 127.0.0.1:${port()}. Data: ${dataDir()}
 `;
@@ -522,11 +522,8 @@ export async function main(argv = process.argv): Promise<number> {
         author: declaredAuthor(opts),
         scope: opts.scope ?? null,
       },
-    })) as { unattributed?: boolean; note?: string | null };
+    }));
     printJson(data);
-    // Said at the moment it is written, because now the agent can fix it for
-    // free and later it is a record no project read will find.
-    if (data.unattributed && data.note) process.stderr.write(`warn: ${data.note}\n`);
     printScopeNote(data);
     return 0;
   }
