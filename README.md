@@ -101,148 +101,52 @@ Keeping the record in the data directory rather than the checkout means the venv
 ```bash
 git pull
 ./install.sh
+office stop        # the running daemon keeps the old code until it stops
 ```
 
-## Starting a session
+You never need to start the daemon by hand: any `office` command starts it if it is not running (`office serve --detach` does it explicitly).
+
+## Using it
+
+Once per project, from inside its repository:
 
 ```bash
-cd ~/Projects/the-thing && office init     # once per project
-office begin --by <your-agent-name>          # from inside the project, every session
+office init                 # or: office init /path/to/the/project
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working on this project, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. Work that cannot resolve one is stored **unclaimed** rather than guessed; a memory that cannot is refused (unless it is `--global`), because no read would ever return it.
+It creates a git repository if there is none, links `.claude/skills` and `.agents/skills` to this checkout's skills, adds the office's section to the project's `AGENTS.md` (creating the file if needed), and links `CLAUDE.md` to it if there is no `CLAUDE.md`. It looks before it writes: it refuses a folder inside another repository or one that holds other repositories (such as `~/Projects`), never edits a link or a file it finds beyond adding its section, never touches git's config, and says on stderr whatever it left alone. Commit `AGENTS.md` and `CLAUDE.md`; the skills links point at this machine's checkout, so add them to `.gitignore` if you do not want to see them.
 
-On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over the project's most recent activity. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
+**That section is the agents' manual.** Every project carries the same one: check in with `office begin --by <tool>`, sign everything with the numbered name it hands back, write work notes as you go, store decisions as memories and never secrets, keep temporary files out of the repository, copy a file outside the repository before changing it, and never delete what you did not make without asking. `AGENTS.md` in *this* repository is different: it is the guide for agents working on the office itself, with the design rules a change must not break.
 
-The project for any command is its own `--project` (or `OFFICE_PROJECT`) if given, else the repository it runs in, else none. Nothing is taken from what the office remembers, so where a command files its work follows from where it ran. The agent-office checkout is an ordinary project. A folder outside any repository gives none (a repository whose checkout is your home folder, such as a dotfiles repo, counts as none), so commands there need `--project` each time. If the folder decides a different project from the one a named session began on, the command says so on stderr. A read with no project at all is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
+What a human should know:
 
-### Two agents, one office
+- **The folder is the project.** A command's project is its `--project` (or `OFFICE_PROJECT`), else the git repository it runs in (any worktree of it counts), else none. A bare name such as `crokinole` means the folder of that name beside this checkout. One agent works in one repository; to work on another, start another agent there.
+- **Two records, one file.** They share the database so that the whole memory is one file you can copy; they stay separate lists because almost nothing else about them matches.
 
-A name is a signature: which provider and which run wrote a record. Worktrees and one agent, one repository keep agents out of each other's files.
+  | | memories | work log |
+  |---|---|---|
+  | written | deliberately | while working |
+  | edited | corrected, deletable | never |
+  | read by | meaning | time |
+  | retention | never pruned | oldest closed work dropped past `OFFICE_LOG_CAP` |
 
-- `begin --by codex` hands back a numbered name for this run, like `codex-4821`. Sign every later call with it.
-- A call with no name is unsigned, and says so on stderr. It has no session. An author is only ever what the call declared, never borrowed from another session.
-- A bare name like `codex` on a write, with no check-in behind it, is pointed out: it signs the tool, not the run.
-- `begin` lists this project's sessions and what the others did since you were last here, measured against your own previous check-in. A first visit is handed the project's recent activity instead.
+  "Done" is not a status: work is open until someone writes a closing line, so an agent that dies mid-task leaves exactly the truth.
+- **Names are signatures.** `--by codex` hands back `codex-4821` for that run, and every later write signs with it, so you can tell which provider and which run did what. A call with no name is unsigned and says so.
+- **Nothing is lost quietly.** A memory with no project is refused rather than stored where no read finds it; work with no project is shown as unclaimed; reads never write; `office peek` is a check-in that writes nothing, for an agent told not to change anything.
+- **Moved and removed projects.** A check-in records the repository's first commit. If a folder moves, the first check-in in the new folder says so and asks the agent to check with you; `office move <old path>` then brings the notes over, and refuses on a copy, a merge or a different history. `office status` lists projects whose folder is not found. Nothing is ever deleted for being gone.
+- **Issues** are friction in the office itself, not bugs in a project: `office issues`, `office issue open|note|close`. An agent working in this repository reads them at the start and brings decisions to you.
+- **Tools** are this machine's list, kept in the database and handed to every agent at check-in: `office tools add <name> --use "<command>" "<what it is>"`.
+- **Search** (`office context`, `office search`) applies a relevance floor, so an empty answer means nothing relevant is recorded. The floor belongs to the embedding model; see [docs/retrieval-floor.md](docs/retrieval-floor.md) before changing either.
 
-`--by` is expected and will be required in a future release. Export `OFFICE_AUTHOR` instead of repeating the flag. The reasoning is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
-
-### Reading without checking in
-
-`begin` is the front door and it writes, which locks out the agents it ought to suit most: one told not to modify state reads `AGENTS.md`, sees that `begin` records a session, and correctly refuses to run it — so it never enters at all. `office peek` is the read-only way in. Same briefing, nothing written; it is exactly `begin --readonly`. Because a peek does not move your check-in mark, its "since you were last here" notices repeat until a real `begin` moves it, and it says so rather than pretending to be a check-in. On a first visit there is no watermark to move, so the recent activity reads the same every time until you begin.
-
-The other reads never write either — `context`, `search`, `work`, `issues`, `tools`, `list`, `status`. Only `begin`, `remember`, `forget`, and the work/issue/tools writers change the record.
-
-## Two records, one file
-
-They share the database because "your whole memory is one thing you can copy" is the point. They stay separate lists because almost nothing else about them matches.
-
-| | memories | work log |
-|---|---|---|
-| written | deliberately | while working |
-| edited | corrected, deletable | never |
-| read by | meaning | time |
-| failure mode | wrong or stale | too much of it |
-| retention | never pruned | oldest closed work dropped past a size cap |
-
-"Done" is not stored anywhere. A piece of work is open while nobody has written a closing line, so an agent that dies mid-task leaves exactly the truth — opened, some notes, no close. The trail is capped at `OFFICE_LOG_CAP` characters (default 1,000,000) and prunes the oldest *closed* work; open work is the handoff and is never dropped.
-
-The read is scoped the same way memories are, and the scope is a required choice in the code rather than an optional filter. `office work` with a project is that project's unfinished business; with no project it is the **unclaimed** items, which belong to nobody and therefore cannot be handed to the wrong project. `office work log` is the whole trail, every project, and is meant to be asked for by name.
-
-```bash
-office work                       # unfinished work for this project
-                                  # (with no project: the unclaimed items)
-office work open "photo sort"     # returns an id
-office work note 4 "2023 done, 2024 untouched"
-office work close 4
-office work log --all --limit 20  # the whole trail, every project
-```
-
-`office work note` is the handoff. The reason it is written *while* working is that an agent running out of context cannot write its own death notice.
-
-## Moved and removed projects
-
-A check-in records its repository's first commit as a fingerprint. If a folder is moved or renamed, the first check-in in the new folder says that this repository shares its history with the old path, whose folder is gone, and asks the agent to check with the human. `office move <old path>`, run inside the new folder, then brings the old notes over in one step. It refuses, moving nothing, when the old folder still exists (that is a copy, which is its own project), when the new folder already has notes of its own (that would merge two projects), or when the two histories differ. Nothing moves by itself.
-
-`office status` lists `gone_projects`: projects whose folder is not found, with how many records each still holds; the desk shows how many there are. Nothing is ever deleted for being gone. A folder on an unplugged drive shows there too until it is back.
-
-## Issues
-
-Beside the two records there is a short list of **issues**: friction in the office itself — something it blocks, lacks, or gets wrong. It has the work log's shape (append-only; open until someone writes a closing line) in tables of its own, so an issue never appears in a project's unfinished work. It is deliberately not scoped to a project: every session sees the same open issues whatever it is working on, so a problem is added to rather than filed twice. An issue records the project it came up in as context, not as a filter. Bugs in the repo an agent is working on are not issues; a repo problem that exposes an office problem is.
-
-```bash
-office issues [--all]                    # open issues (--all adds closed)
-office issue open "begin lists dead sessions as present"
-office issue note 3 "same here, after compaction"
-office issue close 3 "fixed in 1f3b6e0"  # the resolution line is required
-```
-
-`begin` lists up to five open issues, counts the rest, and tells a session when someone else closed one it filed — which matters for sessions that run for days.
-
-An agent working in the agent-office repository reads `office issues` at the start, adds notes, closes what is resolved, and brings anything that needs a decision to the human. (There was an office manager role for this until 27 Oct 2026; `--role` and `OFFICE_ROLE` are now refused.)
-
-## Tools
-
-The tool list lives in the database and comes back from `office begin`, so describing something once is enough for every later session — no stale copy in the instruction file.
-
-```bash
-office tools add ffmpeg --use "ffmpeg -i in.mp4 out.mp4" "local video conversion"
-office tools add ffmpeg "local video conversion, h264 defaults"   # updates in place
-office tools
-office tools remove ffmpeg
-```
-
-## Retrieval
-
-`context` and `search` return memories for the session's project plus those marked `--global`, and they apply a relevance floor. Word matches are always kept; meaning-only hits must clear `OFFICE_MIN_SIM` (default `0.30`). So a question with no answer returns nothing instead of eight near misses, and the agent can trust an empty result.
-
-Reads are scoped to the repository they run in. A command's `--project` overrides that for the read; `OFFICE_PROJECT` (or the older `OFFICE_SOURCE`) works too, from a launcher. `office list` and `office work log` keep their explicit whole-store behavior.
-
-Queries also search the names and descriptions of skills available on this computer, whatever the project. JSON keeps memory results in `hits` and adds `skill_hits`, whose entries have `kind: "skill"`, `name`, `description`, and the absolute `SKILL.md` path, plus ranking evidence. `skills_searched` counts the available skills and `skills_problems` reports unreadable metadata. `--limit` caps each list independently; `--text` prints matching skills and their paths. Meaning-only skill matches use the same relevance floor; word matching works if the embedder is down. An empty `context` query still returns recent memories, without skill matches.
-
-Skill files remain the source of truth. Discovery re-reads their metadata each time and caches only derived embeddings in the daemon's memory; edits, removals, and machine restrictions take effect on the next search. It does not add skill copies to the memory database.
-
-**Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too.
-
-One thing is deliberately left unscoped, so that a handoff is never lost:
-
-- **Unclaimed work.** Work filed with no project belongs to nobody, so a session with no project is shown it rather than finding it hidden from every scoped read, and the office names it as unclaimed at the moment it is written. A memory with no project is not stored at all (unless it is `--global`): no read would ever return it.
-
-The whole-store reads are the ones asked for by name: `office list` for memories, and `office work log` for the entire trail.
-
-That is why an unrouted read is never ambiguous: an empty result is either "nothing relevant here", "nothing stored for this project yet", or "no project declared — only the everywhere notes were in scope", and the note says which.
-
-```bash
-office context "add rate limiting to checkout"
-office search "checkout rate limit"
-office remember --tag convention "60 req/min per IP, enforced in src/server/checkout.ts"
-office remember --global "prefers tabs over spaces"
-office forget 12
-```
+`office help` lists every command. The design history is in [docs/sessions-and-notices.md](docs/sessions-and-notices.md).
 
 ## The desk
 
-Type `office` with no arguments to open the desk: one screen with daemon/embedder status, the active project (and every session, when more than one is recorded), database size, work log size, write volume, and warnings if the store is running away — including too much unfinished work. `s` start/stop, `r` restart, `f` fix, `q` leave.
-
-Agents still use the CLI. Office instructions are **opt-in per project**, not global — `AGENTS.md` goes in each project that uses the office and never in the home folder itself. To give a project the office, run `office init` in it:
-
-```bash
-office init /path/to/that/project
-```
-
-It creates the repository if there is none, links `.claude/skills` and `.agents/skills` to this checkout's skills (where nothing is there yet), adds the startup section to `AGENTS.md` unless it already has one (creating the file if needed), and links `CLAUDE.md` to it if there is no `CLAUDE.md`; whatever it leaves alone, it says so. The project is always the repository's folder as git reports it — nothing is recorded in `.git/config` — so a copied repository is a project of its own. It looks before it writes: a folder inside another repository is refused with the command to run instead, so is a folder that holds other repositories a few folders down (such as `~/Projects`), a link it finds is never edited or replaced, and nothing is hidden from git. Commit `AGENTS.md` and `CLAUDE.md`; the skills links point at this machine's checkout, so add them to `.gitignore` if you do not want to see them. Projects set up the old way, with `AGENTS.md` linked to this checkout's, keep working — init leaves those links alone and says so. The office database remains local to each computer; `AGENTS.md` and `skills/` travel with this repository when cloned.
+Type `office` with no arguments to open the desk: one screen with daemon and embedder status, the latest sessions, database and work-log size, write volume, how many projects' folders are not found, and warnings if the store is running away. `s` start/stop, `r` restart, `f` fix, `q` leave. Agents use the CLI, never the desk.
 
 ## Skills
 
-Skills are checked in under `skills/<name>/SKILL.md`, in the format Claude Code and Codex load natively (YAML frontmatter with `name` and `description`, then the procedure; templates and scripts sit beside it). They are not in the database: git is what carries them to every computer, and the folder is the only copy.
-
-They apply to every project. `office begin` lists each skill's name, description, and path; `office skills` lists them on their own. `.claude/skills` and `.agents/skills` are symlinks to the same folder, so Claude Code and Codex started in this checkout — or in a project `office init` set up, which gets the same two links — also load them themselves.
-
-A skill tied to one computer sets `metadata.machine` to that computer's `hostname` (comma-separated for several; matched without case). Other computers count it rather than list it. `OFFICE_MACHINE` overrides the hostname, and `OFFICE_SKILLS` points the office at another folder.
-
-The first skill is [`human-feedback`](skills/human-feedback/SKILL.md): agents build an offline, project-specific test guide from its Fieldnotes template, and the human returns feedback as a ZIP.
-
-[`desktop-polish`](skills/desktop-polish/SKILL.md) makes desktop apps look and feel finished. Agents follow its rules whenever they touch a desktop app's interface, and run its review (with `measure.py`, which counts the sizes, colours and spacing a codebase really uses) when asked to polish one. The skill holds the method; each project keeps its own values and decisions.
+Skills are checked in under `skills/<name>/SKILL.md`, in the format Claude Code and Codex load natively, so git carries them to every computer. `office begin` lists them, `office skills` lists them again, and `context`/`search` find them by meaning. A skill tied to one computer sets `metadata.machine` to its `hostname`. How to write one is in `AGENTS.md`.
 
 ## Copying the store
 
@@ -270,14 +174,7 @@ The whole memory — and the work log — is that SQLite file. Stop the daemon, 
 
 `--source` and `OFFICE_SOURCE` are the old names for `--project` and `OFFICE_PROJECT`; they still work.
 
-**The floor is absolute, so it belongs to the model.** `OFFICE_MIN_SIM` is a raw cosine cut-off, and models place unrelated text at very different scores — so "a better model" and "this model" cannot share one floor. Measured on 16 real notes from this machine with 14 answerable and 8 unanswerable queries, CPU, via the same `encode()` the sidecar uses:
-
-| model | right note scores | a question with no answer scores | usable floor |
-|---|---|---|---|
-| `all-MiniLM-L6-v2` (default) | 0.30 – 0.73 | ≤ 0.14 | **0.25 – 0.30** |
-| `BAAI/bge-small-en-v1.5` | 0.57 – 0.86 | up to 0.59 | ~0.59 |
-
-bge-small ranks no better here (12/14 first place against 13/14) and compresses *everything* upward, so at the default `0.30` it answered every nonsense query with eight confident vector hits — the "an empty result is real" contract inverted. A query-side instruction prefix does not restore the separation (it lowers the right note to 0.57 while nonsense stays at 0.59). If you do switch models, re-tune `OFFICE_MIN_SIM` in the same change and re-embed: embeddings carry no record of the model that made them, so a half-switched store compares two vector spaces and returns quietly wrong similarities rather than crashing.
+How to choose `OFFICE_MIN_SIM` for a model is in [docs/retrieval-floor.md](docs/retrieval-floor.md).
 
 ## Tests
 
