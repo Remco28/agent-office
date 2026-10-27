@@ -1,4 +1,0 @@
-# Critic (Claude subagent, fresh; plan v1; experiments in scratch)
-J1 holds; smaller: only hasGitAncestor reads the link's own path (git follows links), so realPath there fixes every caller. LOW: mkdir and git init still go through the link — use the real target for writes.
-J2 holds for the named case; MED: with a --separate-git-dir superproject the fallback root is its git folder, so after deinit the key is G2/lib/s, not the main checkout's sup2/lib/s (reproduced) — known gap, git records no main checkout; still better than today. LOW: a branch-moved submodule can flip between two keys (pre-existing).
-J4 MED: mkdirSync(recursive) succeeds through a link made just after the re-check; create a planned-missing parent without recursive (EEXIST = skip), and make the skills link at the recorded real folder rather than through .claude again. Kind + real path suffices (the inside check is implied).
