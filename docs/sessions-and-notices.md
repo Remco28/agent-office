@@ -453,3 +453,20 @@ does that now (Frank). Removed: `--role`, `OFFICE_ROLE`, and the manager lines i
 the briefing. A launcher that still passes a role is refused with a message, not
 ignored. The `role` column is left in existing stores, unread. Issues stay: an
 agent working in the agent-office repository handles them (AGENTS.md).
+
+## Amendment, 27 Oct 2026: one rule for unusual repositories; keys renamed once
+
+Frank's decisions. A folder's project is found by one rule: when git's shared
+folder is a `.git` folder, the project is the folder holding it (the main
+checkout, from any worktree); otherwise the project is the checkout you are in.
+The special handling for bare repositories, git folders kept elsewhere and
+submodules inside worktrees is gone; none is used here, and a bare repo's
+worktrees are now separate projects (accepted). A bare name such as `crokinole`
+means `~/Projects/crokinole` when that folder exists.
+
+Reads now match a project key exactly, instead of re-examining every key ever
+stored on each read. Old spellings (plain names from before keys were folders,
+subfolders of a repository) are rewritten once when the daemon starts
+(`src/rekey.ts`; a marker row in `meta` records it; later starts only retry
+plain names). On this machine that renamed 5 keys and left none unmapped.
+Plan, critic, blind solver: review-loop/layouts/.

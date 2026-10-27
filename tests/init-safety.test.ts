@@ -245,7 +245,7 @@ describe("office init leaves the user's files alone", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  test("a bare-clone layout is named after its folder, not .bare", () => {
+  test("a worktree of a bare clone is its own project, and is not called a worktree of itself", () => {
     const origin = repo(join(root, "origin"));
     const proj = join(root, "proj");
     mkdirSync(proj);
@@ -253,8 +253,9 @@ describe("office init leaves the user's files alone", () => {
     writeFileSync(join(proj, ".git"), "gitdir: ./.bare\n");
     git(proj, "worktree", "add", "-q", join(proj, "main"), "HEAD");
     const result = initProject(join(proj, "main"), { skillsPath: skills });
-    expect(result.name).toBe("proj");
-    expect(readFileSync(join(proj, "main", "AGENTS.md"), "utf8")).toContain("This repository (`proj`)");
+    expect(result.name).toBe("main");
+    expect(result.warnings.join(" ")).not.toContain("is a worktree of");
+    expect(readFileSync(join(proj, "main", "AGENTS.md"), "utf8")).toContain("This repository (`main`)");
   });
 
   test("three inits at once all finish, with one section", async () => {

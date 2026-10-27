@@ -1,40 +1,40 @@
-import { describe, expect, test } from "bun:test";
-import { homedir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fakeEmbedder } from "../src/embed";
-import { remember } from "../src/memory";
-import { matchingProjects, normalizeProject, projectKey, scopeClause } from "../src/scope";
-import { tempDb } from "./helpers";
+import { normalizeProject, scopeClause, scopeProjects } from "../src/scope";
 
 describe("project scope", () => {
+  // A temporary home with its own ~/Projects, so nothing here looks at this machine's folders.
+  let home: string;
+  let previousHome: string | undefined;
+  beforeEach(() => {
+    previousHome = process.env.HOME;
+    home = realpathSync(mkdtempSync(join(tmpdir(), "office-scope-home-")));
+    mkdirSync(join(home, "Projects", "crokinole"), { recursive: true });
+    process.env.HOME = home;
+  });
+  afterEach(() => {
+    if (previousHome === undefined) delete process.env.HOME;
+    else process.env.HOME = previousHome;
+  });
+
   test("normalizeProject expands ~ and drops trailing slashes", () => {
-    expect(normalizeProject("~/Projects/x/")).toBe(join(homedir(), "Projects", "x"));
-    expect(normalizeProject("agent-office")).toBe("agent-office");
+    expect(normalizeProject("~/Projects/x/")).toBe(join(home, "Projects", "x"));
     expect(normalizeProject("  ")).toBe("");
-    expect(projectKey("~/Projects/Agent-Office")).toBe("agent-office");
   });
 
-  test("a legacy slug still answers when you name the folder", async () => {
-    const db = tempDb();
-    await remember(db, fakeEmbedder(), {
-      content: "60 req/min per IP",
-      project: "fencing-team-draft-game",
-    });
-    // Paths that cannot exist, so the test never asks git about this machine's folders.
-    expect(matchingProjects(db, "/nonexistent-office-test/Projects/fencing-team-draft-game")).toEqual([
-      "fencing-team-draft-game",
-    ]);
-    expect(matchingProjects(db, "/nonexistent-office-test/Projects/something-else")).toEqual([]);
-    db.close();
+  test("a bare name is the folder of that name in ~/Projects, when there is one", () => {
+    expect(normalizeProject("crokinole")).toBe(join(home, "Projects", "crokinole"));
+    // no such folder: the name is kept as typed
+    expect(normalizeProject("no-such-project")).toBe("no-such-project");
+    expect(normalizeProject("src")).toBe("src");
   });
 
-  test("two real paths with the same folder name stay apart", async () => {
-    const db = tempDb();
-    await remember(db, fakeEmbedder(), { content: "work api", project: "/work/api" });
-    await remember(db, fakeEmbedder(), { content: "home api", project: "/home/api" });
-    expect(matchingProjects(db, "/work/api")).toEqual(["/work/api"]);
-    expect(matchingProjects(db, "/home/api")).toEqual(["/home/api"]);
-    db.close();
+  test("a read matches exactly one key, its own", () => {
+    expect(scopeProjects("/work/api")).toEqual(["/work/api"]);
+    expect(scopeProjects("crokinole")).toEqual([join(home, "Projects", "crokinole")]);
+    expect(scopeProjects("  ")).toEqual([]);
   });
 
   test("an empty match list is the everywhere notes, not an open filter", () => {
@@ -45,14 +45,5 @@ describe("project scope", () => {
     const scoped = scopeClause(["alpha"]);
     expect(scoped.sql).toContain("scope = 'global' OR project IN (?)");
     expect(scoped.params).toEqual(["alpha"]);
-  });
-
-  test("a project only known from the log is still a known project", () => {
-    const db = tempDb();
-    db.query(
-      "INSERT INTO work (title, project, author, created_at) VALUES (?, ?, ?, ?)",
-    ).run("photos", "~/Pictures/2019", null, new Date().toISOString());
-    expect(matchingProjects(db, "~/Pictures/2019")).toEqual(["~/Pictures/2019"]);
-    db.close();
   });
 });

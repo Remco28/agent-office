@@ -72,11 +72,19 @@ describe("migration", () => {
 
   test("the index is rebuilt, so old rows are searchable right away", async () => {
     const db = openDb(legacyStore());
-    const hits = await search(db, fakeEmbedder(), "checkout 60", 5, {
-      project: "fencing-team-draft-game",
-    });
-    expect(hits.map((h) => h.content)).toContain("keep checkout under 60 req/min");
-    db.close();
+    // A home with no ~/Projects/fencing-team-draft-game, so the plain name is
+    // kept as typed and reaches the old row; never this machine's folders.
+    const previousHome = process.env.HOME;
+    process.env.HOME = mkdtempSync(join(tmpdir(), "office-legacy-home-"));
+    try {
+      const hits = await search(db, fakeEmbedder(), "checkout 60", 5, {
+        project: "fencing-team-draft-game",
+      });
+      expect(hits.map((h) => h.content)).toContain("keep checkout under 60 req/min");
+    } finally {
+      process.env.HOME = previousHome;
+      db.close();
+    }
   });
 
   test("running the migration again changes nothing", () => {

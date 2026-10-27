@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 export type GitProjectInfo = {
   /** Canonical main repository root (resolves through git worktrees). */
@@ -43,6 +43,7 @@ export function homeDir(): string {
 }
 
 let gitCalls = 0;
+const GIT_TIMEOUT_MS = 10_000;
 
 /** How many git subprocesses this process has started; for tests of read cost. */
 export function gitCallCount(): number {
@@ -90,7 +91,13 @@ function git(args: string[]): { ok: boolean; out: string } {
   // No git on PATH means no folder is a repository; it is not a reason to fail.
   let proc;
   try {
-    proc = Bun.spawnSync(["git", ...args], { stdout: "pipe", stderr: "pipe", env: gitEnv() });
+    // A git that hangs (a stuck network mount, a lock) must not stall the daemon.
+    proc = Bun.spawnSync(["git", ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: gitEnv(),
+      timeout: GIT_TIMEOUT_MS,
+    });
   } catch {
     return { ok: false, out: "" };
   }
@@ -114,77 +121,14 @@ export function hasGitAncestor(dir: string): boolean {
 }
 
 /**
- * The one path every checkout of a repository shares, when its git folder is
- * not the usual `<main checkout>/.git`. Git's own config says which layout it is:
- * a bare repository has no main checkout, so the repository folder itself is the
- * key; a submodule records its checkout in `core.worktree`; a repo made with
- * `--separate-git-dir` records nothing, so the git folder is the key. Each of
- * these gives the same answer from every worktree, which is the point.
- */
-function sharedRoot(gitCommonDir: string): string {
-  const inWorktree = worktreeSubmodule(gitCommonDir);
-  if (inWorktree) return inWorktree;
-  return configuredRoot(gitCommonDir);
-}
-
-function configuredRoot(gitCommonDir: string): string {
-  const config = join(gitCommonDir, "config");
-  const bare = git(["config", "--file", config, "--bool", "--get", "core.bare"]);
-  if (bare.ok && bare.out === "true") return gitCommonDir;
-  const worktree = git(["config", "--file", config, "--get", "core.worktree"]);
-  if (worktree.ok && worktree.out) return clean(resolve(gitCommonDir, worktree.out));
-  return gitCommonDir;
-}
-
-/**
- * A submodule checked out in a worktree of its superproject has a git folder of
- * its own, `<G>/worktrees/<name>/modules/<m>`, and git records that worktree's
- * folder as its checkout. It is the same submodule as `<G>/modules/<m>`, so it
- * takes that one's key: the main checkout's. With no main-checkout copy (a bare
- * superproject, or one never initialised there) the key is the superproject's
- * root plus where the submodule sits inside the worktree, which is what the
- * main checkout will give once it has the submodule too. Anything that only
- * looks like this layout (no `gitdir` file for that worktree) returns null.
- * Known limit, accepted (review round 4, J3): a superproject made with
- * `--separate-git-dir` records nowhere where its main checkout is, so its
- * worktree submodule keys under the git folder and changes key once the main
- * checkout initialises the submodule too.
- */
-function worktreeSubmodule(gitCommonDir: string): string | null {
-  const match = /^(.*)\/worktrees\/([^/]+)\/modules\/(.+)$/.exec(gitCommonDir);
-  if (!match) return null;
-  const [, superGit, name, module] = match;
-  const worktreeAdmin = join(superGit, "worktrees", name);
-  let gitdirFile: string;
-  try {
-    gitdirFile = readFileSync(join(worktreeAdmin, "gitdir"), "utf8").trim();
-  } catch {
-    return null;
-  }
-  // The main checkout's copy decides only while it still names its checkout:
-  // `git submodule deinit` keeps the config but drops core.worktree.
-  const main = join(superGit, "modules", module);
-  if (existsSync(join(main, "config"))) {
-    const worktree = git(["config", "--file", join(main, "config"), "--get", "core.worktree"]);
-    if (worktree.ok && worktree.out) return clean(resolve(main, worktree.out));
-  }
-  const superRoot = basename(superGit) === ".git" ? dirname(superGit) : configuredRoot(superGit);
-  // The file may hold a relative path (worktree.useRelativePaths): it is relative to its own folder.
-  const top = realPath(dirname(resolve(worktreeAdmin, gitdirFile)));
-  const inside = relative(top, realPath(configuredRoot(gitCommonDir)));
-  if (!inside || inside === ".." || inside.startsWith(`..${sep}`) || inside.startsWith(sep)) {
-    return clean(join(superRoot, module));
-  }
-  return clean(join(superRoot, inside));
-}
-
-/**
  * Resolve the canonical Git project for `dir`.
  *
- * Inside a git worktree (such as one created by T3 Code), `--show-toplevel`
- * returns the temporary worktree folder while `--git-common-dir` points back
- * to the main repository's `.git` directory. Using `--git-common-dir` ensures
- * every worktree maps to the same canonical project root.
+ * One rule. When git's shared folder is a `.git` folder, the project is the
+ * folder holding it: the main checkout, from the main checkout or from any of
+ * its worktrees (such as T3 Code's). Otherwise — a bare repository, a git folder
+ * kept elsewhere, a submodule — the project is the checkout you are in. Those
+ * layouts are not used here (Frank, 27 Oct 2026); with this rule a bare repo's
+ * worktrees are separate projects, which is accepted.
  */
 export function resolveGitProject(dir: string): GitProjectInfo | null {
   if (!hasGitAncestor(dir)) return null;
@@ -206,8 +150,7 @@ export function resolveGitProject(dir: string): GitProjectInfo | null {
   const worktreeRoot = clean(lines[0]);
   const gitCommonDir = clean(lines[1]);
   const gitDir = clean(lines[2]);
-  const repoRoot =
-    basename(gitCommonDir) === ".git" ? clean(dirname(gitCommonDir)) : sharedRoot(gitCommonDir);
+  const repoRoot = basename(gitCommonDir) === ".git" ? clean(dirname(gitCommonDir)) : worktreeRoot;
   return { repoRoot, worktreeRoot, gitCommonDir, gitDir };
 }
 
@@ -242,8 +185,9 @@ export function withProjectMemo<T>(fn: () => T): T {
 
 /**
  * Turn a user-supplied project reference into a stable key. A path stays a
- * path (expanded, absolute, no trailing slash); anything else is kept as a
- * plain name so the slug-style values written before the split still work.
+ * path (expanded, absolute, no trailing slash). A bare name such as `crokinole`
+ * is the folder of that name in ~/Projects when one exists, where every project
+ * here lives; otherwise it is kept as typed.
  *
  * A path that exists inside a git checkout — its top, any subfolder, or a
  * symlink to either — normalizes to that repository's canonical project, so a
@@ -253,8 +197,11 @@ export function withProjectMemo<T>(fn: () => T): T {
 export function normalizeProject(raw: string): string {
   let value = raw.trim();
   if (!value) return "";
-  if (value === "~") value = homedir();
-  else if (value.startsWith("~/")) value = join(homedir(), value.slice(2));
+  if (value === "~") value = homeDir();
+  else if (value.startsWith("~/")) value = join(homeDir(), value.slice(2));
+  else if (!value.includes("/") && value !== "." && value !== ".." && isDir(join(projectsDir(), value))) {
+    value = join(projectsDir(), value);
+  }
   // "." and ".." are paths too. Without this, `--project .` was stored as a
   // project literally named ".", which matches nothing a later read names.
   if (value.includes("/") || value === "." || value === "..") value = resolve(value);
@@ -276,7 +223,19 @@ function looksLikePath(value: string): boolean {
   return value.includes("/");
 }
 
-/** The part of a project key two different spellings can agree on. */
+/** Where every project on this machine lives; a bare project name is looked up here. */
+export function projectsDir(): string {
+  return join(homeDir(), "Projects");
+}
+
+function isDir(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * What to tell a session that never named a project.
  *
@@ -343,40 +302,14 @@ export function displayName(project: string): string {
   return last.replace(/\.git$/, "") || last || project;
 }
 
-export function projectKey(raw: string): string {
-  return basename(normalizeProject(raw)).toLowerCase();
-}
-
-/** Every distinct project value already recorded, in memories and in the log. */
-export function knownProjects(db: Database): string[] {
-  const out = new Set<string>();
-  for (const table of ["memories", "work"]) {
-    const rows = db
-      .query(`SELECT DISTINCT project AS p FROM ${table} WHERE project IS NOT NULL`)
-      .all() as { p: string }[];
-    for (const row of rows) out.add(row.p);
-  }
-  return [...out];
-}
-
 /**
- * Project values that refer to the same project as `project`.
- *
- * Two real paths must match exactly — `~/work/api` and `~/personal/api` are
- * different projects. A bare name (what the old `source` column held, e.g.
- * `fencing-team-draft-game`) is matched on its last segment, so a legacy row
- * still answers when you name the folder it lives in.
+ * The stored project values a read in `project` matches: exactly its key. Every
+ * write stores the normalized key, and old keys were renamed once at start
+ * (`canonicalizeProjects`), so a read never has to re-examine what is stored.
  */
-export function matchingProjects(db: Database, project: string): string[] {
-  const wanted = normalizeProject(project);
-  if (!wanted) return [];
-  const key = projectKey(wanted);
-  return knownProjects(db).filter((candidate) => {
-    const normalized = normalizeProject(candidate);
-    if (normalized === wanted) return true;
-    if (looksLikePath(candidate) && looksLikePath(wanted)) return false;
-    return key.length > 0 && projectKey(candidate) === key;
-  });
+export function scopeProjects(project: string): string[] {
+  const key = normalizeProject(project);
+  return key ? [key] : [];
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { matchingProjects } from "./scope";
+import { normalizeProject, scopeProjects } from "./scope";
 import { logCap } from "./paths";
 import { clampLimit, type WorkEventKind } from "./db";
 
@@ -93,7 +93,8 @@ export function openWork(
 ): WorkItem {
   const title = input.title.trim();
   if (!title) throw new Error("work needs a title");
-  const project = input.project?.trim() || null;
+  // Stored as the key every read matches exactly, like every other write.
+  const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const author = input.author?.trim() || null;
   const row = db
     .query(
@@ -163,7 +164,7 @@ export function listWork(
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (read.kind === "project") {
-    const matches = matchingProjects(db, read.project);
+    const matches = scopeProjects(read.project);
     if (!matches.length) return [];
     where.push(`w.project IN (${matches.map(() => "?").join(",")})`);
     params.push(...matches);
@@ -235,7 +236,7 @@ export function recentEvents(
     params.push(since);
   }
   if (opts.project) {
-    const matches = matchingProjects(db, opts.project);
+    const matches = scopeProjects(opts.project);
     if (!matches.length) return [];
     where.push(`w.project IN (${matches.map(() => "?").join(",")})`);
     params.push(...matches);

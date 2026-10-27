@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import { clampLimit, dumpTags, parseTags, SCOPE_GLOBAL, SCOPE_PROJECT, type MemoryRow } from "./db";
 import { dot, packing, unpacking, type Embedder } from "./embed";
 import { minSimilarity } from "./paths";
-import { matchingProjects, normalizeProject, scopeClause } from "./scope";
+import { scopeProjects, normalizeProject, scopeClause } from "./scope";
 
 export type Memory = {
   id: number;
@@ -82,7 +82,7 @@ function scopeFragment(
   db: Database,
   project: string | null | undefined,
 ): { sql: string; params: string[] } {
-  return scopeClause(project ? matchingProjects(db, project) : []);
+  return scopeClause(project ? scopeProjects(project) : []);
 }
 
 /**

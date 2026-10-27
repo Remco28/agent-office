@@ -614,8 +614,9 @@ export function initProject(
     ? " The skills links point at this machine's office folder and show in `git status`; " +
       "add .claude/skills and .agents/skills to your .gitignore if you do not want to see them."
     : "";
-  // In a linked worktree the files land in that worktree, on its branch.
-  const linked = git.gitDir !== git.gitCommonDir;
+  // In a linked worktree the files land in that worktree, on its branch. A
+  // bare repository's worktree is its own project, so it is not "of" anything.
+  const linked = git.gitDir !== git.gitCommonDir && repoRoot !== worktreeRoot;
   const where = linked ? worktreeRoot : repoRoot;
   if (linked && !alreadyInitialized) {
     warnings.push(

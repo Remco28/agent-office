@@ -75,3 +75,43 @@ data is 25 memories under 4 plain names, plus 12 records under a subfolder path
 - A separate git dir literally named `.git` somewhere other than its checkout would now be keyed
   by its parent folder.
 - The laptop's office may hold its own old keys; the migration runs there when it updates.
+
+## Peer step results (2026-10-27)
+
+Critic (Codex; critic-codex.md) and blind solver (Claude Opus; blind-claude.md) agree on the core.
+Taken into the plan:
+- Run the rename in `serve()` after `openDb()` and before listening, not inside `migrate()` (the
+  desk and tests open databases and should not call git); one transaction; if it fails, log and
+  start anyway; a marker so the full pass runs once per database (blind; critic #4).
+- `openWork` normalizes its project like every other write (critic #3).
+- init's worktree warning only when the project differs from the checkout, so a bare repo's
+  worktree is not called "a worktree of itself" (both).
+- `normalizeProject` expands `~` with `homeDir()` ($HOME), like the rest of the file (blind).
+- A timeout on git subprocesses, so a hung git cannot stall the daemon (blind).
+- A test that a scoped read makes at most one git call (blind).
+Declined:
+- Critic #1 (HIGH), legacy keys under a bare repo or separate git folder path: none exist on this
+  machine (checked: no stored key ends in .git/.bare or names a git folder), and the owner uses
+  neither layout. They are left and logged as unmapped, which is the plan's rule for anything it
+  cannot map.
+- A `status` field listing unmapped keys (blind): a log line at start is enough for now.
+Open for the owner: what a bare name typed today means. The critic: resolve `--project crokinole`
+to `~/Projects/crokinole` when that folder exists (otherwise migrated records vanish for anyone
+still typing the name). The blind solver: keep bare names exact. If bare names resolve, the
+rename is simply `normalizeProject` on every stored value, plus a log of what stayed.
+
+**Owner's decision on the open question (Frank, 2026-10-27):** the critic's way — a bare name
+resolves to `~/Projects/<name>` when that folder exists, in writes, reads and the rename.
+
+## Built, and the fix audit (fix-audit-codex.md)
+
+Dry run on a copy of this machine's database: 5 keys renamed (4 plain names, 1 subfolder path),
+none unmapped, no plain-name memory left. Fix auditor (Codex, read-only): every write path
+stores the key reads look up; the rename and its marker are one transaction; no caller of the
+removed functions remains.
+- MEDIUM: a store from another machine holding a bare repo's shared key loses cross-worktree
+  reads. Accepted and declined as before (no such layout on either machine).
+- LOW: a non-text value in a project column would make the whole rename fail. Fixed: only text
+  values are considered.
+- LOW: this plan still showed the bare-name decision as open. Fixed (above).
+165 tests pass.

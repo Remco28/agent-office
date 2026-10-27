@@ -123,17 +123,17 @@ describe("which project a request is filed under", () => {
     expect(normalizeProject(join(home, "notes"))).toBe(join(home, "notes"));
   });
 
-  test("bare-repository worktrees share one project", () => {
+  test("each worktree of a bare repository is its own project (accepted: the layout is not used)", () => {
     const origin = repo(join(root, "origin"));
     git(root, "clone", "-q", "--bare", origin, "proj.git");
     const bare = join(root, "proj.git");
     git(bare, "worktree", "add", "-q", join(root, "wt-main"), "HEAD");
     git(bare, "worktree", "add", "-q", "-b", "feat", join(root, "wt-feat"));
-    expect(detectCwdProject(join(root, "wt-main"))).toBe(bare);
-    expect(detectCwdProject(join(root, "wt-feat"))).toBe(bare);
+    expect(detectCwdProject(join(root, "wt-main"))).toBe(join(root, "wt-main"));
+    expect(detectCwdProject(join(root, "wt-feat"))).toBe(join(root, "wt-feat"));
   });
 
-  test("a --separate-git-dir checkout and its worktree share one project", () => {
+  test("a --separate-git-dir checkout is its own folder; its extra worktree is another project", () => {
     const work = join(root, "sep-work");
     mkdirSync(work);
     git(root, "init", "-q", `--separate-git-dir=${join(root, "sep.gd")}`, work);
@@ -141,9 +141,8 @@ describe("which project a request is filed under", () => {
     git(work, "add", "README");
     git(work, "commit", "-qm", "init");
     git(work, "worktree", "add", "-q", "-b", "feat", join(root, "sep-wt"));
-    const key = detectCwdProject(work);
-    expect(key).toBe(join(root, "sep.gd"));
-    expect(detectCwdProject(join(root, "sep-wt"))).toBe(key);
+    expect(detectCwdProject(work)).toBe(work);
+    expect(detectCwdProject(join(root, "sep-wt"))).toBe(join(root, "sep-wt"));
   });
 
   test("a submodule is its own project, at its own folder", () => {
@@ -180,7 +179,7 @@ describe("which project a request is filed under", () => {
     expect(normalizeProject(join(root, "api2", "src"))).toBe(join(root, "api2"));
   });
 
-  test("a submodule in a worktree of its superproject is the same project as in the main checkout", () => {
+  test("a submodule is the folder it is checked out in, in a worktree too", () => {
     const lib = repo(join(root, "lib"));
     const sup = repo(join(root, "super"));
     git(sup, "submodule", "add", "-q", lib, "sub");
@@ -188,24 +187,8 @@ describe("which project a request is filed under", () => {
     const wt = join(root, "wt");
     git(sup, "worktree", "add", "-q", "-b", "feat", wt);
     git(wt, "submodule", "update", "--init", "-q");
-    expect(detectCwdProject(join(wt, "sub"))).toBe(join(sup, "sub"));
+    expect(detectCwdProject(join(wt, "sub"))).toBe(join(wt, "sub"));
     expect(detectCwdProject(join(sup, "sub"))).toBe(join(sup, "sub"));
-  });
-
-  test("worktrees of a bare superproject agree on their submodule's project", () => {
-    const lib = repo(join(root, "lib"));
-    const origin = repo(join(root, "origin"));
-    git(origin, "submodule", "add", "-q", lib, "sub");
-    git(origin, "commit", "-qm", "sub");
-    git(root, "clone", "-q", "--bare", origin, "proj.git");
-    const bare = join(root, "proj.git");
-    for (const name of ["wt-a", "wt-b"]) {
-      git(bare, "worktree", "add", "-q", "-b", name, join(root, name));
-      git(join(root, name), "submodule", "update", "--init", "-q");
-    }
-    const key = detectCwdProject(join(root, "wt-a", "sub"));
-    expect(key).toBe(join(bare, "sub"));
-    expect(detectCwdProject(join(root, "wt-b", "sub"))).toBe(key);
   });
 
   test("two submodules whose paths differ only by a 'modules' folder stay two projects", () => {
@@ -223,26 +206,6 @@ describe("which project a request is filed under", () => {
     const b = detectCwdProject(join(wt, "foo", "bar"));
     expect(a).not.toBeNull();
     expect(a).not.toBe(b);
-  });
-
-  test("a nested submodule checked out only in worktrees keeps its key when the main copy catches up", () => {
-    const inner = repo(join(root, "inner"));
-    const mid = repo(join(root, "mid"));
-    git(mid, "submodule", "add", "-q", inner, "inner");
-    git(mid, "commit", "-qm", "inner");
-    const sup = repo(join(root, "super"));
-    git(sup, "submodule", "add", "-q", mid, "mid");
-    git(sup, "commit", "-qm", "mid");
-    const clone = join(root, "clone");
-    git(root, "clone", "-q", sup, clone);
-    const wt = join(root, "wt");
-    git(clone, "worktree", "add", "-q", "-b", "w", wt);
-    git(wt, "submodule", "update", "--init", "--recursive", "-q");
-    const before = detectCwdProject(join(wt, "mid", "inner"));
-    expect(before).toBe(join(realpathSync(clone), "mid", "inner"));
-    git(clone, "submodule", "update", "--init", "--recursive", "-q");
-    expect(detectCwdProject(join(wt, "mid", "inner"))).toBe(before);
-    expect(detectCwdProject(join(clone, "mid", "inner"))).toBe(before);
   });
 
   test("a home folder whose git folder lives elsewhere is not a project either", () => {
@@ -280,18 +243,6 @@ describe("which project a request is filed under", () => {
       { env: { ...process.env, PATH: "/nonexistent" }, stdout: "pipe", stderr: "pipe" },
     );
     expect(proc.stdout.toString().trim()).toBe("null");
-  });
-
-  test("after the main checkout deinits a submodule, its worktree copy keeps the key", () => {
-    const lib = repo(join(root, "lib"));
-    const sup = repo(join(root, "super"));
-    git(sup, "submodule", "add", "-q", lib, "sub");
-    git(sup, "commit", "-qm", "sub");
-    const wt = join(root, "wt");
-    git(sup, "worktree", "add", "-q", "-b", "w", wt);
-    git(wt, "submodule", "update", "--init", "-q");
-    git(sup, "submodule", "deinit", "-q", "-f", "sub");
-    expect(detectCwdProject(join(wt, "sub"))).toBe(join(sup, "sub"));
   });
 
   test("GIT_DIR and friends in the shell do not move the folder to another repository", () => {

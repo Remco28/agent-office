@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { clampLimit, type IssueEventKind } from "./db";
+import { normalizeProject } from "./scope";
 
 export type Issue = {
   id: number;
@@ -99,7 +100,7 @@ export function openIssue(
 ): Issue {
   const title = input.title.trim();
   if (!title) throw new Error("an issue needs a title");
-  const project = input.project?.trim() || null;
+  const project = input.project?.trim() ? normalizeProject(input.project) : null;
   const author = input.author?.trim() || null;
   const row = db
     .query(

@@ -1,3 +1,4 @@
+import { canonicalizeProjects } from "./rekey";
 import { openDb } from "./db";
 import { startSidecar, type Embedder } from "./embed";
 import {
@@ -78,6 +79,19 @@ function str(value: unknown): string | null {
 
 export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
   const db = openDb();
+  // Before the first request, so no read ever sees an old spelling of a key.
+  // Here rather than in openDb: the desk and tests open databases too, and
+  // this asks git about every stored key. A failure changes nothing.
+  try {
+    const rekey = canonicalizeProjects(db);
+    const count = Object.keys(rekey.renamed).length;
+    if (count) console.error(`office: renamed ${count} project key(s) to today's form`, rekey.renamed);
+    if (rekey.unmapped.length) {
+      console.error("office: project names with no folder in ~/Projects, left as they are:", rekey.unmapped);
+    }
+  } catch (err) {
+    console.error("office: project key rename failed, nothing changed:", err);
+  }
   const embedder = opts?.embedder ?? startSidecar();
   const searchSkills = createSkillSearch(embedder);
   const listen = opts?.port ?? port();
