@@ -336,9 +336,8 @@ export const UNATTRIBUTED_MEMORY_NOTE =
  * project it came from.
  */
 export const RECENT_ACTIVITY_NOTE =
-  "you have no previous visit of your own, so this is the office's most recent " +
-  "activity rather than what changed since you were last here; each item names " +
-  "the project it belongs to";
+  "you have no previous visit of your own, so this is this project's most recent " +
+  "activity rather than what changed since you were last here";
 
 /**
  * The name a person knows a project by. Usually the key's last folder; but a

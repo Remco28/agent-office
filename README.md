@@ -110,9 +110,9 @@ cd ~/Projects/the-thing && office init     # once per project
 office begin --by <your-agent-name>          # from inside the project, every session
 ```
 
-That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working here, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
+That records the target for the session and returns the tool list, the preferences that apply everywhere, who else is working on this project, what happened here since your last visit, the work nobody finished, and a briefing of memories for this project. Later commands take the project from the repository they run in. A write that cannot resolve one is stored **unattributed** rather than guessed, and `begin` reports how many of those exist.
 
-On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over its most recent activity, each item labelled with the project it came from. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
+On a **first** visit there is no last visit to measure against, so the office does not answer with nothing: it hands over the project's most recent activity. That is what tells a new agent the office has been used at all, and it is the difference between knowing another hand has been here and going hunting the machine for changes you do not remember making. Every session is listed with how long ago it checked in, so one that stopped days ago is not mistaken for a colleague who is here now.
 
 The project for any command is its own `--project` if given, else the repository it runs in, else what the session remembers — which only matters in the agent-office checkout itself (where nothing is inferred, so the office is not mistaken for your target; use `--project .` to work on it) and in folders outside any repository (a repository whose checkout is your home folder, such as a dotfiles repo, counts as none). If the folder decides a different project from the one a named session began on, the command says so on stderr. `--by` names you; a field you do not restate is *kept*, not cleared. A read with no project at all is scoped to the everywhere notes rather than the whole store, with two deliberate exceptions noted in [Retrieval](#retrieval).
 
@@ -198,9 +198,8 @@ Skill files remain the source of truth. Discovery re-reads their metadata each t
 
 **Scope is a rule, not a default.** A session that never named a project reads the notes that apply everywhere and nothing else: it does not fall back to the whole store. A missing or mistyped `--project` therefore shows up as an empty answer with a note naming the reason, rather than as another project's notes presented as if they were relevant. Every result carries which rule was applied — `"scope": "project"` or `"scope": "global"` — and the same rule governs the briefing's memory list and its unfinished work, with the recent-list path of an empty `context` query following it too.
 
-Two things are deliberately left unscoped, and both exist so that a handoff is never lost:
+One thing is deliberately left unscoped, so that a handoff is never lost:
 
-- **Recent activity.** A session with no visit of its own is shown the office's most recent trail rather than nothing. Each item names the project it belongs to, so it reads as news about the office instead of a claim on your time.
 - **Unclaimed records.** Work and memories filed with no project belong to nobody, so a session with no project is shown them rather than finding them hidden from every scoped read. The office names a record as unclaimed at the moment it is written, while the agent can still fix it for free.
 
 The whole-store reads are the ones asked for by name: `office list` for memories, and `office work log` for the entire trail.

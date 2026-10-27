@@ -215,7 +215,8 @@ export function recentEvents(
      * is given the most recent events instead of nothing, because an empty
      * answer here is exactly what sends a stranger hunting the machine for
      * changes it never made. With no project named the result is the whole
-     * office's activity, each item labelled with where it came from.
+     * office's activity, each item labelled with where it came from; the
+     * briefing asks only with a project.
      */
     latest?: boolean;
     excludeAuthor?: string | null;

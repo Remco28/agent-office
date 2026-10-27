@@ -266,17 +266,29 @@ describe("session", () => {
     expect(result.notices_since).toBe(watermark);
   });
 
+  test("newer everywhere-memories do not crowd a project's own out of its briefing", async () => {
+    const db = tempDb();
+    dbs.push(db);
+    const embedder = fakeEmbedder();
+    await remember(db, embedder, { content: "alpha's own note", project: "alpha" });
+    for (let i = 0; i < 10; i++) await remember(db, embedder, { content: `everywhere ${i}`, scope: "global" });
+
+    const result = await briefing(db, embedder, { declared: { project: "alpha" } });
+    expect(result.memories.map((m) => m.content)).toEqual(["alpha's own note"]);
+  });
+
   test("a first visit is handed recent activity, framed, not the whole trail", async () => {
     const db = tempDb();
     dbs.push(db);
     const item = openWork(db, { title: "old thing", project: "alpha", author: "opencode" });
     noteWork(db, item.id, { text: "written before you existed", author: "opencode" });
+    openWork(db, { title: "beta's business", project: "beta", author: "opencode" });
 
-    const result = await briefing(db, fakeEmbedder());
+    const result = await briefing(db, fakeEmbedder(), { declared: { project: "alpha" } });
     // No visit of its own to measure from. Answering that with nothing is what
     // sends a stranger hunting the machine for changes it never made, so the
-    // recent activity is handed over instead — labelled with where it came
-    // from, because the reader has no project of its own to compare against.
+    // project's recent activity is handed over instead — and only that
+    // project's: the briefing never carries another project's details.
     expect(result.notices.map((n) => n.text)).toEqual(["written before you existed", "old thing"]);
     expect(result.notices[0]?.project).toBe("alpha");
     expect(result.notices_since).toBeNull();
@@ -284,6 +296,11 @@ describe("session", () => {
     // the trail itself is still not spilled: the cap holds
     expect(result.notices.length).toBeLessThanOrEqual(BRIEFING_NOTICES);
     expect(result.author_warnings.length).toBeGreaterThan(0);
+
+    // with no project there is no activity to hand over, not every project's
+    const nowhere = await briefing(db, fakeEmbedder());
+    expect(nowhere.notices).toEqual([]);
+    expect(nowhere.notices_note).toBeNull();
   });
 
   test("a visit with a watermark of its own is not given the stranger's frame", async () => {
@@ -327,19 +344,23 @@ describe("session", () => {
     expect(result.sessions[0]?.last_seen).toBe("just now");
   });
 
-  test("the briefing says who else is in the building, and which one is you", async () => {
+  test("the briefing says who else is on this project, and which one is you", async () => {
     const db = tempDb();
     dbs.push(db);
     setActive(db, { project: "alpha", author: "freebuff" });
     await Bun.sleep(5);
-    setActive(db, { project: "beta", author: "opencode" });
+    setActive(db, { project: "beta", author: "codex" });
+    await Bun.sleep(5);
+    setActive(db, { project: "alpha", author: "opencode" });
 
     // a launcher that exports OFFICE_AUTHOR attributes correctly without
     // touching what the office remembers for anyone else: the caller resolves
     // its own environment and declares the answer in the request
     const result = await briefing(db, fakeEmbedder(), { declared: { author: "freebuff" } });
+    // codex is on beta: another project's session is not listed, only counted
     expect(result.sessions.map((s) => s.author)).toEqual(["opencode", "freebuff"]);
     expect(result.sessions.map((s) => s.is_you)).toEqual([false, true]);
+    expect(result.sessions_hidden).toBe(1);
     expect(result.author).toBe("freebuff");
     expect(result.project).toBe("alpha");
   });

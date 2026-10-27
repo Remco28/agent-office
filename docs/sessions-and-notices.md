@@ -332,10 +332,11 @@ So the frame now depends on whether the caller has a visit of its own:
 exactly as §4 describes: events since *your* previous `begin`, minus your own
 work.
 - **Without one** — a first visit, or any caller that has never checked in —
-`notices` is the most recent activity, capped at `BRIEFING_NOTICES`. With no
-project declared it is the whole office's, and every event carries its
-`project` so a list that is not one project's reads as news rather than as the
-reader's own work.
+`notices` is the project's most recent activity, capped at `BRIEFING_NOTICES`.
+With no project declared it is empty (changed 2026-10-27, Frank: the briefing
+never carries another project's details; it used to be the whole office's,
+each event labelled with its project). The session list is this project's
+sessions for the same reason.
 
 The distinction is stated rather than inferred: `notices_since` stays null when
 there is no personal watermark, and `notices_note` carries

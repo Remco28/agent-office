@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { ROLE_MANAGER, SCOPE_GLOBAL, UNNAMED_SESSION, type SessionRow } from "./db";
+import { ROLE_MANAGER, UNNAMED_SESSION, type SessionRow } from "./db";
 import type { Embedder } from "./embed";
 import {
   NO_PROJECT_NOTE,
@@ -14,7 +14,7 @@ import {
   countMemories,
   countUnattributed,
   listGlobalMemories,
-  searchDetailed,
+  listMemoriesInScope,
   type Hit,
   type Memory,
 } from "./memory";
@@ -539,12 +539,12 @@ export type Briefing = {
   open_work_note: string | null;
   memories: Hit[];
   /**
-   * Sessions seen in the last two weeks, newest first, at most eight — plus
-   * the caller. The full list grew with every launch and was handed to every
+   * This project's sessions seen in the last two weeks, newest first, at most
+   * eight — plus the caller. The full list grew with every launch and was handed to every
    * agent on every check-in.
    */
   sessions: SessionSummary[];
-  /** Sessions remembered but left out of the list above. */
+  /** Sessions remembered but left out of the list above (other projects, or not seen lately). */
   sessions_hidden: number;
   /** Said when this check-in was given a numbered name, so the agent uses it. */
   identity_note: string | null;
@@ -601,7 +601,8 @@ export type Briefing = {
  */
 export async function briefing(
   db: Database,
-  embedder: Embedder | null,
+  // Kept for callers; the briefing's memories are a recent-first list, not a search.
+  _embedder: Embedder | null,
   opts: {
     since?: string | null;
     /** What this call declared, so the briefing reports it rather than the
@@ -629,13 +630,18 @@ export async function briefing(
   });
   const readOnly = Boolean(opts.readonly);
   const watermark = opts.since?.trim() || null;
-  const result = await searchDetailed(db, embedder, "", BRIEFING_MEMORIES, {
-    project: scope.project,
-  });
   // Memories that apply everywhere are handed over above, in `preferences`.
-  // Listing them again here would spend the agent's context twice on the same
-  // text, which is the thing a briefing exists to avoid.
-  const memories = result.hits.filter((hit) => hit.scope !== SCOPE_GLOBAL);
+  // They are left out before the limit, not after it: filtered afterwards, a
+  // run of newer everywhere-memories crowded every project's own memories out
+  // of its briefing.
+  const memories: Hit[] = listMemoriesInScope(db, BRIEFING_MEMORIES, scope.project, {
+    excludeGlobal: true,
+  }).map((memory, index) => ({
+    ...memory,
+    score: Number((1 / (index + 1)).toFixed(6)),
+    similarity: null,
+    via: "recent",
+  }));
   let note: string | null = null;
   if (!memories.length) {
     note = scope.project
@@ -653,16 +659,19 @@ export async function briefing(
   // A watermark is a personal thing — it means "since *you* were here". A
   // fresh agent has none, and answering that with nothing is what sends a
   // stranger hunting the machine for changes it never made. So a stranger is
-  // handed the recent activity instead, framed and labelled rather than
-  // implied.
-  const notices = watermark
-    ? recentEvents(db, {
-        project: scope.project,
-        since: watermark,
-        excludeAuthor: scope.author,
-        limit: BRIEFING_NOTICES,
-      })
-    : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
+  // handed the project's recent activity instead, framed rather than implied.
+  // With no project there is no activity to hand over: the briefing never
+  // carries another project's details.
+  const notices = !scope.project
+    ? []
+    : watermark
+      ? recentEvents(db, {
+          project: scope.project,
+          since: watermark,
+          excludeAuthor: scope.author,
+          limit: BRIEFING_NOTICES,
+        })
+      : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
   const recentCutoff = new Date((opts.now ?? Date.now()) - SESSION_RECENT_DAYS * DAY_MS).toISOString();
   const allSessions = listSessions(db);
   const managerRow = allSessions.find((session) => session.role === ROLE_MANAGER) ?? null;
@@ -679,12 +688,12 @@ export async function briefing(
         stale: managerStale,
       }
     : null;
+  // Only this project's sessions: an agent on another project is not working
+  // here, and the briefing never carries another project's details.
+  const isYou = (session: SessionRow) => session.author !== null && session.author === scope.author;
   const shown = allSessions
-    .filter(
-      (session, index) =>
-        (session.author !== null && session.author === scope.author) ||
-        (session.updated_at >= recentCutoff && index < BRIEFING_SESSIONS),
-    );
+    .filter((session) => isYou(session) || (scope.project !== null && session.project === scope.project))
+    .filter((session, index) => isYou(session) || (session.updated_at >= recentCutoff && index < BRIEFING_SESSIONS));
   return {
     ok: true,
     banner: sessionBanner(scope),
@@ -735,7 +744,7 @@ export async function briefing(
     readonly_note: readOnly
       ? watermark
         ? "nothing was written; your check-in time did not move, so the notices above will be shown again until a begin moves it"
-        : "nothing was written; you have no previous check-in of your own, so the activity above is the office's most recent rather than a since-you-were-last-here list, and it will read the same until you begin"
+        : "nothing was written; you have no previous check-in of your own, so the activity above is this project's most recent rather than a since-you-were-last-here list, and it will read the same until you begin"
       : null,
     author_warnings: authorWarnings(scope),
     store: {

@@ -129,6 +129,10 @@ over a long piece, usually toward generic and hedged. When you finish, check
 the style rules mechanically where you can (search for the banned words, count
 exclamation marks), and say which rules you checked.
 
+Where limits are written as separate blocks (a caveat box, a "what this doesn't
+show" paragraph), **the claim must be true without the block.** Delete each
+block and reread: a block may add precision, but never rescue an overstatement.
+
 If the writing shows the brief was wrong — the audience turned out more
 technical, the tone does not fit the content — **stop and propose a revised
 brief** rather than quietly drifting. Revisions are confirmed like the

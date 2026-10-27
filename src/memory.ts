@@ -175,12 +175,15 @@ export function listMemoriesInScope(
   db: Database,
   limit: number,
   project: string | null | undefined,
+  /** Leave out the memories that apply everywhere, before the limit is applied. */
+  opts: { excludeGlobal?: boolean } = {},
 ): Memory[] {
   const { sql, params } = scopeFragment(db, project);
+  const notGlobal = opts.excludeGlobal ? ` AND scope != '${SCOPE_GLOBAL}'` : "";
   const rows = db
     .query(
       `SELECT ${COLUMNS} FROM memories
-       WHERE 1=1${sql}
+       WHERE 1=1${sql}${notGlobal}
        ORDER BY id DESC
        LIMIT ?`,
     )

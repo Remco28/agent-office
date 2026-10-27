@@ -319,7 +319,7 @@ function printBriefing(data: BriefingView): void {
       const you = session.is_you ? "  (you)" : "";
       out.push(`  ${who}${you}   last here ${formatAgo(session.since)}`);
     }
-    if (data.sessions_hidden) out.push(`  (+${data.sessions_hidden} older, not shown)`);
+    if (data.sessions_hidden) out.push(`  (+${data.sessions_hidden} elsewhere or older, not shown)`);
   }
   const notices = data.notices ?? [];
   if (data.notices_since || notices.length) {

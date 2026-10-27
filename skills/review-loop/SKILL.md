@@ -54,6 +54,8 @@ What it finds is verified and gets fixed.
 
 Know its limit: a check proves the source *says* it, not that the source is
 right. Where a domain expert is reachable, that is the question to ask them.
+And a number copied from a source is not checked until you do the arithmetic it
+implies: a sample of two per group cannot give the p-value printed beside it.
 
 ## Step 1: the success question, and the rules
 
@@ -96,7 +98,9 @@ audience is your cast and its style rules are house rules.
   (code readers get the code and a copy they can run). Name any quirk of your
   materials as deliberate ("the screenshots show animations finished"), or you
   will spend a round on your own harness. For a large artifact, give each reader
-  the slice their lens needs.
+  the slice their lens needs. **Check they have all of it** (grep for an
+  appendix's captions, count the figures): readers reason fluently around a
+  part that is missing and never say so.
 - **Freeze it.** Commit or snapshot what readers get, and record the version.
 - **Keep the copies small and short-lived.** Readers' runnable copies go in one
   scratch folder per round, never inside the project or the home folder. Link
@@ -139,6 +143,12 @@ whether to believe a finding and the severity how much it matters. Verify first
 (tier 1, or tier 2 that survived its kill), then: **fix every verified HIGH and
 MEDIUM; a verified LOW is fixed or declined, with the reason written down** for
 the auditor. Without a severity scale, fix tier 1.
+
+**Read every report before acting on any.** Two readers who agree on a defect
+but disagree on its direction (too strong, too weak) mean the claim is badly
+put, not that one of them is wrong. A reader that can see images is reliable
+on whether something is there (a label, a marker) and unreliable on how big it
+is: check a finding about magnitude against the figure yourself.
 
 **Each finding's record says how it was checked**: reproduced, read in the
 source, or taken on the reader's word.
@@ -200,7 +210,9 @@ users effort for rare cases.
 **Before the next round, write your predictions** in the ledger, and commit or
 save them before the round runs: per fix, what a reader should now say that
 they couldn't before; per round, how many verified findings and of what kind. A
-prediction written after the results is worth nothing.
+prediction written after the results is worth nothing. Where readers predicted
+the wrong sentence a writer would reach for, turn that into a search and run it
+on your next draft, before anyone reads it; count a near-miss wording as a hit.
 
 ---
 
