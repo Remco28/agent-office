@@ -3,8 +3,10 @@
 For a codebase, reviewed by readers who read the code and run a copy of it,
 looking for failures users would actually hit.
 
-**A draft from one project** (eleven rounds). Each rule here held across at
-least two rounds; don't add one on the strength of a single round.
+**A draft from two projects** (eleven rounds and six). Each rule here held
+across at least two rounds; don't add one on the strength of a single round.
+The *setup not in use* rule is newer than that and on trial (evidence.md,
+*Fixes chasing their own edges*).
 
 ## Success question
 
@@ -39,7 +41,13 @@ Rating rules, because your ratings drift soft:
 
 - **The same mechanism gets the same rating in every round.** A past rating is a
   precedent; rating it lower needs a new reason.
-- **"Only in a rare timing" is MEDIUM**, never LOW.
+- **"Only in a rare timing" is MEDIUM**, never LOW. That is about timing in the
+  setups really in use.
+- **A setup not in use is one step lower.** A failure that needs a setup the
+  stakes record as not in use (a git layout nobody here has, an OS nobody runs)
+  is rated one step down, HIGH to MEDIUM or MEDIUM to LOW, and labelled
+  *not in use*. Only from the stakes check on: until the human has agreed, rate
+  it in full and propose the step down there.
 - **"Visible" or "recoverable" alone never makes a finding LOW.**
 - **A reason for a rating, or for not fixing, is a claim.** Check it against the
   code like a finding.
@@ -57,7 +65,8 @@ what the step is for. A LOW fix doesn't need it.
 
 - The repository at a named commit, **and a copy they may run**: a local server,
   a test database, a scratch folder. A reader who can run the code reproduces
-  its own findings.
+  its own findings. The copy links the dependency folders rather than copying
+  them, and goes when the round's reports are saved (SKILL.md step 3).
 - The project's review notes, so settled points aren't re-reported.
 - What is intended and not a finding (e.g. "anyone can edit anything").
 

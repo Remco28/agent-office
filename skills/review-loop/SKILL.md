@@ -34,6 +34,12 @@ Whatever the size of the job:
 what a failure would cost them. The stakes size the cast and the rounds, and set
 when to stop.
 
+The human usually can't foresee the stakes in full, so don't ask them to: draft
+them yourself and have them confirm. **Check how the thing is really used**
+(what is installed, which setups and data exist, who runs it) and write it down;
+that evidence feeds every rating ("can this happen in the way it is actually
+used?"). **The stakes are revisited, not set once** (the stakes check, step 4).
+
 Everything else (how many readers, which specialists, how many rounds) scales
 with how big and how important the thing is.
 
@@ -92,6 +98,12 @@ audience is your cast and its style rules are house rules.
   will spend a round on your own harness. For a large artifact, give each reader
   the slice their lens needs.
 - **Freeze it.** Commit or snapshot what readers get, and record the version.
+- **Keep the copies small and short-lived.** Readers' runnable copies go in one
+  scratch folder per round, never inside the project or the home folder. Link
+  large dependency folders (`node_modules`, `.venv`) into each copy instead of
+  copying them: one review copied a 1.4 GB `.venv` into every copy and left
+  29 GB behind. Once a round's reports are saved in the ledger folder, delete
+  its copies: the reports are the record, not the copies.
 - **Run readers in parallel, blind to each other.** Spread them across models
   where you can and write the model beside each finding: readers from one model
   share blind spots, so their agreement is weaker than it looks.
@@ -130,6 +142,26 @@ the auditor. Without a severity scale, fix tier 1.
 
 **Each finding's record says how it was checked**: reproduced, read in the
 source, or taken on the reader's word.
+
+**Each finding also says whom it reaches**: *how it is used now* (it can happen
+in the setups and habits found in step 0 and the stakes), or *a setup not in
+use* (it needs something nobody here does). The human decides what matters;
+this split is what lets them do it at a glance.
+
+**The stakes check, every two or three rounds**, and sooner when the direction
+test below says the findings have moved into rare ground. Put one item in the
+round's decision box, with the evidence: *"The last findings are in setups you
+don't use (X, Y). I propose rating those one step lower from now on. Agree?"*
+It is not a separate stop: the loop carries on with the proposal, and the
+human's answer, when it comes, decides. Record the answer in the ledger as the
+new stakes.
+
+**The direction test, every round from round 3**: compared with the last round,
+are the findings (1) less severe, (2) in rarer situations, and (3) mostly in
+code or text written to fix the last round? Yes to all three means the work is
+converging and what is left is the cost of fixing: bring the stakes check
+forward rather than chase it. Fixes causing new problems is normal; what is
+tolerable is set by whom they reach, not by their count.
 
 ## Step 5: fix, then predict
 
@@ -244,7 +276,9 @@ profile's stop rule replaces these for its genre.
 - What's left is rare-timing edge cases the stakes don't justify chasing: say so,
   in one line, and stop.
 
-Then hand it to the human. That was always the point.
+Then clean up: delete every scratch copy and temporary file the review made, and
+say in the closing note what was removed and what was left. Then hand it to the
+human. That was always the point.
 
 ## Showing the human
 

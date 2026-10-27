@@ -168,5 +168,6 @@ When a project is ready for the human to evaluate, use the `human-feedback` skil
 - JSON is the default output. Parse it.
 - Humans open the desk with bare `office`. Do not run the desk from an agent session.
 - AGENTS.md goes in each project that uses the office (`office init` puts it there), and never in the home folder itself.
+- Temporary files go in your scratch folder (or the system temp folder), never in the project or the home folder. Link big dependency folders (`node_modules`, `.venv`) rather than copying them, and delete what you made before you finish; say in your work note if you left anything.
 - `office list --limit 20` and `office status` exist when you need them.
 - `office logs` names why an embedder is unwell. Read it to report a cause, not to review history.

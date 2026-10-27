@@ -22,9 +22,10 @@ choose the diagrams and layout that fit the thing under review.
 
 ## What it must show
 
-1. **The stakes, at the top**, agreed with the human at the start: what the thing
-   is, who relies on it, what a failure costs, and the stop condition in their
-   terms ("stop when nothing left could lose money or work in normal use").
+1. **The stakes, at the top**, agreed with the human at the start and updated at
+   each stakes check: what the thing is, who relies on it, how it is really used,
+   what a failure costs, and the stop condition in their terms ("stop when
+   nothing left could lose money or work in normal use").
 2. **The trend across rounds**: serious and medium counts per round (after the
    disposition audit), so progress, a plateau or a slide is visible at a glance.
 3. **One tab per round**, the latest open. Earlier rounds can be one line each.
@@ -40,7 +41,8 @@ choose the diagrams and layout that fit the thing under review.
 5. **Each finding in the human's terms**, beside its flow: who it hits, how often
    (in plain frequency: "most trips", "two phones in the same second"), what they
    would see, what's at risk (money, work, or nothing), and what fixing it costs.
-   Not the code, not the reader's wording.
+   Not the code, not the reader's wording. Label each **how you use it now** or
+   **a setup you don't use**, so the human can see at a glance what matters.
 6. **The decisions, in one box**: each a choice with your recommendation.
 7. **Low findings folded away**, one line each.
 8. **A short glossary** of every word the page uses that the human might not know.

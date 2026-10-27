@@ -13,7 +13,8 @@ lab manual, an API reference) found that the *loop structure* carried over and
 the *cast and house rules* did not. Since then, one code review (efc-expenses,
 eleven rounds, outside reviewers on four models for rounds 1 to 7, Claude
 subagents after) has added the episodes from *Briefs drift toward the answer* to
-*Running it finds what reading doesn't*.
+*Running it finds what reading doesn't*, and a second (agent-office, six rounds)
+*Fixes chasing their own edges*.
 
 So: treat the procedure's steps as general and **treat every specific persona,
 house rule and threshold as a hypothesis** until another genre confirms it. The
@@ -128,6 +129,33 @@ a screen that couldn't load offline right after the app said an expense was
 reloading, which needs a signal; a removed piece of dead code whose one leftover
 reference broke a page. All three passed every API check, because all three
 were in what the screen does, not what the server returns.
+
+## Fixes chasing their own edges
+
+**agent-office, 2026-10-26 and 27, a code review** (six rounds, readers on four
+models). Rounds 1 and 2 found 3 HIGH and 9 MEDIUM in the original change, all
+in ordinary use (a copied project filing under the original, a user's own file
+hidden from git). Rounds 3 to 6 found 1 HIGH and about 10 MEDIUM, nearly all in
+code written to fix the round before, and in ever rarer git setups (worktree
+submodules, a git folder kept elsewhere, hard links, two setups at once) that a
+read-only check of the machine showed nobody here used. The rating rules were
+followed, and the auditor raised three of the author's ratings, rightly by the
+rules: "rare timing is MEDIUM" kept forcing another round. The changed code
+roughly tripled, mostly for those setups. About 60% of all findings were in the
+original code, 40% from fixes.
+
+The human's diagnosis: they could not have set the stakes accurately at the
+start, and will usually not be able to; their job is to say what matters once
+they are shown. Hence the stakes drafted from how the thing is really used, the
+*whom it reaches* split, the stakes check every two or three rounds, the
+direction test, and in the code profile one step down for a setup not in use.
+**These are a hypothesis from one review**: the next code review should record
+whether the stakes check ended it sooner without letting through a failure in
+real use.
+
+The same review copied a 1.4 GB Python environment into every reader's copy and
+never deleted the copies: 29 GB, unnoticed until the human asked. Hence the
+copy and clean-up rules in step 3 and at the stop.
 
 ## The harness is the unreliable component, not the readers
 
