@@ -1,0 +1,7 @@
+# Whole-code reader — Claude (fresh subagent). Copy r3/claude at c9dad28+b3a4d5cf07b4. Ran bun test (157 pass) and a throwaway daemon (port 7791, temp HOME/OFFICE_HOME).
+No HIGH or MEDIUM. Checked live: two agents in two repos; a write from another repo (filed by folder + scope_note); outside any repo (remembered, "active"); office checkout (remembered); no name (unclaimed + warn).
+1. LOW, reproduced — bare-clone layout (`proj/.bare`, `proj/.git` = `gitdir: ./.bare`, worktrees proj/main, proj/feat): project name is `.bare`; init writes "# .bare" / "This repository (`.bare`)" into AGENTS.md; banner "working on .bare". --separate-git-dir: name is the git folder's name. Keys are right; names are wrong. scope.ts:127, init.ts:354/366.
+2. LOW, read — OFFICE_PROJECT (or OFFICE_SOURCE) left in a launcher from the old workflow overrides the folder as "declared" with no scope_note; cli.ts:116-121, session.ts:426-430. Fix: note when a declared project differs from cwd_project.
+3. LOW, read — AGENTS.md created with default "w" flag: a file created between planning and writing is replaced. Fix: flag "wx". init.ts:366.
+Intended, worth knowing: subfolder --project values of one repo (monorepo packages) now read as one project.
+Clean: precedence; office checkout/home; git env stripped; unnamed slot; wandering note. Keep: plan-then-write, refusals, link caution, append-only, warnings, worktree/submodule keys, cwd_project from the caller, per-request memo.
