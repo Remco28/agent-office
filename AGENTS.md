@@ -39,6 +39,9 @@ This repository (`agent-office`) uses **Agent Office**, the shared working memor
 - **Memories:** `office remember "<fact>"` for decisions and why, conventions, dead ends, and facts the next agent would otherwise rediscover. Add `--global` only for a rule that holds in every project. Never store secrets, `.env` contents, source dumps or progress chatter. If a memory is wrong, correct it and say why (`office forget <id>` removes it).
 - **Finding things:** `office context "<task>"` before you start something, `office search "<words>"` for one fact. An empty result is real: nothing relevant is recorded.
 - **Tools:** `office tools add <name> --use "<command>" "<what it is>"` for anything installed here that you would want again.
+- **Files outside this repository:** before you change one (a tool's settings, a shared config), copy the original next to it, for example `settings.toml.bak`, and say in your work note what you changed and where. Git cannot undo it, and the next agent will not know.
+- **Deleting:** never delete or overwrite something you did not create without asking the human first.
+- **Committing:** commit, or ask the human to, before a large change, so it can be undone.
 - **Temporary files:** put them in your scratch folder (or the system temp folder), never in this repository or the home folder. Link big dependency folders (`node_modules`, `.venv`) rather than copying them. Delete what you made before you finish, and say in your work note if you left anything.
 - **Issues:** when the office itself is in your way (not a bug in this repository), check `office issues`, then `office issue open "<what>"`, or add a note to the one already there.
 
