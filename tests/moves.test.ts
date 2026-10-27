@@ -6,7 +6,7 @@ import { fakeEmbedder } from "../src/embed";
 import { remember } from "../src/memory";
 import { goneProjects, likelyMovedFrom, moveProject, recordProject } from "../src/moves";
 import { briefing } from "../src/session";
-import { openWork } from "../src/work";
+import { closeWork, openWork } from "../src/work";
 import { openIssue } from "../src/issues";
 import { tempDb } from "./helpers";
 
@@ -148,6 +148,13 @@ describe("moved and removed projects", () => {
     expect(goneProjects(db)).toEqual([{ project: a, records: 2 }]);
     renameSync(away, a);
     expect(goneProjects(db)).toEqual([]);
-    expect((db.query("SELECT COUNT(*) n FROM work").get() as { n: number }).n).toBe(1);
+    // once its work is all closed and it holds no memories, a removed project is finished history
+    const finished = repo("finished");
+    const item = openWork(db, { title: "done here", project: finished });
+    closeWork(db, item.id, { text: "done" });
+    rmSync(finished, { recursive: true });
+    expect(goneProjects(db).map((g) => g.project)).not.toContain(finished);
+    // and nothing was deleted along the way
+    expect((db.query("SELECT COUNT(*) n FROM work").get() as { n: number }).n).toBe(2);
   });
 });

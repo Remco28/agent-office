@@ -59,6 +59,18 @@ function storedKeys(db: Database): string[] {
   return [...keys];
 }
 
+/** What a removed project still asks a decision on: its memories and its unclosed work. */
+function openRecordCount(db: Database, key: string): number {
+  const memories = (db.query("SELECT COUNT(*) AS n FROM memories WHERE project = ?").get(key) as { n: number }).n;
+  const open = (db
+    .query(
+      `SELECT COUNT(*) AS n FROM work w WHERE w.project = ?
+       AND NOT EXISTS (SELECT 1 FROM work_events e WHERE e.work_id = w.id AND e.kind = 'close')`,
+    )
+    .get(key) as { n: number }).n;
+  return memories + open;
+}
+
 /** How many records a project has: its memories, work items and issues. */
 export function recordCount(db: Database, key: string): number {
   let n = 0;
@@ -69,15 +81,16 @@ export function recordCount(db: Database, key: string): number {
 }
 
 /**
- * Projects whose folder is not found, with how many records (memories, work,
- * issues) each still holds. Nothing is deleted: this is a label for the human
+ * Projects whose folder is not found and that still hold something to decide
+ * on: memories, or work nobody closed. A removed project whose work is all
+ * closed is finished history, so it is not listed. Nothing is deleted: this is a label for the human
  * to decide on, and a folder on an unplugged drive shows here too. Only a stat
  * per key, no git, and only asked for by `office status` and the desk.
  */
 export function goneProjects(db: Database): Array<{ project: string; records: number }> {
   return storedKeys(db)
     .filter((key) => !existsSync(key))
-    .map((key) => ({ project: key, records: recordCount(db, key) }))
+    .map((key) => ({ project: key, records: openRecordCount(db, key) }))
     .filter((gone) => gone.records > 0);
 }
 
