@@ -60,6 +60,16 @@ async function snapshot(): Promise<DeskSnapshot> {
   const pid = typeof live?.pid === "number" ? live.pid : null;
   const embedder = embedderState({ daemonUp, ready, startedAt });
   const rawSessions = Array.isArray(live?.sessions) ? (live.sessions as RawSession[]) : [];
+  let goneProjects = 0;
+  if (live) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port()}/projects/gone`);
+      const body = (await res.json()) as { gone_projects?: unknown[] };
+      goneProjects = Array.isArray(body.gone_projects) ? body.gone_projects.length : 0;
+    } catch {
+      goneProjects = 0;
+    }
+  }
   const sessions = rawSessions.map(plainSession);
   const snap: DeskSnapshot = {
     daemon: {
@@ -71,6 +81,7 @@ async function snapshot(): Promise<DeskSnapshot> {
     embedder,
     model: typeof live?.model === "string" ? live.model : MODEL_NAME,
     sessions,
+    goneProjects,
     store,
     warnings: [],
   };
@@ -114,6 +125,9 @@ function frame(snap: DeskSnapshot, notice: string, now = new Date()): string {
       : []),
     "",
     `Database   ${count} memories   ${formatBytes(store.totalBytes)}${missing}`,
+    ...(snap.goneProjects
+      ? [`           ${DIM}${snap.goneProjects} project(s) whose folder is not found — office status lists them${RESET}`]
+      : []),
     `           db ${formatBytes(store.bytes)}   wal ${formatBytes(store.walBytes)}   shm ${formatBytes(store.shmBytes)}`,
     `           ${DIM}${store.path}${RESET}`,
     `Work       ${store.workOpen ?? "?"} open   ${store.workTotal ?? "?"} in the trail   ${formatChars(store.logChars)}`,

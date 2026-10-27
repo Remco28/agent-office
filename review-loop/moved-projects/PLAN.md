@@ -103,3 +103,19 @@ Frank had deferred these choices to the author; this change is reported to him.
    time); peek writes nothing.
 7. Docs: a design rule in AGENTS.md (notes never move without a deliberate command), the command
    in init's section and help, README, an amendment in docs/sessions-and-notices.md.
+
+## Pass 2 (fresh critic, Claude Sonnet) and the build
+
+The v2 critic found no way for notes to move without the command, and no way for `move` to merge
+two projects or hand a copy the original's notes. Its fixes made the plan smaller, all taken: no
+fingerprinting at daemon start (begin records its own project); no note on peek; the gone list is
+its own route (/projects/gone), not part of /health that every command calls; a null fingerprint
+is not stored (retried next check-in); the destination must exist; histories match when their
+root sets share a commit; the note tells the agent to ask the human first, before writing.
+
+Fix audit (Codex; fix-audit-codex.md): no path moves notes without the command. MEDIUM: the
+destination could be a file — fixed (must be a folder; tested). MEDIUM: a check-in scans
+fingerprints — declined (runs only for a brand-new project with no notes); second opinion AGREE.
+LOW: the move test moved no issue — fixed. Its second opinion on the author's two declines (no
+--anyway override for rewritten history; a new repo at a removed project's exact path inherits its
+notes, as before): AGREE on both. 175 tests pass.

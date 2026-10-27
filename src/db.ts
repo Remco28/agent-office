@@ -254,6 +254,13 @@ function migrate(db: Database): void {
   db.exec(WORK_DDL);
   db.exec(ISSUES_DDL);
   db.exec(TOOLS_DDL);
+  // A project's git fingerprint (its first commit), so a moved folder can be
+  // recognised. See src/moves.ts.
+  db.exec(`CREATE TABLE IF NOT EXISTS projects (
+    key TEXT PRIMARY KEY NOT NULL,
+    fingerprint TEXT,
+    seen_at TEXT NOT NULL
+  )`);
   migrateSession(db);
   db.exec(SESSION_DDL);
   // The unnamed slot (key '') is gone: a caller with no name has no session.

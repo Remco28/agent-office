@@ -471,3 +471,17 @@ subfolders of a repository) are rewritten once when the daemon starts
 (`src/rekey.ts`; a marker row in `meta` records it; later starts only retry
 plain names). On this machine that renamed 5 keys and left none unmapped.
 Plan, critic, blind solver: review-loop/layouts/.
+
+## Amendment, 27 Oct 2026: moved and removed projects
+
+Frank deferred the choices to the author's recommendations; the first one,
+carrying notes over automatically, was withdrawn after the peer step (a deleted
+original's copy, repos from one template and unplugged drives all looked like
+moves, and every fix made the plan bigger). What was built: a check-in records
+its repository's fingerprint (sorted root commits; none for an empty repo or a
+shallow clone, retried at the next check-in). A fresh folder sharing history
+with a known project whose folder is gone gets a note telling the agent to ask
+the human; `office move <old path>` brings the notes over and refuses on a copy,
+a merge or a different history. `office status` lists projects whose folder is
+not found; nothing is deleted. Plan, critics and blind solver:
+review-loop/moved-projects/.

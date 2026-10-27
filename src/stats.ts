@@ -49,6 +49,8 @@ export type DeskSnapshot = {
   /** The project the office thinks this session is working on. */
   /** Every session the office remembers, newest check-in first. */
   sessions: Array<{ project: string | null; author: string | null; since: string | null }>;
+  /** Projects whose folder is not found, still holding records; `office status` lists them. */
+  goneProjects: number;
   store: StoreStats;
   warnings: Warning[];
 };

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { serve, type Office } from "../src/server";
@@ -54,6 +54,25 @@ describe("CLI and daemon integration", () => {
     expect((await cli(["remember", "everywhere fact", "--global", "--by", "test-1111"])).memory.scope).toBe("global");
     expect((await cli(["remember", "alpha fact", "--project", "/p/alpha", "--by", "test-1111"])).memory.project)
       .toBe("/p/alpha");
+  });
+
+  test("a moved repository is noticed at check-in, and `office move` brings its notes", async () => {
+    const env = { GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    const old = gitRepo("before");
+    writeFileSync(join(old, "README"), "x\n");
+    Bun.spawnSync(["git", "add", "README"], { cwd: old, env: { ...process.env, ...env } });
+    Bun.spawnSync(["git", "commit", "-qm", "first"], { cwd: old, env: { ...process.env, ...env } });
+    await cli(["begin", "--by", "test-5555"], {}, old);
+    await cli(["remember", "old home's note", "--by", "test-5555"], {}, old);
+    const moved = join(dir, "after");
+    renameSync(old, moved);
+    const here = realpathSync(moved);
+    await cli(["begin", "--by", "test-5555"], {}, here);
+    expect(lastStderr).toContain("shares its git history");
+    const result = await cli(["move", old, "--by", "test-5555"], {}, here);
+    expect(result).toMatchObject({ ok: true, from: old, to: here, moved: { memories: 1 } });
+    const found = await cli(["search", "old home", "--by", "test-5555"], {}, here);
+    expect(found.hits.map((h: any) => h.content)).toEqual(["old home's note"]);
   });
 
   test("the removed office manager role is refused, not silently ignored", async () => {

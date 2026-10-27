@@ -156,6 +156,20 @@ export function resolveGitProject(dir: string): GitProjectInfo | null {
 }
 
 /**
+ * The sorted root commits of the repository at `dir`, joined by commas, or null
+ * for a folder that is not a repository, has no commits, or is a shallow clone
+ * (whose oldest commit is only where the clone was cut, not its first).
+ */
+export function gitRootCommits(dir: string): string | null {
+  if (!hasGitAncestor(dir)) return null;
+  const shallow = git(["-C", dir, "rev-parse", "--is-shallow-repository"]);
+  if (!shallow.ok || shallow.out === "true") return null;
+  const roots = git(["-C", dir, "rev-list", "--max-parents=0", "HEAD"]);
+  if (!roots.ok || !roots.out) return null;
+  return roots.out.split(/\s+/).filter(Boolean).sort().join(",");
+}
+
+/**
  * Infer the project from a working directory when no `--project` flag or
  * `OFFICE_PROJECT` variable was provided: the canonical root of the git
  * repository or worktree it is in. The agent-office checkout is an ordinary

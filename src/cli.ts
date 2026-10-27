@@ -161,6 +161,10 @@ function help(): string {
   office remember [--tag t] [--global] <text>
   office list [--limit n]     recent memories, newest first
   office forget <id>          delete a memory
+  office move <old path>      bring a moved project's notes to this folder's
+                              project. Only when the human says it moved;
+                              refused if the old folder still exists (a copy)
+                              or this project already has notes
 
   office work                 unfinished work for this project; with no
                               project named, the items filed unclaimed
@@ -457,7 +461,9 @@ export async function main(argv = process.argv): Promise<number> {
       printJson({ ok: false, error: "daemon not running" });
       return 1;
     }
-    printJson(h);
+    // Asked for here only: it looks at every stored project's folder.
+    const gone = (await api("/projects/gone")) as { gone_projects?: unknown };
+    printJson({ ...h, gone_projects: gone.gone_projects ?? [] });
     return 0;
   }
 
@@ -580,6 +586,17 @@ export async function main(argv = process.argv): Promise<number> {
       process.stderr.write(`no memory #${id}\n`);
       return 1;
     }
+    return 0;
+  }
+
+  if (cmd === "move") {
+    const from = opts.rest[0];
+    if (!from) throw new Error("usage: office move <old path> [--project <new path>]");
+    const data = await api("/move", {
+      method: "POST",
+      body: { from, project: declaredProject(opts), cwd_project: detectCwdProject() },
+    });
+    printJson(data);
     return 0;
   }
 

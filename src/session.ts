@@ -30,6 +30,7 @@ import {
 } from "./work";
 import { countTools, listTools, type Tool } from "./tools";
 import { listSkills, type Skill, type SkillProblem } from "./skills";
+import { likelyMovedFrom } from "./moves";
 import { skillsDir } from "./paths";
 import { closedSince, listIssues, openIssueCount, type Issue } from "./issues";
 
@@ -482,6 +483,15 @@ export async function briefing(
       : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
   const recentCutoff = new Date((opts.now ?? Date.now()) - SESSION_RECENT_DAYS * DAY_MS).toISOString();
   const allSessions = listSessions(db);
+  // A fresh project that shares its git history with one whose folder is gone
+  // may be that project, moved. Said, never acted on: notes only move when
+  // someone runs `office move` (src/moves.ts).
+  const movedFrom = !readOnly && scope.project ? likelyMovedFrom(db, scope.project) : [];
+  const movedNote = movedFrom.length
+    ? `this repository shares its git history with ${movedFrom.join(" and ")}, whose folder is gone. ` +
+      "Tell the human; only if they say it was moved here, run `office move <old path>` " +
+      "to bring its notes over, before writing anything here"
+    : null;
   // Only this project's sessions: an agent on another project is not working
   // here, and the briefing never carries another project's details.
   const isYou = (session: SessionRow) => session.author !== null && session.author === scope.author;
@@ -504,6 +514,7 @@ export async function briefing(
         scope.project_source === "declared" && !opts.cwdProject
           ? "this folder is not a git repository, so later commands here need --project too (or export OFFICE_PROJECT)"
           : null,
+        movedNote,
       ]
         .filter(Boolean)
         .join(" · ") || null,

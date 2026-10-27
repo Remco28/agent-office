@@ -160,6 +160,12 @@ office work log --all --limit 20  # the whole trail, every project
 
 `office work note` is the handoff. The reason it is written *while* working is that an agent running out of context cannot write its own death notice.
 
+## Moved and removed projects
+
+A check-in records its repository's first commit as a fingerprint. If a folder is moved or renamed, the first check-in in the new folder says that this repository shares its history with the old path, whose folder is gone, and asks the agent to check with the human. `office move <old path>`, run inside the new folder, then brings the old notes over in one step. It refuses, moving nothing, when the old folder still exists (that is a copy, which is its own project), when the new folder already has notes of its own (that would merge two projects), or when the two histories differ. Nothing moves by itself.
+
+`office status` lists `gone_projects`: projects whose folder is not found, with how many records each still holds; the desk shows how many there are. Nothing is ever deleted for being gone. A folder on an unplugged drive shows there too until it is back.
+
 ## Issues
 
 Beside the two records there is a short list of **issues**: friction in the office itself — something it blocks, lacks, or gets wrong. It has the work log's shape (append-only; open until someone writes a closing line) in tables of its own, so an issue never appears in a project's unfinished work. It is deliberately not scoped to a project: every session sees the same open issues whatever it is working on, so a problem is added to rather than filed twice. An issue records the project it came up in as context, not as a filter. Bugs in the repo an agent is working on are not issues; a repo problem that exposes an office problem is.

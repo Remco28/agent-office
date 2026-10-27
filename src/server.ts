@@ -1,4 +1,5 @@
 import { canonicalizeProjects } from "./rekey";
+import { goneProjects, moveProject, recordProject } from "./moves";
 import { openDb } from "./db";
 import { startSidecar, type Embedder } from "./embed";
 import {
@@ -31,6 +32,7 @@ import {
   NO_PROJECT_MEMORY_ERROR,
   UNCLAIMED_WORK_NOTE,
   UNCLAIMED_WRITE_NOTE,
+  normalizeProject,
   projectsDir,
   withProjectMemo,
 } from "./scope";
@@ -219,6 +221,10 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       } catch (err) {
         return fail(err);
       }
+      // A check-in records its project's git fingerprint (once), so that if
+      // this folder is ever moved the office can recognise it.
+      const checkedIn = project ? normalizeProject(project) : cwdProject ? normalizeProject(cwdProject) : null;
+      if (!readonly && checkedIn?.startsWith("/")) recordProject(db, checkedIn);
       // Passing the declaration in is what makes the briefing report the
       // scope this call named, and the advice it gives match.
       const result = await briefing(db, embedder, {
@@ -230,6 +236,27 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         minted: identity.minted,
       });
       return json({ ...result, warnings: warnings() });
+    }
+
+    // Projects whose folder is not found. Its own route, not part of /health:
+    // every command checks /health, and this stats every stored folder.
+    if (req.method === "GET" && path === "/projects/gone") {
+      return json({ ok: true, gone_projects: goneProjects(db) });
+    }
+
+    // Bring a moved project's notes to its new folder. Only ever on request;
+    // the office never decides a move by itself (src/moves.ts).
+    if (req.method === "POST" && path === "/move") {
+      const body = await readBody(req);
+      const from = str(body.from);
+      if (!from) return json({ error: "move needs the old folder: office move <old path>" }, 400);
+      const target = str(body.project) ?? str(body.cwd_project);
+      if (!target) {
+        return json({ error: "no project to move into: run it inside the new folder, or pass --project <path>" }, 400);
+      }
+      const result = moveProject(db, normalizeProject(from), normalizeProject(target));
+      if (!result.ok) return json({ error: result.reason }, 400);
+      return json({ ok: true, from: normalizeProject(from), to: normalizeProject(target), moved: result.moved });
     }
 
     if (req.method === "POST" && path === "/remember") {
