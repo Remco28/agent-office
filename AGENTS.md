@@ -39,6 +39,7 @@ This repository (`agent-office`) uses **Agent Office**, the shared working memor
 - **Memories:** `office remember "<fact>"` for decisions and why, conventions, dead ends, and facts the next agent would otherwise rediscover. Add `--global` only for a rule that holds in every project. Never store secrets, `.env` contents, source dumps or progress chatter. If a memory is wrong, correct it and say why (`office forget <id>` removes it).
 - **Finding things:** `office context "<task>"` before you start something, `office search "<words>"` for one fact. An empty result is real: nothing relevant is recorded.
 - **Tools:** `office tools add <name> --use "<command>" "<what it is>"` for anything installed here that you would want again.
+- **Temporary files:** put them in your scratch folder (or the system temp folder), never in this repository or the home folder. Link big dependency folders (`node_modules`, `.venv`) rather than copying them. Delete what you made before you finish, and say in your work note if you left anything.
 - **Issues:** when the office itself is in your way (not a bug in this repository), check `office issues`, then `office issue open "<what>"`, or add a note to the one already there.
 
 `office help` lists every command.
@@ -98,6 +99,5 @@ If you are working in this repository, read `office issues` at the start. Add no
 - JSON is the default output. Parse it.
 - Humans open the desk with bare `office`. Do not run the desk from an agent session.
 - Each project that uses the office carries init's section in its own AGENTS.md (`office init` puts it there). Never put an AGENTS.md in the home folder itself.
-- Temporary files go in your scratch folder (or the system temp folder), never in the project or the home folder. Link big dependency folders (`node_modules`, `.venv`) rather than copying them, and delete what you made before you finish; say in your work note if you left anything.
 - If `begin` warns that the embedder is down, only exact words match until it is fixed. Say so rather than concluding the store is empty, and tell the human the cause from `office status` (`embedder_error`) or `office logs`.
 - `office list --limit 20`, `office status` and `office work log --all` exist when you need them.

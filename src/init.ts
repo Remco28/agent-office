@@ -62,6 +62,7 @@ This repository (\`${projectName}\`) uses **Agent Office**, the shared working m
 - **Memories:** \`office remember "<fact>"\` for decisions and why, conventions, dead ends, and facts the next agent would otherwise rediscover. Add \`--global\` only for a rule that holds in every project. Never store secrets, \`.env\` contents, source dumps or progress chatter. If a memory is wrong, correct it and say why (\`office forget <id>\` removes it).
 - **Finding things:** \`office context "<task>"\` before you start something, \`office search "<words>"\` for one fact. An empty result is real: nothing relevant is recorded.
 - **Tools:** \`office tools add <name> --use "<command>" "<what it is>"\` for anything installed here that you would want again.
+- **Temporary files:** put them in your scratch folder (or the system temp folder), never in this repository or the home folder. Link big dependency folders (\`node_modules\`, \`.venv\`) rather than copying them. Delete what you made before you finish, and say in your work note if you left anything.
 - **Issues:** when the office itself is in your way (not a bug in this repository), check \`office issues\`, then \`office issue open "<what>"\`, or add a note to the one already there.
 
 \`office help\` lists every command.
