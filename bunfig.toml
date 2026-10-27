@@ -1,3 +1,5 @@
 [test]
 # Only this project's tests. Untracked checkouts under scratch/ carry their own.
 root = "./tests"
+# One temporary folder per run, removed at the end (tests/setup.ts).
+preload = ["./tests/setup.ts"]
