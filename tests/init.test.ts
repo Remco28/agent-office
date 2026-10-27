@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { initProject } from "../src/init";
+import { buildOfficeSection, initProject } from "../src/init";
 import { ROOT } from "../src/paths";
 import { detectCwdProject, normalizeProject, resolveGitProject } from "../src/scope";
 import { serve, type Office } from "../src/server";
@@ -17,6 +17,12 @@ describe("office init and git/worktree project detection", () => {
 
   afterEach(() => {
     rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  test("the office's own AGENTS.md carries init's section word for word", () => {
+    // the agents building the office read exactly what every project gets
+    const agentsMd = readFileSync(join(ROOT, "AGENTS.md"), "utf8");
+    expect(agentsMd).toContain(buildOfficeSection("agent-office"));
   });
 
   test("initializes a non-git folder with local git, skill links, and AGENTS.md, then reports already set up on repeat", () => {
@@ -45,7 +51,7 @@ describe("office init and git/worktree project detection", () => {
 
     // Verify AGENTS.md content
     const agentsMd = readFileSync(join(projectDir, "AGENTS.md"), "utf8");
-    expect(agentsMd).toContain("office begin --by <your-agent-name>");
+    expect(agentsMd).toContain("office begin --by <your-tool>");
     expect(agentsMd).toContain("Working on my-local-app within Agent Office");
 
     // Second run reports already set up and makes no changes

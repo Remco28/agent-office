@@ -200,7 +200,7 @@ Skill files remain the source of truth. Discovery re-reads their metadata each t
 
 One thing is deliberately left unscoped, so that a handoff is never lost:
 
-- **Unclaimed records.** Work and memories filed with no project belong to nobody, so a session with no project is shown them rather than finding them hidden from every scoped read. The office names a record as unclaimed at the moment it is written, while the agent can still fix it for free.
+- **Unclaimed records.** Work filed with no project belongs to nobody, so a session with no project is shown it rather than finding it hidden from every scoped read. A memory filed with no project (and not `--global`) is returned by no scoped read; it is only counted. The office names a record as unclaimed at the moment it is written, while the agent can still fix it for free.
 
 The whole-store reads are the ones asked for by name: `office list` for memories, and `office work log` for the entire trail.
 

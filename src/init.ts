@@ -33,31 +33,38 @@ export type InitResult = {
 
 const OFFICE_MARKER = "<!-- agent-office -->";
 
-function buildOfficeSection(projectName: string): string {
+/** Exported so the office's own AGENTS.md can be checked against it. */
+export function buildOfficeSection(projectName: string): string {
   return `${OFFICE_MARKER}
 ## Agent Office
 
-This repository (\`${projectName}\`) uses **Agent Office**, the shared working memory for agents on this machine.
+This repository (\`${projectName}\`) uses **Agent Office**, the shared working memory for agents on this machine. You arrive with no memory of earlier sessions: the office is how you pick up what the last agent knew, and how the next one picks up from you. Code goes in git; everything else worth keeping goes in the office.
 
 **One agent, one repository.** Work only in this repository. If you are asked to work in another one, suggest that the human start a new agent there instead of switching.
 
-### Session Startup
+### Start
 
-1. Check in at the start of the session, from inside this repository (the project is taken from the folder, including any git worktree of it):
+1. Check in from inside this repository (any git worktree of it counts):
    \`\`\`bash
-   office begin --by <your-agent-name>
+   office begin --by <your-tool>        # for example --by codex
    \`\`\`
-   *(If you have been told not to modify state, run \`office peek --by <your-agent-name>\` instead.)*
-2. Use the numbered identity returned in \`author\` (for example \`claude-4821\`) on every later \`office\` call, or \`export OFFICE_AUTHOR=<numbered-name>\`.
-3. Start your first reply to the human by confirming the active project and your numbered session ID, for example:
+   If you have been told not to change anything, run \`office peek --by <your-tool>\` instead.
+2. The office gives back a numbered name for this run, like \`codex-4821\`. Use it on every later call (\`--by codex-4821\`, or \`export OFFICE_AUTHOR=codex-4821\`), so what you write is signed.
+3. Read the briefing: the tools and skills this machine has, unfinished work, recent activity, and this project's memories. Prefer a listed tool or skill to building your own.
+4. Start your first reply to the human with:
    > \`Working on ${projectName} within Agent Office (<numbered-name>).\`
 
-### During Work
+### While you work
 
-- **Context & search:** \`office context "<task>"\` or \`office search "<query>"\`
-- **Work log (handoffs):** \`office work open "<title>"\`, \`office work note <id> "<progress>"\`, \`office work close <id> "<summary>"\`
-- **Memories (decisions & conventions):** \`office remember --tag convention "<fact>"\` (add \`--global\` if it applies to every project)
-- **Tools & skills:** \`office tools\` and \`office skills\`
+**Write while you still know it.** You will not know when your session ends.
+
+- **Work log, the handoff:** \`office work open "<title>"\`, then \`office work note <id> "<where you got to>"\` as you go, and \`office work close <id> "<outcome>"\` once the work is finished, not when one step of it is. A note says where you stopped and what you would check next, not every file you touched.
+- **Memories:** \`office remember "<fact>"\` for decisions and why, conventions, dead ends, and facts the next agent would otherwise rediscover. Add \`--global\` only for a rule that holds in every project. Never store secrets, \`.env\` contents, source dumps or progress chatter. If a memory is wrong, correct it and say why (\`office forget <id>\` removes it).
+- **Finding things:** \`office context "<task>"\` before you start something, \`office search "<words>"\` for one fact. An empty result is real: nothing relevant is recorded.
+- **Tools:** \`office tools add <name> --use "<command>" "<what it is>"\` for anything installed here that you would want again.
+- **Issues:** when the office itself is in your way (not a bug in this repository), check \`office issues\`, then \`office issue open "<what>"\`, or add a note to the one already there.
+
+\`office help\` lists every command.
 `;
 }
 
