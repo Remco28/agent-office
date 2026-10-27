@@ -69,11 +69,8 @@ export type SessionRow = {
   project: string | null;
   author: string | null;
   updated_at: string;
-  /** `manager` for the one session the human designated, otherwise null. */
-  role: string | null;
 };
 
-export const ROLE_MANAGER = "manager";
 
 export type IssueEventKind = "open" | "note" | "close";
 
@@ -202,8 +199,7 @@ const SESSION_DDL = `
   CREATE TABLE IF NOT EXISTS session_state (
     author TEXT PRIMARY KEY NOT NULL,
     project TEXT,
-    updated_at TEXT NOT NULL,
-    role TEXT
+    updated_at TEXT NOT NULL
   );
 `;
 
@@ -230,7 +226,7 @@ function migrateSession(db: Database): void {
   if (!tableColumns(db, "session_state").has("id")) return;
   const rows = db
     .query("SELECT project, author, updated_at FROM session_state")
-    .all() as Omit<SessionRow, "role">[];
+    .all() as SessionRow[];
   db.exec("DROP TABLE session_state");
   db.exec(SESSION_DDL);
   const insert = db.query(
@@ -260,11 +256,6 @@ function migrate(db: Database): void {
   db.exec(TOOLS_DDL);
   migrateSession(db);
   db.exec(SESSION_DDL);
-  // A session table made before roles existed has no such column; the DDL above
-  // only creates it for a fresh one.
-  if (!tableColumns(db, "session_state").has("role")) {
-    db.exec("ALTER TABLE session_state ADD COLUMN role TEXT");
-  }
   // The unnamed slot (key '') is gone: a caller with no name has no session.
   db.exec("DELETE FROM session_state WHERE author = ''");
   backfillAttribution(db);

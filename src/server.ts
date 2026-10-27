@@ -181,11 +181,10 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       // caller's check-in mark is read, never moved, and no row is written.
       // It exists so an agent told not to modify state can still come in.
       const readonly = body.readonly === true;
-      const role = str(body.role);
-      // A peek writes nothing, and a role is a write. Refused, not ignored:
-      // an ignored claim looks exactly like one that worked.
-      if (readonly && role) {
-        return json({ error: "a read-only visit cannot take a role: use begin, not peek" }, 400);
+      // The office manager role was removed (27 Oct 2026). Refused, not
+      // ignored: an ignored claim looks exactly like one that worked.
+      if (str(body.role)) {
+        return json({ error: "the office manager role was removed (27 Oct 2026): drop --role and OFFICE_ROLE" }, 400);
       }
       // The project is this call's --project, else the repository the caller
       // runs in (sent separately, as cwd_project), else none.
@@ -201,7 +200,7 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       try {
         ({ previous } = readonly
           ? peekSession(db, { project, author })
-          : beginSession(db, { project, author, role, cwdProject }));
+          : beginSession(db, { project, author, cwdProject }));
       } catch (err) {
         return fail(err);
       }

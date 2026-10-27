@@ -444,3 +444,12 @@ added: a bare name with no check-in behind it is pointed out, and a `begin` that
 names a project in a folder that is not a repository says later commands need it
 too. Accepted cost: a folder that is not a git repository gives no project.
 Plan, critic and blind solver: review-loop/naming/.
+
+## Amendment, 27 Oct 2026: no office manager
+
+The manager role existed so one agent knew for certain it was working on
+agent-office rather than another project; starting agents inside their repository
+does that now (Frank). Removed: `--role`, `OFFICE_ROLE`, and the manager lines in
+the briefing. A launcher that still passes a role is refused with a message, not
+ignored. The `role` column is left in existing stores, unread. Issues stay: an
+agent working in the agent-office repository handles them (AGENTS.md).

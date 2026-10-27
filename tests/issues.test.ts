@@ -16,12 +16,9 @@ import {
 } from "../src/issues";
 import {
   BRIEFING_ISSUES,
-  MANAGER_STALE_DAYS,
   beginSession,
   briefing,
-  getManager,
   getSession,
-  setActive,
 } from "../src/session";
 import { listWork, openWork, openWorkCount, workCount } from "../src/work";
 import { tempDb } from "./helpers";
@@ -137,105 +134,30 @@ describe("issues", () => {
   });
 });
 
-describe("office manager", () => {
-  const dbs: ReturnType<typeof tempDb>[] = [];
-  afterEach(() => {
-    for (const db of dbs) db.close();
-    dbs.length = 0;
-  });
-  const fresh = () => {
-    const db = tempDb();
-    dbs.push(db);
-    return db;
-  };
-
-  test("nobody is manager until one is designated, and the briefing says so", async () => {
-    const db = fresh();
-    beginSession(db, { author: "a-1111", project: "/p/alpha" });
-    expect(getManager(db)).toBeNull();
-
-    const result = await briefing(db, fakeEmbedder(), { declared: { author: "a-1111" } });
-    expect(result.manager).toBeNull();
-    expect(result.role).toBeNull();
-    expect(result.manager_note).toMatch(/go to the human/);
-  });
-
-  test("claiming the role makes the claimant manager, and only one at a time", async () => {
-    const db = fresh();
-    beginSession(db, { author: "a-1111", role: "manager" });
-    expect(getManager(db)!.author).toBe("a-1111");
-
-    beginSession(db, { author: "b-2222", role: "manager" });
-    expect(getManager(db)!.author).toBe("b-2222");
-    expect(getSession(db, "a-1111")!.role).toBeNull();
-
-    const mine = await briefing(db, fakeEmbedder(), { declared: { author: "b-2222" } });
-    expect(mine.role).toBe("manager");
-    expect(mine.manager!.is_you).toBe(true);
-    expect(mine.manager_note).toBeNull();
-
-    const other = await briefing(db, fakeEmbedder(), { declared: { author: "a-1111" } });
-    expect(other.role).toBeNull();
-    expect(other.manager!.author).toBe("b-2222");
-    expect(other.manager!.is_you).toBe(false);
-  });
-
-  test("a role you do not restate is kept, and `none` gives it up", () => {
-    const db = fresh();
-    beginSession(db, { author: "a-1111", role: "manager" });
-    beginSession(db, { author: "a-1111", project: "/p/alpha" });
-    expect(getSession(db, "a-1111")!.role).toBe("manager");
-
-    beginSession(db, { author: "a-1111", role: "none" });
-    expect(getManager(db)).toBeNull();
-  });
-
-  test("a role with no name is refused, not dropped or handed to the unnamed slot", () => {
-    const db = fresh();
-    expect(() => beginSession(db, { role: "manager" })).toThrow(/needs a name/);
-    expect(() => beginSession(db, { project: "/p/alpha", role: "manager" })).toThrow(/needs a name/);
-    expect(() => setActive(db, { role: "manager" })).toThrow(/needs a name/);
-    expect(getManager(db)).toBeNull();
-  });
-
-  test("an unknown role is refused rather than silently doing nothing", () => {
-    const db = fresh();
-    expect(() => beginSession(db, { author: "a-1111", role: "boss" })).toThrow(/unknown role/);
-    expect(getSession(db, "a-1111")).toBeNull();
-  });
-
-  test("a manager who has gone quiet is reported as absent", async () => {
-    const db = fresh();
-    beginSession(db, { author: "a-1111", role: "manager" });
-    const later = Date.now() + (MANAGER_STALE_DAYS + 1) * 86_400_000;
-
-    const result = await briefing(db, fakeEmbedder(), { now: later });
-    expect(result.manager!.stale).toBe(true);
-    expect(result.manager_note).toMatch(/treat them as absent/);
-
-    const soon = await briefing(db, fakeEmbedder(), { now: Date.now() + 60_000 });
-    expect(soon.manager!.stale).toBe(false);
-    expect(soon.manager_note).toBeNull();
-  });
-
-  test("a store from before roles existed gains the column and keeps its sessions", () => {
+describe("the office manager role is gone", () => {
+  test("a store that still has the role column keeps its sessions and keeps working", () => {
     const dir = mkdtempSync(join(tmpdir(), "office-prerole-"));
     const path = join(dir, "memory.db");
     const old = new Database(path, { create: true });
     old.exec(`CREATE TABLE session_state (
-      author TEXT PRIMARY KEY NOT NULL, project TEXT, updated_at TEXT NOT NULL
+      author TEXT PRIMARY KEY NOT NULL, project TEXT, updated_at TEXT NOT NULL, role TEXT
     )`);
-    old.query("INSERT INTO session_state VALUES (?, ?, ?)").run(
+    old.query("INSERT INTO session_state VALUES (?, ?, ?, ?)").run(
       "a-1111",
       "/p/alpha",
       new Date().toISOString(),
+      "manager",
     );
     old.close();
 
     const db = openDb(path);
-    dbs.push(db);
-    expect(getSession(db, "a-1111")).toMatchObject({ project: "/p/alpha", role: null });
-    beginSession(db, { author: "a-1111", role: "manager" });
-    expect(getManager(db)!.author).toBe("a-1111");
+    expect(getSession(db, "a-1111")).toEqual({
+      project: "/p/alpha",
+      author: "a-1111",
+      updated_at: expect.any(String),
+    });
+    beginSession(db, { author: "a-1111", project: "/p/beta" });
+    expect(getSession(db, "a-1111")?.project).toBe("/p/beta");
+    db.close();
   });
 });

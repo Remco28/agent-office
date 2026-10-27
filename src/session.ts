@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { ROLE_MANAGER, type SessionRow } from "./db";
+import type { SessionRow } from "./db";
 import type { Embedder } from "./embed";
 import {
   NO_PROJECT_NOTE,
@@ -39,8 +39,6 @@ export const BRIEFING_PREFERENCES = 12;
 export const BRIEFING_NOTICES = 10;
 /** Open issues a briefing lists; the rest are counted, and `office issues` has them. */
 export const BRIEFING_ISSUES = 5;
-/** A manager not seen for this many days is reported as absent, not as here. */
-export const MANAGER_STALE_DAYS = 3;
 /** Sessions a briefing names: the ones seen recently, at most this many. */
 export const BRIEFING_SESSIONS = 8;
 export const SESSION_RECENT_DAYS = 14;
@@ -130,35 +128,16 @@ type StoredRow = {
   author: string;
   project: string | null;
   updated_at: string;
-  role: string | null;
 };
 
 /** Every recorded session, newest check-in first. Only named callers have one. */
 export function listSessions(db: Database): SessionRow[] {
   return db
     .query(
-      `SELECT author, project, updated_at, role FROM session_state
+      `SELECT author, project, updated_at FROM session_state
        ORDER BY updated_at DESC, author ASC`,
     )
     .all() as StoredRow[];
-}
-
-/** The session holding the manager role, if one does. At most one ever does. */
-export function getManager(db: Database): SessionRow | null {
-  return listSessions(db).find((session) => session.role === ROLE_MANAGER) ?? null;
-}
-
-/**
- * What a caller may ask for. `manager` claims the role, and there is only one:
- * claiming moves it. `none` gives it up. Anything else is refused rather than
- * stored, because a typo'd role that silently did nothing would look exactly
- * like a role that worked.
- */
-export function normalizeRole(raw: string | null | undefined): "manager" | "none" | null {
-  const value = raw?.trim().toLowerCase();
-  if (!value) return null;
-  if (value === ROLE_MANAGER || value === "none") return value;
-  throw new Error(`unknown role "${raw}" — the only role is "manager" ("none" gives it up)`);
 }
 
 /** One author's row, or null for a caller that gave no name. */
@@ -166,7 +145,7 @@ export function getSession(db: Database, author: string | null | undefined): Ses
   const key = normalizeAuthor(author);
   if (!key) return null;
   return (db
-    .query("SELECT project, author, updated_at, role FROM session_state WHERE author = ?")
+    .query("SELECT project, author, updated_at FROM session_state WHERE author = ?")
     .get(key) as StoredRow | null) ?? null;
 }
 
@@ -181,31 +160,15 @@ export function getSession(db: Database, author: string | null | undefined): Ses
  */
 export function setActive(
   db: Database,
-  input: { project?: string | null; author?: string | null; role?: string | null },
+  input: { project?: string | null; author?: string | null },
 ): SessionRow | null {
   const key = normalizeAuthor(input.author);
-  const role = normalizeRole(input.role);
-  if (!key) {
-    // A role belongs to someone; a caller with no name is nobody in particular.
-    if (role === "manager") throw new Error("the manager role needs a name: pass --by <agent>");
-    return null;
-  }
+  if (!key) return null;
   const project = input.project?.trim() ? normalizeProject(input.project) : null;
-  const now = new Date().toISOString();
-  const existing = getSession(db, key);
-  // Claiming moves the role rather than sharing it: one manager at a time.
-  if (role === "manager") {
-    db.query("UPDATE session_state SET role = NULL WHERE role = ? AND author <> ?").run(
-      ROLE_MANAGER,
-      key,
-    );
-  }
-  const nextRole = role === "manager" ? ROLE_MANAGER : role === "none" ? null : existing?.role ?? null;
   db.query(
-    `INSERT INTO session_state (author, project, updated_at, role) VALUES (?, ?, ?, ?)
-     ON CONFLICT(author) DO UPDATE SET
-       project = excluded.project, updated_at = excluded.updated_at, role = excluded.role`,
-  ).run(key, project, now, nextRole);
+    `INSERT INTO session_state (author, project, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(author) DO UPDATE SET project = excluded.project, updated_at = excluded.updated_at`,
+  ).run(key, project, new Date().toISOString());
   return getSession(db, key);
 }
 
@@ -226,7 +189,6 @@ export function beginSession(
   input: {
     project?: string | null;
     author?: string | null;
-    role?: string | null;
     /** The repository the caller runs in. */
     cwdProject?: string | null;
   },
@@ -241,7 +203,7 @@ export function beginSession(
   const previous = getSession(db, author);
   return {
     previous,
-    current: setActive(db, { project: declaredProject ?? folderProject, author, role: input.role }),
+    current: setActive(db, { project: declaredProject ?? folderProject, author }),
   };
 }
 
@@ -365,15 +327,6 @@ export type SessionSummary = {
   is_you: boolean;
 };
 
-export type ManagerSummary = {
-  author: string | null;
-  since: string;
-  last_seen: string;
-  is_you: boolean;
-  /** Not seen in a while: the role is held on paper only. */
-  stale: boolean;
-};
-
 export type Briefing = {
   ok: true;
   banner: string;
@@ -409,12 +362,6 @@ export type Briefing = {
   sessions_hidden: number;
   /** Said when this check-in was given a numbered name, so the agent uses it. */
   identity_note: string | null;
-  /** The role this session holds, if the human designated one. */
-  role: string | null;
-  /** Who is office manager right now, or null. The human designates it. */
-  manager: ManagerSummary | null;
-  /** Said when there is no manager, or the one named has gone quiet. */
-  manager_note: string | null;
   /**
    * Open issues about the office itself, most recently touched first, capped.
    * Shown to every session whatever its project, so a problem is added to
@@ -535,20 +482,6 @@ export async function briefing(
       : recentEvents(db, { project: scope.project, latest: true, limit: BRIEFING_NOTICES });
   const recentCutoff = new Date((opts.now ?? Date.now()) - SESSION_RECENT_DAYS * DAY_MS).toISOString();
   const allSessions = listSessions(db);
-  const managerRow = allSessions.find((session) => session.role === ROLE_MANAGER) ?? null;
-  const nowMs = opts.now ?? Date.now();
-  const managerStale =
-    managerRow !== null &&
-    managerRow.updated_at < new Date(nowMs - MANAGER_STALE_DAYS * DAY_MS).toISOString();
-  const manager: ManagerSummary | null = managerRow
-    ? {
-        author: managerRow.author,
-        since: managerRow.updated_at,
-        last_seen: formatAgo(managerRow.updated_at),
-        is_you: managerRow.author !== null && managerRow.author === scope.author,
-        stale: managerStale,
-      }
-    : null;
   // Only this project's sessions: an agent on another project is not working
   // here, and the briefing never carries another project's details.
   const isYou = (session: SessionRow) => session.author !== null && session.author === scope.author;
@@ -593,13 +526,6 @@ export async function briefing(
       is_you: session.author !== null && session.author === scope.author,
     })),
     sessions_hidden: allSessions.length - shown.length,
-    role: scope.author ? (getSession(db, scope.author)?.role ?? null) : null,
-    manager,
-    manager_note: !manager
-      ? "no office manager is designated, so open issues go to the human"
-      : manager.stale
-        ? `the office manager (${manager.author}) was last seen ${manager.last_seen}; treat them as absent and open issues as going to the human`
-        : null,
     issues: listIssues(db, { limit: BRIEFING_ISSUES }),
     issues_open: openIssueCount(db),
     issues_closed: closedSince(db, { author: scope.author, since: watermark }),

@@ -124,7 +124,7 @@ function declaredAuthor(opts: Opts): string | null {
   return opts.author ?? process.env.OFFICE_AUTHOR ?? null;
 }
 
-/** The role is designated by the human — in the launcher's environment, or on begin. */
+/** The manager role is gone; a launcher still passing one is told, not ignored. */
 function declaredRole(opts: Opts): string | null {
   return opts.role ?? process.env.OFFICE_ROLE ?? null;
 }
@@ -193,8 +193,6 @@ function help(): string {
   office                      open the desk (humans)
 
 Flags: --project/-p <path>  --by/-a <agent>  --tag/-t <tag>  --global  --limit/-n <n>
---role manager  on begin: take the office manager role (one holder; the human
-designates it, or export OFFICE_ROLE). --role none gives it up
 --readonly  the read-only begin: use with begin, or just run peek
 The project is this command's --project (or OFFICE_PROJECT), else the
 repository you run it in, else none: nothing is taken from what the office
@@ -257,9 +255,6 @@ type BriefingView = {
   author_warnings?: Array<{ level: string; text: string }>;
   sessions_hidden?: number;
   identity_note?: string | null;
-  role?: string | null;
-  manager?: { author: string | null; last_seen: string; is_you: boolean } | null;
-  manager_note?: string | null;
   issues?: IssueView[];
   issues_open?: number;
   issues_closed?: IssueView[];
@@ -302,13 +297,6 @@ function printBriefing(data: BriefingView): void {
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
   if (data.identity_note) out.push(`         ${data.identity_note}`);
-  if (data.role) out.push(`role     ${data.role}`);
-  if (data.manager) {
-    out.push(
-      `manager  ${data.manager.is_you ? "you" : (data.manager.author ?? "(unnamed)")}   last here ${data.manager.last_seen}`,
-    );
-  }
-  if (data.manager_note) out.push(`         ${data.manager_note}`);
   // One session is already on the author line; more than one is the news.
   if ((data.sessions ?? []).length > 1) {
     out.push("", "sessions");

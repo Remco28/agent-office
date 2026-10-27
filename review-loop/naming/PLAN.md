@@ -96,3 +96,6 @@ getActive or UNNAMED_SESSION.
 - LOW: a test title still named the unnamed slot. Renamed.
 - LOW: a server comment still said "else what is remembered". Fixed.
 169 tests pass (175 before: obsolete unnamed-slot and ambiguity tests removed, new-rule tests added).
+
+*Later the same day: the office manager role was removed too (review-loop/manager/), so the
+`role` column and "roles unchanged" above describe the state before that.*

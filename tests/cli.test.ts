@@ -46,6 +46,11 @@ describe("CLI and daemon integration", () => {
     expect(inRepo.project_source).toBe("folder");
   });
 
+  test("the removed office manager role is refused, not silently ignored", async () => {
+    await expect(cli(["begin", "--by", "test-4444", "--role", "manager"])).rejects.toThrow(/role was removed/);
+    await expect(cli(["begin", "--by", "test-4444"], { OFFICE_ROLE: "manager" })).rejects.toThrow(/role was removed/);
+  });
+
   test("a write from another repository is filed there and says so on stderr", async () => {
     const repo = gitRepo("repo-y");
     const written = await cli(["remember", "y fact", "--by", "test-1111"], {}, repo);
