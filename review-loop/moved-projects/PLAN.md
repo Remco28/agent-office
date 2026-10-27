@@ -61,3 +61,45 @@ two machines is two records, not a move.
   other's folder would need the first one's folder gone and no other candidate.
 - A folder that is only temporarily missing (an unmounted drive) shows as "folder gone" and could
   be picked as a move source if a same-fingerprint folder checks in meanwhile.
+
+## Pass 1 results: the plan grows, so the design changes (2026-10-27)
+
+Critic (Codex; critic-codex.md): 3 HIGH, 2 MEDIUM, "the plan gets bigger". (1) a copy inherits the
+original's notes once the original is deleted, and template repos share a root commit; (2) carrying
+notes onto a key that already has history merges two projects, and collides in `projects`;
+(3) canonicalization does not update `projects`; (4) git calls at check-in and start can stall;
+(5) an unplugged drive looks gone and becomes a move source.
+Blind solver (Claude Opus; blind-claude.md): the same core, and it grew too (an audit table, a
+mount-point heuristic, shallow-clone rules), naming template repos as its strongest risk.
+
+Both passes made the plan bigger to make automatic carry-over safe, and none of the fixes closes
+the template or deleted-on-purpose cases. Per SKILL.md (a plan that grows is a design problem; a
+HIGH means it is no longer light), the author withdraws recommendation 2 (automatic carry-over).
+Frank had deferred these choices to the author; this change is reported to him.
+
+## Plan v2: notice and say; move only on a deliberate command
+
+1. `projects (key TEXT PRIMARY KEY NOT NULL, fingerprint TEXT, seen_at TEXT NOT NULL)` in migrate.
+   Fingerprint = the sorted root commits; null for an empty repo or a shallow clone.
+2. Fingerprints are recorded once per key: at `begin` for the caller's project (one git call, the
+   first time only), and at daemon start for stored keys whose folder exists and have none (one
+   call each, once). Keys are always written normalized, so canonicalization never has to touch
+   this table (its later passes only retry plain names).
+3. "Folder gone": `/status` gains `gone_projects: [{project, records}]` (a stat per key, no git);
+   the desk shows "N projects whose folder is gone" when N > 0. Nothing is deleted.
+4. At `begin` and `peek`: if the caller's project has no records of its own and its fingerprint
+   matches recorded keys whose folders are gone, the `scope_note` says so and names the command:
+   "this repository shares its history with <old path>, whose folder is gone. If it moved here,
+   `office move <old path>` brings its notes over." It names only this repository's own history.
+5. `office move <old> [--project <new>]` (new defaults to the folder's project): renames `old` to
+   `new` in memories, work, issues, session_state and projects, in one transaction. It refuses,
+   moving nothing, when: `old` has no records; `old`'s folder still exists ("that folder still
+   exists, so this is a copy"); `new` already has records ("this project already has notes of its
+   own"); both have fingerprints and they differ. A key from before fingerprints existed (none
+   recorded) may be moved, because the move is deliberate. The CLI prints what moved.
+6. Tests: the begin note appears for a moved repo and not for a copy, a different history, or a
+   project with notes; `office move` moves every table and each refusal moves nothing; status lists
+   a gone folder and clears when it returns; fingerprints are recorded once (no git call the second
+   time); peek writes nothing.
+7. Docs: a design rule in AGENTS.md (notes never move without a deliberate command), the command
+   in init's section and help, README, an amendment in docs/sessions-and-notices.md.
