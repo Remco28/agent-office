@@ -101,5 +101,5 @@ Take what the brand needs; a web-only brand skips the desktop and terminal rows.
   - no private names anywhere in the repository (`git grep`);
   - the public copy meets the voice brief's style rules, checked mechanically.
 - [ ] No scratch paths, temporary files or explorations among the real assets.
-- [ ] Committed, and pushed if the human agreed. The build facts, and where the decisions live, are
+- [ ] Committed, and pushed (private unless the human said otherwise) if the human agreed. The build facts, and where the decisions live, are
       recorded in the office, and the work item is closed with what's left for later.

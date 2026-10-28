@@ -116,3 +116,23 @@ predicted. But #22 is MEDIUM, not LOW: my round-1 fix kept the very act (working
 that #1 was about.
 Believed, and wrong: "Create it, run office init in it, make a first commit, then stop" counted as
 not working there. A first commit is work there; only `office init <folder>` is the office's own setup.
+
+### Round 2 audit (Claude Opus): disposition and fix check
+#22 and #23 hold; #23 relabelled tier 1 (checked against the skill). Correction: `office help` does
+not say init "is meant to be run on another folder"; it takes `[path]` and creates a missing folder.
+Four LOW, all fixed: init refuses a folder inside a repository (now said); the paste-in paragraph
+names the skill and phase 0; kept lettering with no vector or outlinable font falls back to a sweep
+with the original as option A; checklist push line now says private.
+Stop: yes. Everything verified in round 2 was in round 1's new text, fixed; every section exercised
+once (from scratch end to end in round 1, refine path phases 0-5 in round 2). Not seen by a fresh
+reader: the final phase 0 wording. Pending with Frank: #11.
+
+## Stopped, 2026-10-28, after round 2
+Agents: 8 runs (A Sonnet, B Codex luna, C Haiku, D Opus, disposition Sonnet, fix auditor Codex luna,
+E Codex sol, disposition Opus) plus 2 failed Grok runs.
+
+## Mistakes the next author will make
+- Fixing a rule breach by moving it one step: round 1 kept "create, init, commit, then stop" in
+  the old session, which is still working in a second repository.
+- Writing a new procedure in the fix pass and counting it reviewed because a reader asked for it.
+- Neutralising examples in one file and leaving the claim about them in evidence.md.

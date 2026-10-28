@@ -57,9 +57,10 @@ copy its colors, fonts or shapes: those were one human's taste.
 ## Phase 0 · Set up
 
 - **Repository:** the kit gets its own repository, and one agent works in one repository. If you are
-  not already in the kit's repository, agree a name and folder with the human and run
-  `office init <folder>` (it creates the git repository); do nothing else there. Write the human a
-  short paragraph to paste into a new agent started in that folder: what they asked for, where any
+  not already in the kit's repository, agree a name and folder with the human (beside their other
+  projects, not inside one: init refuses that) and run `office init <folder>`, which creates the git
+  repository; do nothing else there. Write the human a short paragraph to paste into a new agent
+  started in that folder: use the brand-kit skill from phase 0, what they asked for, where any
   existing design files are, and anything already decided. Then stop. The new agent begins this
   phase again, inside the kit's repository, with a first commit and an office work item.
 - **Tools:** check what this machine has. Install only what's missing, at user level, and record each
@@ -149,7 +150,9 @@ Visual rounds, one decision each:
 ## Phase 5 · Wordmark
 
 The longest phase. Run it as several narrow rounds. When refining a design whose lettering stays,
-skip rounds 1 and 2: outline the existing font if its license allows, and go on to size and position.
+skip rounds 1 and 2: take the letters from the original vector files, or outline the font if its
+license allows, and go on to size and position. If neither works (hand-drawn lettering only in an
+image, an unknown font), say so, and run the font sweep with the original as option A.
 
 1. **Font sweep.** Set the name in six to nine candidate fonts, **in both lowercase and capitals**,
    on the chosen mark, in light and dark. **Letter case changes the feel more than the font does**:
