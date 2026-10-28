@@ -57,10 +57,11 @@ copy its colors, fonts or shapes: those were one human's taste.
 ## Phase 0 · Set up
 
 - **Repository:** the kit gets its own repository, and one agent works in one repository. If you are
-  not already in the kit's repository, agree a name and place with the human, create it (private
-  unless they say otherwise), run `office init` in it, make a first commit, and ask the human to
-  start a new agent there. Stop there: the new agent begins this phase again, inside the kit's
-  repository, with an office work item.
+  not already in the kit's repository, agree a name and folder with the human and run
+  `office init <folder>` (it creates the git repository); do nothing else there. Write the human a
+  short paragraph to paste into a new agent started in that folder: what they asked for, where any
+  existing design files are, and anything already decided. Then stop. The new agent begins this
+  phase again, inside the kit's repository, with a first commit and an office work item.
 - **Tools:** check what this machine has. Install only what's missing, at user level, and record each
   tool in the office. The usual needs are:
   - a Python environment for the project (`uv`), with fontTools, uharfbuzz and Pillow;
@@ -147,7 +148,8 @@ Visual rounds, one decision each:
 
 ## Phase 5 · Wordmark
 
-The longest phase. Run it as several narrow rounds:
+The longest phase. Run it as several narrow rounds. When refining a design whose lettering stays,
+skip rounds 1 and 2: outline the existing font if its license allows, and go on to size and position.
 
 1. **Font sweep.** Set the name in six to nine candidate fonts, **in both lowercase and capitals**,
    on the chosen mark, in light and dark. **Letter case changes the feel more than the font does**:
@@ -239,5 +241,5 @@ Make the repository easy for a stranger, or the next agent, to use:
   shouldn't be reopened without the human, and what must never be published.
 - **Checks:** every link and file reference exists, a lint passes, the build is deterministic, and no
   scratch paths or temporary files remain.
-- **Finish:** commit, push if the human agrees, record the build facts in the office, and close the work item with what's
+- **Finish:** commit, push if the human agrees (to a private remote unless they say otherwise), record the build facts in the office, and close the work item with what's
   left for later.
