@@ -1,0 +1,10 @@
+You audit fixes. Materials: the diff of last round's fixes to a skill for AI agents, at /tmp/claude-6803/r1.diff, and the skill as it now stands at /home/frank/Dev/agent-office/skills/brand-kit/ (SKILL.md, prompts.md, checklist.md, evidence.md). For context only: the office rules every agent follows, in /home/frank/Dev/agent-office/AGENTS.md section "Agent Office", and the skills it points to in /home/frank/Dev/agent-office/skills/ (voice-brief, desktop-polish).
+
+The skill's goal: "Create a complete brand identity with the human, usually from scratch but also by refining an existing design, and ship it as a documented, rebuildable brand-kit repository."
+
+For each hunk of the diff: GONE (the problem it fixed is gone) / STILL THERE / REPLACED BY A NEW PROBLEM, with a quote. Then:
+1. Did any change make the skill worse in a way the change did not intend (for example, phase 0 now stops and hands to a new agent: can the new agent tell where to pick up)?
+2. Is any change applied in one place and missed in another (another file still saying the old thing)?
+3. Severity per problem: HIGH (an agent would do the wrong thing), MEDIUM (confused or a wasted round), LOW (wording).
+
+Do not hunt for problems to fill space. 'Nothing wrong' is a real and useful answer. Known, deliberate: American spelling; teamremco-style is named but not described; print is left out on purpose. Do not edit or create files; answer in your reply, under 600 words.

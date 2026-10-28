@@ -96,7 +96,7 @@ Take what the brand needs; a web-only brand skips the desktop and terminal rows.
 - [ ] The guide has been looked at in a browser in both themes: no broken images, and one logo per theme.
 - [ ] Every link and file reference in the docs exists.
 - [ ] The scripts pass a lint.
-- [ ] `docs/USING.md`'s copy-into-a-project steps work in a throwaway folder.
+- [ ] `docs/USING.md`'s copy-into-a-project steps work in a throwaway copy in your scratch folder.
 - [ ] Copy checks pass:
   - no private names anywhere in the repository (`git grep`);
   - the public copy meets the voice brief's style rules, checked mechanically.

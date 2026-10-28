@@ -78,7 +78,8 @@ Goal: a short **brand brief** the human confirms, saved as `docs/BRIEF.md`.
 Ask in small batches; the question bank is in `prompts.md`. Cover:
 
 - **Scope:** one site, one product, or the whole organization? Light only, or dark too? Which
-  platforms (web, desktop, mobile, command line, print)?
+  platforms (web, desktop, mobile, command line, print)? If they need print, say that this skill
+  doesn't cover print files yet, and write in the brief what they'll need.
 - **Who and why:** who is behind it, where the name comes from, and what must stay private.
 - **Feeling:** five to ten words for how it should feel, the inspirations (objects, places, other
   brands), and an **avoid list**. The avoid list often says more than the wish list.
@@ -93,20 +94,22 @@ Goal: the human reacts to **whole looks** before any detail is designed.
 
 Generate two or three complete style sheets, each a single image, from the brief, using the
 template in `prompts.md`. A sheet shows the logo variants, palette, shapes, patterns, type, a few
-interface elements and icons, and a few real-world uses. Vary the sheets in the dimension that's least settled
-(for example calm vs lively, or geometric vs hand-made).
+interface elements and icons, and a few real-world uses. Vary the sheets in the dimension that's
+least settled (for example calm vs lively, or geometric vs hand-made).
 
 These sheets are **for reacting to, not a specification**. Ask what they like, what's off, and which
 sheet is closest. Expect image models to get text and exact colors wrong; that doesn't matter here.
 
-If the human arrives with a mock-up of their own, skip the generation and use theirs.
+If the human arrives with a mock-up of a new look, made elsewhere, skip the generation and use theirs
+as the chosen sheet. A design already in use, to be refined, is different; see below.
 
 **Refining an existing design.** Ask for the original files (vector if they exist, otherwise the best
 image there is). Show the design back as it is, large and at 16px, in light and dark, and ask what
 must stay recognizable and what bothers them. Then make the two or three sheets differ in how far
 they move from the original (for example: the same mark tidied, the mark redrawn, a new mark that
-keeps only the colors), passing the original as a reference image. The extraction plan (phase 3)
-then says what stays and what changes.
+keeps only the colors), passing the original as a reference image (with no generator, build them
+as boards from the original). The extraction plan (phase 3) then says what stays and what changes,
+and in phases 4 and 5 a part that stays starts from the original's files, not from nothing.
 
 ## Phase 3 · Extraction plan
 
