@@ -90,3 +90,20 @@ What happened against the predictions:
 - No personal names: right.
 Believed, and wrong: "brand-kit fits the office's rules; it is a procedure inside one project." It
 starts by making a second repository, which is exactly what one agent, one repository forbids.
+
+### Round 1 audits
+Disposition auditor (Claude Sonnet): #4 print still live where the skill asks about print → fixed (say
+it isn't covered, note needs in the brief). #9 relabelled tier 1 (checked against both descriptions
+by me). #20 relabelled tier 2, still declined (an e.g. in a bracket). Dropped: A's "phase 7 packs ten
+deliverables" (A said checklist covers it; no action); Codex's failed `office peek` (tier 0: the
+sandbox). Refine procedure unreviewed and not joined to the no-generator fallback or phases 4-5 →
+fixed. #11 (decisions in docs, office says where) was my call → to Frank at the end.
+Fix auditor (Codex gpt-6-luna): all hunks GONE except one new MEDIUM: "mock-up of their own, skip
+generation" clashed with the refine procedure → fixed (a new look made elsewhere vs a design in use).
+Also "throwaway folder" in checklist → aligned.
+
+## Round 2, 2026-10-28, v3 (8ea513d)
+Predictions (written before the round): 0-2 verified findings, LOW, in the new refine text or the
+phase 0 handoff (most likely: what the first agent tells the new one). No HIGH.
+Cast: E, fresh comprehension reader on the refine path and phase 0 (Codex gpt-6.1-sol); disposition
+auditor after.
