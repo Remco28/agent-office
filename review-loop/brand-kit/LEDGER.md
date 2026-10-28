@@ -107,3 +107,12 @@ Predictions (written before the round): 0-2 verified findings, LOW, in the new r
 phase 0 handoff (most likely: what the first agent tells the new one). No HIGH.
 Cast: E, fresh comprehension reader on the refine path and phase 0 (Codex gpt-6.1-sol); disposition
 auditor after.
+| # | Finding | Reader (their rating) | Ours | How checked | Done |
+|---|---|---|---|---|---|
+| 22 | Phase 0 still has the first agent create, init and commit in a second repo: contradicts "Work only in this repository"; and the request/answers don't reach the new agent's briefing | E (broken) | Tier 1, MEDIUM (round 1's #1 fix, half landed) | Read AGENTS.md; `office help`: `office init [path]` creates the repo and is meant to be run on another folder | Fixed within Frank's decision: only `office init <folder>`, nothing else there; a paste-in paragraph for the new agent |
+| 23 | Refine path, phase 5: if the lettering stays, is the font sweep still required? | E | Tier 2 → checked by reading phase 5, LOW | Read | Fixed: skip rounds 1-2 when lettering stays |
+What happened against the predictions: 2 findings, as predicted; one in the phase 0 handoff, as
+predicted. But #22 is MEDIUM, not LOW: my round-1 fix kept the very act (working in a second repo)
+that #1 was about.
+Believed, and wrong: "Create it, run office init in it, make a first commit, then stop" counted as
+not working there. A first commit is work there; only `office init <folder>` is the office's own setup.

@@ -106,7 +106,8 @@ call:
 
 - **A new repository means a new agent.** The draft had the agent create the kit's repository and
   carry on in it. That breaks the office's one agent, one repository rule, and files the office notes
-  under whichever project each command ran from. Phase 0 now ends with `office init` and a new agent.
+  under whichever project each command ran from. Phase 0 now runs only `office init <folder>`,
+  hands the human a paragraph to paste, and stops; a new agent carries on there.
 - **The voice covers public copy only.** The kit's own docs are read by developers and agents, and a
   later agent finding `docs/VOICE.md` would otherwise write the README in the brand's voice. The guide
   page's prose waits for phase 8, so voice-brief's "nothing gets written before the brief" holds.
