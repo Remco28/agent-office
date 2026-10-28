@@ -1,1 +1,0 @@
-I'll read the four brand-kit skill files side by side and check them only for places they disagree with each other or with themselves.
