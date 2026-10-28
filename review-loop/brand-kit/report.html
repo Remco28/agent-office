@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review: the brand-kit skill</title>
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1b;--muted:#666;--card:#fff;--line:#ddd;--high:#b3261e;--med:#a15c00;--low:#3d6b3d;--accent:#2f5d8a;--tint:#eef3f8}
+@media (prefers-color-scheme:dark){:root{--bg:#18181a;--fg:#ececea;--muted:#a0a0a0;--card:#222225;--line:#3a3a3e;--high:#ff8a80;--med:#ffb74d;--low:#9ccc9c;--accent:#8fb8e0;--tint:#24303c}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;margin:.2em 0}h2{font-size:1.15rem;margin:1.6em 0 .5em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+.muted{color:var(--muted)}
+.sev{font-weight:600;border-radius:4px;padding:1px 6px;font-size:.85em;border:1px solid currentColor}
+.HIGH{color:var(--high)}.MEDIUM{color:var(--med)}.LOW{color:var(--low)}
+.decide{border:2px solid var(--accent);background:var(--tint)}
+.decide li{margin:.5em 0}
+svg text{fill:var(--fg);font:12px system-ui,sans-serif}
+.tabs button{font:inherit;padding:6px 12px;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:6px;cursor:pointer}
+.tabs button[aria-selected=true]{border-color:var(--accent);outline:2px solid var(--accent)}
+.tab{display:none}.tab.on{display:block}
+details{margin:6px 0}summary{cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:.92em}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.tag{font-size:.8em;color:var(--muted)}
+</style>
+</head>
+<body><main>
+<h1>Review of the brand-kit skill</h1>
+<p class="muted">Two rounds, 2026-10-28. Installed at <b>skills/brand-kit</b> on the branch <b>brand-kit-skill</b>. This review covers <b>coherence</b> (do the files agree with themselves and with the office?) and <b>comprehension</b> (can a fresh agent follow it?). It can't judge <b>merit</b>, meaning whether this is a good way to make a brand. That part is yours.</p>
+
+<div class="card">
+<b>The stakes.</b> Agents here will follow this skill for a long job with you, over many rounds. If it fails, it costs your time: rounds wasted on the wrong order, a missing deliverable, or an agent copying Team Remco's taste. Nothing can be lost for good. <b>Stop when</b> no reader finds a contradiction, or a step an agent couldn't act on. That's where it is now.
+</div>
+
+<h2>Findings per round</h2>
+<svg viewBox="0 0 420 150" width="100%" style="max-width:520px" role="img" aria-label="Round 1: 1 serious, 5 medium, 14 low. Round 2: 0 serious, 1 medium, 5 low.">
+  <line x1="40" y1="120" x2="400" y2="120" stroke="currentColor" opacity=".3"/>
+  <g transform="translate(70,0)">
+    <rect x="0" y="105" width="30" height="15" fill="var(--high)"/><text x="15" y="100" text-anchor="middle">1</text>
+    <rect x="34" y="70" width="30" height="50" fill="var(--med)"/><text x="49" y="65" text-anchor="middle">5</text>
+    <rect x="68" y="27" width="30" height="93" fill="var(--low)" opacity=".6"/><text x="83" y="22" text-anchor="middle">14</text>
+    <text x="49" y="138" text-anchor="middle">Round 1</text>
+  </g>
+  <g transform="translate(250,0)">
+    <rect x="0" y="119" width="30" height="1" fill="var(--high)"/><text x="15" y="114" text-anchor="middle">0</text>
+    <rect x="34" y="110" width="30" height="10" fill="var(--med)"/><text x="49" y="105" text-anchor="middle">1</text>
+    <rect x="68" y="87" width="30" height="33" fill="var(--low)" opacity=".6"/><text x="83" y="82" text-anchor="middle">5</text>
+    <text x="49" y="138" text-anchor="middle">Round 2</text>
+  </g>
+</svg>
+<p class="tag">Bars, left to right: <span class="sev HIGH">serious</span> <span class="sev MEDIUM">medium</span> <span class="sev LOW">low</span>. Counts are after the auditor checked my ratings.</p>
+
+<h2>Where the findings sit in the skill</h2>
+<svg viewBox="0 0 760 120" width="100%" role="img" aria-label="Phases 0 to 10; findings cluster in phase 0 and phase 2, with voice in phase 8">
+  <g font-size="12">
+  <!-- phases -->
+  <g id="ph"></g>
+  </g>
+</svg>
+<script>
+(function(){
+ var names=["0 Set up","1 Discovery","2 Mock sheet","3 Plan","4 Foundations","5 Wordmark","6 Type","7 Build","8 Voice","9 Photos","10 Hand off"];
+ var pins={0:["H","M","L"],2:["M","L","L"],3:[],1:["L"],5:["L"],7:["L","M"],8:["M","L"],9:["L","L","L"],10:["L","L","M"]};
+ var g=document.getElementById("ph"),ns="http://www.w3.org/2000/svg",w=66;
+ names.forEach(function(n,i){
+  var x=10+i*68,r=document.createElementNS(ns,"rect");
+  r.setAttribute("x",x);r.setAttribute("y",50);r.setAttribute("width",w);r.setAttribute("height",34);r.setAttribute("rx",6);
+  r.setAttribute("fill","none");r.setAttribute("stroke","currentColor");r.setAttribute("opacity",".5");g.appendChild(r);
+  var parts=n.split(" "),t=document.createElementNS(ns,"text");t.setAttribute("x",x+w/2);t.setAttribute("y",64);t.setAttribute("text-anchor","middle");t.textContent=parts[0];g.appendChild(t);
+  var t2=document.createElementNS(ns,"text");t2.setAttribute("x",x+w/2);t2.setAttribute("y",78);t2.setAttribute("text-anchor","middle");t2.setAttribute("font-size","10");t2.textContent=parts.slice(1).join(" ");g.appendChild(t2);
+  (pins[i]||[]).forEach(function(s,j){var c=document.createElementNS(ns,"circle");c.setAttribute("cx",x+12+j*14);c.setAttribute("cy",38);c.setAttribute("r",5);
+   c.setAttribute("fill",s=="H"?"var(--high)":s=="M"?"var(--med)":"var(--low)");g.appendChild(c);});
+ });
+ var t=document.createElementNS(ns,"text");t.setAttribute("x",10);t.setAttribute("y",108);t.setAttribute("font-size","11");
+ t.textContent="Dots: findings, coloured by severity (serious, medium, low). Most sat in Set up and in the new 'refine an existing design' path.";g.appendChild(t);
+})();
+</script>
+
+<h2>The serious one, and how it was fixed</h2>
+<div class="card">
+<p><span class="sev HIGH">serious</span> <b>The skill made one agent work in two repositories.</b> <span class="tag">how you use it now</span></p>
+<svg viewBox="0 0 760 170" width="100%" role="img" aria-label="Before: one agent in the website repo creates the kit repo and keeps working, so notes are filed under the wrong project. After: the first agent only runs office init on the new folder, hands you a paragraph, and stops; a new agent does the brand work inside the kit repo.">
+  <text x="10" y="18" font-weight="600">Before</text>
+  <rect x="10" y="26" width="200" height="40" rx="6" fill="none" stroke="currentColor" opacity=".5"/><text x="20" y="50">Agent starts in your website</text>
+  <path d="M210 46 H250" stroke="currentColor"/><polygon points="250,42 258,46 250,50" fill="currentColor"/>
+  <rect x="260" y="26" width="200" height="40" rx="6" fill="none" stroke="currentColor" opacity=".5"/><text x="270" y="50">Creates the kit repo, moves in</text>
+  <path d="M460 46 H500" stroke="currentColor"/><polygon points="500,42 508,46 500,50" fill="currentColor"/>
+  <rect x="510" y="26" width="240" height="40" rx="6" fill="none" stroke="var(--high)" stroke-width="2"/><text x="520" y="50" style="fill:var(--high)">Notes filed under the wrong project</text>
+  <text x="10" y="98" font-weight="600">Now</text>
+  <rect x="10" y="106" width="200" height="50" rx="6" fill="none" stroke="currentColor" opacity=".5"/><text x="20" y="126">Agent 1, in your website:</text><text x="20" y="144">office init &lt;folder&gt;, stop</text>
+  <path d="M210 131 H250" stroke="currentColor"/><polygon points="250,127 258,131 250,135" fill="currentColor"/>
+  <rect x="260" y="106" width="200" height="50" rx="6" fill="none" stroke="currentColor" opacity=".5"/><text x="270" y="126">You paste its paragraph</text><text x="270" y="144">into a new agent there</text>
+  <path d="M460 131 H500" stroke="currentColor"/><polygon points="500,127 508,131 500,135" fill="currentColor"/>
+  <rect x="510" y="106" width="240" height="50" rx="6" fill="none" stroke="var(--low)" stroke-width="2"/><text x="520" y="126">Agent 2 does the brand work,</text><text x="520" y="144">all notes in the kit's project</text>
+</svg>
+<p>This is what you chose in round 1. My first fix still had the old agent make a commit in the new repository, and the round 2 reader caught it. Now the old agent runs only <b>office init</b>, the office's own setup command, and nothing else. It also gives you a paragraph to paste: what you asked for, where any old logo files are, and what's already decided. Without that paragraph, the new agent's briefing wouldn't include any of it.</p>
+</div>
+
+<h2>Rounds</h2>
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-t="r2">Round 2</button>
+  <button role="tab" aria-selected="false" data-t="r1">Round 1</button>
+</div>
+<div id="r2" class="tab on card">
+<p>One fresh reader (Codex) played an agent asked to refine a bike shop's old logo. Then an auditor (Claude Opus) checked my ratings and fixes.</p>
+<ul>
+<li><span class="sev MEDIUM">medium</span> Set up still had the old agent working in the new repository (see above). <b>Fixed.</b></li>
+<li><span class="sev LOW">low</span> If the old lettering stays, should the agent still try nine fonts? <b>Fixed:</b> skip that and reuse the letters. If they can't be reused, the old lettering becomes option A in the font comparison.</li>
+<li><span class="sev LOW">low</span> Four small wording gaps from the auditor. <b>Fixed.</b></li>
+</ul>
+<p class="muted">The auditor said it's fine to stop: everything round 2 found was in text I added in round 1, and every part of the skill has now been read by at least one reader.</p>
+</div>
+<div id="r1" class="tab card">
+<p>Four readers. Two played agents: Claude Sonnet making a bakery brand from scratch, and Codex refining a choir's 2009 logo. Claude Haiku checked that the files agree with each other (it stood in for Grok, which hung twice). Claude Opus checked the skill against the other office skills.</p>
+<ul>
+<li><span class="sev HIGH">serious</span> One agent working in two repositories. <b>Fixed</b> (your choice).</li>
+<li><span class="sev MEDIUM">medium</span> "Refine an existing design" was three lines. <b>Fixed:</b> ask for the original files and show the design back. The 2–3 sheets then differ in how far they move from it.</li>
+<li><span class="sev MEDIUM">medium</span> Nothing said what to do if no tool can make images. <b>Fixed</b> (your choice): the agent builds the sheets itself, and photos become a shot list.</li>
+<li><span class="sev MEDIUM">medium</span> The voice brief had no stated scope, and the guide was written before it. <b>Fixed</b> (your choice): the voice covers public copy only, and the guide's prose waits for it.</li>
+<li><span class="sev MEDIUM">medium</span> One rule said "three to nine options" while the phases asked for two or three. <b>Fixed:</b> two to nine.</li>
+<li><span class="sev MEDIUM">medium</span> Nothing told an agent using the kit in a desktop app to feed the colours into desktop-polish's single design file. <b>Fixed.</b></li>
+</ul>
+</div>
+
+<div class="card decide">
+<b>Decisions for you</b>
+<ol>
+<li><b>Where decisions are recorded.</b> I changed this one on my own, so please confirm it. The draft had the agent save each brand decision both in the office and in the kit's own docs. If you later change your mind, the office copy goes stale. Now the kit's docs (<b>BRAND.md</b>) hold the decisions, and the office keeps only where they are, the privacy rules and the build facts. <i>I recommend keeping this.</i></li>
+<li><b>Merge it.</b> The skill is on the branch <b>brand-kit-skill</b>. Merge it into main so every agent gets it? <i>I recommend yes.</i></li>
+<li><b>Optional:</b> no fresh reader has seen the final wording of Set up. One more cheap reader would confirm it. <i>I'd skip it; the auditor checked it.</i></li>
+<li><b>This review folder</b> (review-loop/brand-kit) is safe to delete once you've read this. The lessons are already in the skill's evidence.md. <i>I recommend deleting it in the same merge.</i></li>
+</ol>
+</div>
+
+<details><summary>Low findings and my own small fixes (16), one line each</summary>
+<ul>
+<li>evidence.md mentioned "print sizes in the checklist"; there were none. Reworded.</li>
+<li>Team Remco's look (wooden blocks, coral, roof prism) used as examples. Replaced with neutral ones.</li>
+<li>Print is asked about, but there's nothing to build for it. Left out, as you chose. The agent now says so when the human needs print.</li>
+<li>Pushing without asking. Now: push if the human agrees, to a private remote.</li>
+<li>The description didn't say when to use desktop-polish or voice-brief instead. One sentence added.</li>
+<li>Scratch work had no stated home. It now goes in the scratch folder.</li>
+<li>"Retry about a third" vs 6 of 14 photos actually retried. Now "nearly half".</li>
+<li>evidence.md said the photo-prompt fixes were in the prompts, but they weren't. Added "what must visibly be happening".</li>
+<li>Two different paths for the photo prompt file. Made the same.</li>
+<li>Style sheet contents differed between two files. Made the same.</li>
+<li>Copy checks repeated voice-brief's checks with a fixed list. They now check the brief's own rules.</li>
+<li>The photo prompt always said "no people, no hands, calm". Now a blank to fill in, since a bakery wants hands.</li>
+<li>Build script missing from the checklist. Declined: "one build command" is already required.</li>
+<li>"Deep teal" example could be copied. Declined: it's an example in brackets.</li>
+<li>Added from a reader, with your OK: open each round by saying which phase you're in and what comes next.</li>
+<li>"He" for you in evidence.md. Changed to "they".</li>
+</ul></details>
+
+<details><summary>Glossary</summary>
+<table>
+<tr><td>Repository</td><td>One project folder tracked by git.</td></tr>
+<tr><td>office init</td><td>The office command that sets up a folder as a project (and creates its git repository).</td></tr>
+<tr><td>Disposition auditor</td><td>A fresh agent that checks whether I rated the readers' findings fairly.</td></tr>
+<tr><td>Fix auditor</td><td>A fresh agent that checks whether each fix landed and broke nothing.</td></tr>
+<tr><td>Coherence / comprehension / merit</td><td>Does it agree with itself / can a stranger follow it / is it a good way to do it (only you can judge that).</td></tr>
+<tr><td>Branch / merge</td><td>A side copy of the work in git / bringing it into the main line.</td></tr>
+</table></details>
+</main>
+<script>
+document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){
+ document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b)});
+ document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.id===b.dataset.t)});}});
+</script>
+</body></html>
