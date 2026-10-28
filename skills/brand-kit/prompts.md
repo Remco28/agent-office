@@ -68,9 +68,10 @@ Say up front that the text and exact colors in the images will be wrong, and tha
 > A real photograph, not an illustration or 3D render. [OBJECTS AND MATERIAL, e.g. small glazed
 > ceramic cups with a satin finish]. The colors are exact and consistent:
 > [EACH BRAND COLOR IN WORDS + HEX, with a "not X" for the way it tends to drift, e.g. "a deep teal
-> (#…), not green"]. Calm, minimal composition with generous empty space. [LENS AND LIGHT,
-> e.g. 50mm look, soft shallow depth of field]. No people, no hands, no text, no letters, no logos,
-> no other objects, no extra [objects] beyond those described.
+> (#…), not green"]. [COMPOSITION, e.g. calm and minimal], with generous empty space. [LENS AND
+> LIGHT, e.g. 50mm look, soft shallow depth of field]. [EXCLUSIONS THAT FIT THE BRAND, e.g. no people,
+> no hands]. No text, no letters, no logos, no other objects, no extra [objects] beyond those
+> described.
 
 ### Shot prompt pattern
 
@@ -78,7 +79,8 @@ Say up front that the text and exact colors in the images will be wrong, and tha
 > shape and orientation, e.g. "a cup with its handle to the right,
 > seen from the side, not from above"]. [WHERE THEY SIT, in fractions, e.g. "in the right third,
 > inside the vertical middle band"]. [HOW BIG, e.g. "together about 40 percent of the width"].
-> [WHERE THE EMPTY SPACE IS, e.g. "the left 65 percent is empty table and wall"].
+> [WHERE THE EMPTY SPACE IS, e.g. "the left 65 percent is empty table and wall"]. [WHAT MUST VISIBLY
+> BE HAPPENING, in physical terms, e.g. "one cup lies on its side, handle up"].
 
 With a reference image from the same series, add:
 

@@ -70,14 +70,14 @@ Take what the brand needs; a web-only brand skips the desktop and terminal rows.
 
 - [ ] Originals kept; web crops as WebP and JPEG at a few widths, made by a script.
 - [ ] A default link-preview image with the logo on it.
-- [ ] `PROMPTS.md`: the base prompt, every final prompt, and what made each one work.
+- [ ] `photography/PROMPTS.md`: the base prompt, every final prompt, and what made each one work.
 
 ## Documents
 
 - [ ] `BRAND.md`: the idea, the logo rules (including don'ts), the color roles, the type, the shapes,
       photography, icons, and **how the logo was drawn** (every number, and why).
 - [ ] `docs/BRIEF.md`: the confirmed discovery brief.
-- [ ] `docs/VOICE.md`: the confirmed voice brief.
+- [ ] `docs/VOICE.md`: the confirmed voice brief, scoped to the public copy.
 - [ ] `docs/USING.md`: which file for which job; how to wire it into web, Tailwind, desktop and CLI
       projects; how to copy the kit into a project.
 - [ ] `README.md`: a map of every folder, the one build command, and which source controls what.
@@ -99,8 +99,7 @@ Take what the brand needs; a web-only brand skips the desktop and terminal rows.
 - [ ] `docs/USING.md`'s copy-into-a-project steps work in a throwaway folder.
 - [ ] Copy checks pass:
   - no private names anywhere in the repository (`git grep`);
-  - no banned words;
-  - one spelling variety.
+  - the public copy meets the voice brief's style rules, checked mechanically.
 - [ ] No scratch paths, temporary files or explorations among the real assets.
-- [ ] Committed and pushed. Build facts and decisions are recorded in the office, and the work item
-      is closed with what's left for later.
+- [ ] Committed, and pushed if the human agreed. The build facts, and where the decisions live, are
+      recorded in the office, and the work item is closed with what's left for later.

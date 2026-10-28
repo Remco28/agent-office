@@ -14,8 +14,8 @@ work took about a dozen review rounds and produced:
 - tokens, components and a guide page;
 - 14 generated photos.
 
-So treat the **order of phases and the general rules** as tested once. Treat specific numbers (three
-to nine options, "retry about a third") as hypotheses until another brand confirms them.
+So treat the **order of phases and the general rules** as tested once. Treat specific numbers (two
+to nine options, "retry nearly half") as hypotheses until another brand confirms them.
 
 Phase 2 (the generated mock style sheet) is the one part that **wasn't done inside the workflow**.
 The human made the sheet with another agent first, and brought it in. It worked very well as a
@@ -81,8 +81,9 @@ Six of 14 needed a retry:
 - the blocks came out too big;
 - two shots didn't tell their story ("toppled" wasn't toppled, "work in progress" was just a row).
 
-Each fix was one added phrase, now in the prompt patterns. Passing an earlier photo as a reference
-image made four single-object shots match.
+Each fix was one added phrase, and those kinds of phrase are now in the prompt patterns: a "not X"
+for drift, the exact orientation, the size as a share of the width, and what must visibly be
+happening. Passing an earlier photo as a reference image made four single-object shots match.
 
 **Determinism catches what review doesn't.** Building twice showed that fontTools wrote a new
 timestamp into every web font, so each rebuild looked like a change to git. It's fixed with
@@ -97,6 +98,22 @@ use:
 - app icons were named `16.png`.
 
 A dedicated clean-up pass fixed all of it, and is now phase 10.
+
+## Decided in review (2026-10-28)
+
+A review-loop with four fresh readers, before the skill was installed, changed these. Frank made each
+call:
+
+- **A new repository means a new agent.** The draft had the agent create the kit's repository and
+  carry on in it. That breaks the office's one agent, one repository rule, and files the office notes
+  under whichever project each command ran from. Phase 0 now ends with `office init` and a new agent.
+- **The voice covers public copy only.** The kit's own docs are read by developers and agents, and a
+  later agent finding `docs/VOICE.md` would otherwise write the README in the brand's voice. The guide
+  page's prose waits for phase 8, so voice-brief's "nothing gets written before the brief" holds.
+- **Push only if the human agrees.** Matches the office's rule that pushing is the human's call.
+- **Say where you are each round,** because a first-time human can't see how far the process goes.
+- **A fallback when nothing can generate images.** Untested.
+- **Print stays out** until a brand needs it, although two readers (a bakery, a choir) wanted it.
 
 ## Where the skill is thin
 

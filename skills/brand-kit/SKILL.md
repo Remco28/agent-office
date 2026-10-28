@@ -1,6 +1,6 @@
 ---
 name: brand-kit
-description: Create a complete brand identity with the human, usually from scratch but also by refining an existing design, and ship it as a documented, rebuildable brand-kit repository. Covers discovery, a generated mock style sheet, palette, shapes and mark, wordmark, type, logo files, icons, design tokens, components, voice, photography and handoff. Use when the human wants a new brand, logo or style guide for an organization, product or site. Long and interactive (many rounds with the human); not for small logo tweaks or for applying an existing brand to a project.
+description: Create a complete brand identity with the human, usually from scratch but also by refining an existing design, and ship it as a documented, rebuildable brand-kit repository. Covers discovery, a generated mock style sheet, palette, shapes and mark, wordmark, type, logo files, icons, design tokens, components, voice, photography and handoff. Use when the human wants a new brand, logo or style guide for an organization, product or site. Long and interactive (many rounds with the human); not for small logo tweaks or for applying an existing brand to a project. For an app's interface values without a new identity, use desktop-polish; for a writing voice alone, use voice-brief.
 ---
 
 # Brand kit
@@ -13,9 +13,8 @@ The human decides taste; the agent proposes, renders, checks and records. Most h
 made a brand before. Lead the process and **ask one small set of questions at a time**. Recommend
 an answer each time, but never decide taste for them without saying so.
 
-Most brands this is used for are new. To **refine an existing design**, run discovery (phase 1) as usual,
-then use the existing design in place of a generated sheet (phase 2) and say in the extraction plan
-(phase 3) what stays and what changes.
+Most brands this is used for are new. It can also **refine an existing design**: the phases are the
+same, and phase 2 says what changes.
 
 Take only the phases a project needs. A single-site brand may skip desktop icons, and a brand
 without photos skips phase 9. Keep the order, though: later phases depend on earlier answers.
@@ -35,14 +34,16 @@ copy its colors, fonts or shapes: those were one human's taste.
    brand has both. Nobody can choose between font names or hex codes in a sentence.
 2. **One variable per round.** Settle the layout, then the font, then the size, then the position.
    Comparing everything at once produces "I like parts of all of them".
-3. **Three to nine options per round.** Fewer gives no real choice; more turns into a wall. Label
-   them (A, B, C) so the human can answer in one word.
+3. **Two to nine options per round.** One gives no real choice; more than nine turns into a wall.
+   Whole style sheets are costly, so two or three; detail rounds usually have more. Label them
+   (A, B, C) so the human can answer in one word.
 4. **Recommend, then accept the gut.** Say which option you'd pick and why. If the human picks
    another, take it. "B looks floaty" is a real reason, and good brands are made from those.
    Keep the losing option's settings as one parameter, in case they change their mind.
-5. **Write each decision down as it's made, with its reason.** Use the office (`office remember`)
-   and the project's own docs, and commit after every round. The reason is what stops the next
-   agent from reopening the question.
+5. **Write each decision down as it's made, with its reason,** in the project's docs (`BRAND.md`, or
+   a decisions list until it exists), and commit after every round. The reason is what stops the
+   next agent from reopening the question. In the office, remember only what the next agent would
+   otherwise rediscover: where the decisions live, hard rules such as privacy, and build facts.
 6. **Keep explorations apart from final assets.** Round outputs go in an `explorations` or
    `archive` folder from the start, never next to the real logo files.
 7. **Never invent facts about people.** Ask where the name comes from, who is behind the brand,
@@ -50,18 +51,25 @@ copy its colors, fonts or shapes: those were one human's taste.
    children's names").
 8. **Check by machine what a machine can check:** contrast, file sizes, broken links, stray words.
    Leave taste to the human.
+9. **Say where you are.** Open each round by naming the phase, this round's one question, and what
+   comes after it. A human who has never made a brand can't see the map.
 
 ## Phase 0 · Set up
 
-- **Repository:** create a repository for the kit (private unless the human says otherwise), with
-  a branch, a first commit and an office work item.
+- **Repository:** the kit gets its own repository, and one agent works in one repository. If you are
+  not already in the kit's repository, agree a name and place with the human, create it (private
+  unless they say otherwise), run `office init` in it, make a first commit, and ask the human to
+  start a new agent there. Stop there: the new agent begins this phase again, inside the kit's
+  repository, with an office work item.
 - **Tools:** check what this machine has. Install only what's missing, at user level, and record each
   tool in the office. The usual needs are:
   - a Python environment for the project (`uv`), with fontTools, uharfbuzz and Pillow;
   - an SVG-to-PNG renderer (`resvg`);
   - a headless browser for screenshots.
 - **Image generation:** find out whether any of the human's subscriptions can generate images (look
-  at the office's tool list first). **Make one test image before planning around it.**
+  at the office's tool list first). **Make one test image, in your scratch folder, before planning
+  around it.** If nothing can generate images, say so plainly: phase 2's sheets become SVG or HTML
+  boards you build, and phase 9's plan becomes a shot list for a photographer or a phone.
 
 ## Phase 1 · Discovery
 
@@ -84,14 +92,21 @@ itself. Turn vague words into **is / is-not pairs** ("playful, not childish").
 Goal: the human reacts to **whole looks** before any detail is designed.
 
 Generate two or three complete style sheets, each a single image, from the brief, using the
-template in `prompts.md`. A sheet shows the logo variants, palette, shapes, type, a few interface
-elements, and two or three real-world uses. Vary the sheets in the dimension that's least settled
+template in `prompts.md`. A sheet shows the logo variants, palette, shapes, patterns, type, a few
+interface elements and icons, and a few real-world uses. Vary the sheets in the dimension that's least settled
 (for example calm vs lively, or geometric vs hand-made).
 
 These sheets are **for reacting to, not a specification**. Ask what they like, what's off, and which
 sheet is closest. Expect image models to get text and exact colors wrong; that doesn't matter here.
 
 If the human arrives with a mock-up of their own, skip the generation and use theirs.
+
+**Refining an existing design.** Ask for the original files (vector if they exist, otherwise the best
+image there is). Show the design back as it is, large and at 16px, in light and dark, and ask what
+must stay recognizable and what bothers them. Then make the two or three sheets differ in how far
+they move from the original (for example: the same mark tidied, the mark redrawn, a new mark that
+keeps only the colors), passing the original as a reference image. The extraction plan (phase 3)
+then says what stays and what changes.
 
 ## Phase 3 · Extraction plan
 
@@ -163,7 +178,8 @@ lockup rules. Then build the deliverables in `checklist.md`:
 - **Tokens:** JSON, CSS with light and dark, Tailwind, terminal colors.
 - **Components:** a component stylesheet.
 - **Terminal:** a hand-drawn pixel banner, since shrunk vectors smear at terminal sizes.
-- **The guide:** a guide page generated from the assets themselves.
+- **The guide:** a guide page generated from the assets themselves. Keep its copy to labels for
+  now; the prose is written in phase 8, once the voice is confirmed.
 - **`BRAND.md`:** the rules and the decisions.
 
 Requirements:
@@ -178,15 +194,15 @@ Show the human the finished set as screenshots, and ask what feels off.
 
 ## Phase 8 · Voice
 
-Use the **voice-brief** skill: draft the brief, write samples (two, if two voices are plausible),
-and get the human's confirmation. Save the result as `docs/VOICE.md`.
+Use the **voice-brief** skill, and give it `docs/BRIEF.md` as evidence so the human isn't asked the
+same questions twice. Save the result as `docs/VOICE.md`.
 
-Then rewrite every piece of copy already in the kit (guide, `BRAND.md`) to match. Check it
-mechanically:
-- banned words;
-- exclamation marks;
-- spelling variety;
-- private names, which must appear nowhere in the repository.
+The voice is for the brand's **public copy**: the guide page, sites, posts. Say in the brief's scope
+that the kit's own docs (`BRAND.md`, `docs/USING.md`, the README) are not covered; they stay plain and
+technical, for the developers and agents who use the kit.
+
+Then write the guide page's copy in the voice, and check it mechanically against the brief's style
+rules (voice-brief step 6). Check the private-name rule across the whole repository (`git grep`).
 
 ## Phase 9 · Photography (if the brand uses photos)
 
@@ -195,7 +211,7 @@ mechanically:
    the aspect ratio and **where the empty space for text falls**.
 2. **One shared base prompt** for the whole set, describing the objects, materials, colors, surface,
    light, lens and exclusions. Each shot adds only its arrangement. Template in `prompts.md`.
-3. **Generate one image per job, inspect it, and retry the misses.** Expect to retry about a third.
+3. **Generate one image per job, inspect it, and retry the misses.** Expect to retry nearly half.
    To keep a series consistent, pass an earlier photo as a **reference image**.
 4. **Compose for the crop.** Generators make only a few sizes, so every other aspect ratio is a crop
    decided in advance.
@@ -212,11 +228,13 @@ Make the repository easy for a stranger, or the next agent, to use:
   can't run from a fresh clone, and name their commits instead.
 - **One build command,** documented, with a sentence on what's generated and what's hand-made.
 - **Usage guide:** `docs/USING.md` says which file to use for which job, and how to wire it into web,
-  Tailwind, desktop and terminal projects. Test its copy-into-a-project steps in a throwaway folder.
+  Tailwind, desktop and terminal projects. For a desktop app, it says to map `tokens.json` into the
+  app's one design file, as the desktop-polish skill asks, not to add a second set of values. Test its
+  copy-into-a-project steps in a throwaway copy in your scratch folder.
 - **A README that maps the repo:** every folder, with a line on what's in it.
 - **A project section in `AGENTS.md`:** what to read first, what's generated, what's decided and
   shouldn't be reopened without the human, and what must never be published.
 - **Checks:** every link and file reference exists, a lint passes, the build is deterministic, and no
   scratch paths or temporary files remain.
-- **Finish:** commit, push, record the build facts in the office, and close the work item with what's
+- **Finish:** commit, push if the human agrees, record the build facts in the office, and close the work item with what's
   left for later.
