@@ -41,3 +41,17 @@ not act on.
 | Scope said brand-new only | Frank | Description and intro now include refining an existing design; evidence.md lists it as untried |
 | Kids' names: cannot grep for them without knowing them; draft names no person | read | Left; readers asked to flag any personal name |
 | Links between the files resolve; frontmatter name matches folder | read | OK |
+
+## Round 1, 2026-10-28, v1 (c6eec54)
+Predictions (written before the round):
+- 4-8 verified findings, mostly coherence: SKILL phase 7 vs checklist deliverables (items in one
+  and not the other), and the new "refine an existing design" path being too thin to act on.
+- Someone flags phase 10 "commit, push" (pushing may be the human's call).
+- Overlap reader finds no real contradiction with voice-brief/desktop-polish; maybe a suggestion to
+  use human-feedback for review pages (tier 3).
+- No personal names found.
+Cast:
+- A: comprehension, new brand from scratch (Claude Sonnet, Agent tool)
+- B: comprehension, refining an existing design (Codex gpt-6-luna, read-only)
+- C: coherence specialist, do the four files agree (Grok 4.7, read-only)
+- D: overlap specialist vs the other office skills (Claude Opus, Agent tool)
