@@ -19,8 +19,8 @@ just correct you. Skip what the conversation has already answered.
 
 **Feeling**
 - Five to ten words for how it should feel.
-- Objects, places, materials or other brands that feel right. Concrete things work best: "building
-  blocks", "a workshop at night".
+- Objects, places, materials or other brands that feel right. Concrete things work best: "a worn
+  leather notebook", "a workshop at night".
 - What should it never look like? Which brands make you think "not that"?
 - Calm or lively? Refined or chunky? Geometric or hand-made?
 
@@ -34,12 +34,12 @@ just correct you. Skip what the conversation has already answered.
 One image per sheet, landscape (1536×1024 or larger). Fill in the brackets from the brief, and
 generate two or three variations that differ in the least settled dimension.
 
-> A single brand style guide sheet, laid out as a clean presentation board on a [warm off-white]
+> A single brand style guide sheet, laid out as a clean presentation board on a [light neutral]
 > background, for a brand called "[NAME]". [ONE-SENTENCE POSITIONING.] The feeling is [IS/IS-NOT
 > PAIRS, e.g. playful but grown-up, structured but soft, calm]. Inspired by [CONCRETE INSPIRATIONS].
 > Avoid [AVOID LIST].
 >
-> The sheet has clearly labelled sections:
+> The sheet has clearly labeled sections:
 > - **Top:** the primary logo large, with a short brand statement and a hero image.
 > - **Logo variations:** stacked, horizontal, monochrome, icon or favicon, reversed on dark, and a
 >   clear-space diagram.
@@ -65,18 +65,18 @@ Say up front that the text and exact colors in the images will be wrong, and tha
 
 ### Base prompt (identical for every shot in the set)
 
-> A real photograph, not an illustration or 3D render. [OBJECTS AND MATERIAL, e.g. simple wooden toy
-> blocks made of matte painted wood with visible grain]. The colors are exact and consistent:
-> [EACH BRAND COLOR IN WORDS + HEX, with a "not X" for the way it tends to drift, e.g. "a warm coral
-> (#…), not brick red"]. Calm, minimal composition with generous empty space. [LENS AND LIGHT,
+> A real photograph, not an illustration or 3D render. [OBJECTS AND MATERIAL, e.g. small glazed
+> ceramic cups with a satin finish]. The colors are exact and consistent:
+> [EACH BRAND COLOR IN WORDS + HEX, with a "not X" for the way it tends to drift, e.g. "a deep teal
+> (#…), not green"]. Calm, minimal composition with generous empty space. [LENS AND LIGHT,
 > e.g. 50mm look, soft shallow depth of field]. No people, no hands, no text, no letters, no logos,
 > no other objects, no extra [objects] beyond those described.
 
 ### Shot prompt pattern
 
 > [SURFACE AND BACKGROUND, described the same way in every shot]. [LIGHT]. [WHICH OBJECTS, exact
-> shape and orientation, e.g. "a triangular prism with its equilateral triangle end facing the camera
-> like a little roof, not a ramp"]. [WHERE THEY SIT, in fractions, e.g. "in the right third,
+> shape and orientation, e.g. "a cup with its handle to the right,
+> seen from the side, not from above"]. [WHERE THEY SIT, in fractions, e.g. "in the right third,
 > inside the vertical middle band"]. [HOW BIG, e.g. "together about 40 percent of the width"].
 > [WHERE THE EMPTY SPACE IS, e.g. "the left 65 percent is empty table and wall"].
 

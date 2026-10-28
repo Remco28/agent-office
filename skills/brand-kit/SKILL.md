@@ -1,6 +1,6 @@
 ---
 name: brand-kit
-description: Create a complete brand identity from scratch with the human, and ship it as a documented, rebuildable brand-kit repository. Covers discovery, a generated mock style sheet, palette, shapes and mark, wordmark, type, logo files, icons, design tokens, components, voice, photography and handoff. Use when the human wants a new brand, logo or style guide for an organization, product or site. Long and interactive (many rounds with the human); not for small logo tweaks or for applying an existing brand to a project.
+description: Create a complete brand identity with the human, usually from scratch but also by refining an existing design, and ship it as a documented, rebuildable brand-kit repository. Covers discovery, a generated mock style sheet, palette, shapes and mark, wordmark, type, logo files, icons, design tokens, components, voice, photography and handoff. Use when the human wants a new brand, logo or style guide for an organization, product or site. Long and interactive (many rounds with the human); not for small logo tweaks or for applying an existing brand to a project.
 ---
 
 # Brand kit
@@ -12,6 +12,10 @@ present each one, and what the finished kit must contain.
 The human decides taste; the agent proposes, renders, checks and records. Most humans have never
 made a brand before. Lead the process and **ask one small set of questions at a time**. Recommend
 an answer each time, but never decide taste for them without saying so.
+
+Most brands this is used for are new. To **refine an existing design**, run discovery (phase 1) as usual,
+then use the existing design in place of a generated sheet (phase 2) and say in the extraction plan
+(phase 3) what stays and what changes.
 
 Take only the phases a project needs. A single-site brand may skip desktop icons, and a brand
 without photos skips phase 9. Keep the order, though: later phases depend on earlier answers.

@@ -28,12 +28,12 @@ meant, one side-by-side render settled it in a single reply. Every later round u
 none needed a second explanation.
 
 **One variable per round.** The wordmark took four rounds: font, case, size, position. When a
-round mixed font and size, the human said he liked parts of several options. When each round
-changed one thing, he answered in one word ("C").
+round mixed font and size, the human said they liked parts of several options. When each round
+changed one thing, they answered in one word ("C").
 
 **Letter case matters more than the font.** In round 1 every candidate was in capitals, and none
 won. The human then brought a lowercase mock-up and loved it. Setting all nine fonts in both cases
-showed why: lowercase turned "a sign" into "a name". He said he hadn't accounted for it. The skill
+showed why: lowercase turned "a sign" into "a name". They said they hadn't accounted for it. The skill
 now asks for both cases from the first sweep.
 
 **Small things decide.** The winning font (Baloo 2) won on one letter: its lowercase *t* "politely
@@ -41,7 +41,7 @@ tucks" its crossbar away from the mark. Ask what tips a choice, and record it. T
 stops a later agent from swapping the font for a "cleaner" one.
 
 **Accept the gut, keep the parameter.** In the vertical-position round, the agent recommended the
-mathematically centered option (B). The human chose C because "B looks floaty", and said he might
+mathematically centered option (B). The human chose C because "B looks floaty", and said they might
 regret it. The position is one number in the build (`TEXT_DROP`), so changing it later costs nothing.
 
 **Check contrast early, with numbers.** The mock-up used colored chips with dark text. On solid blue,
@@ -103,7 +103,8 @@ A dedicated clean-up pass fixed all of it, and is now phase 10.
 - **Phase 2:** untested inside the workflow (see above).
 - **One taste:** every rule comes from a calm, playful, geometric brand. A loud or typographic brand
   may need different rounds (for example no mark at all, or a custom typeface).
-- **No print run:** the print sizes in the checklist are guesses that haven't been checked against a
-  real printer.
+- **No print run:** the checklist has no print deliverables (business cards, signage, merchandise). Add
+  them, and check them against a real printer, when a brand needs print.
+- **Refining an existing design:** in scope, but untried. The one brand so far started from nothing.
 - **One image generator:** only Codex's built-in image tool was used. Other generators may honor
   sizes or references differently.
