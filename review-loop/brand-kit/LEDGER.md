@@ -55,3 +55,38 @@ Cast:
 - B: comprehension, refining an existing design (Codex gpt-6-luna, read-only)
 - C: coherence specialist, do the four files agree (Grok 4.7, read-only)
 - D: overlap specialist vs the other office skills (Claude Opus, Agent tool)
+
+Grok hung twice (no output past one line; the second run hit an 8-minute timeout), so C ran on Claude Haiku.
+The Claude reports (A, C, D) are saved condensed by claude-6803; Codex's (B) is verbatim.
+
+| # | Finding | Reader (their rating) | Ours | How checked | Done |
+|---|---|---|---|---|---|
+| 1 | Phase 0 creates a new repo and keeps working: breaks one agent, one repository | D (HIGH) | Tier 1, HIGH | Read AGENTS.md quote | Fixed (Frank: create, office init, new agent) |
+| 2 | Refine-an-existing-design path too thin; no intake of the original files | B; predicted by me | Tier 1, MEDIUM | Read: 3 lines only | Fixed: phase 2 procedure |
+| 3 | No fallback when image generation fails | A (sure) | Tier 1, MEDIUM | Read phases 0, 2, 9 | Fixed (Frank chose) |
+| 4 | Print asked about, nothing to build | A, C (LOW) | Tier 1, LOW | Read | Declined by Frank; recorded in evidence.md |
+| 5 | Rule 3 "three to nine" vs "two or three" sheets/options | C (MEDIUM) | Tier 1, MEDIUM | Read | Fixed: two to nine |
+| 6 | Voice: order (guide/BRAND.md written before brief) and no scope; BRIEF.md not passed | D (MEDIUM) | Tier 1, MEDIUM | Read voice-brief lines 13, 83 | Fixed (Frank: public copy only); guide prose waits for phase 8 |
+| 7 | Fixed copy-check list duplicates voice-brief step 6 | D (LOW), C (LOW, exclamation marks missing in checklist) | Tier 1, LOW | Read voice-brief 125-130 | Fixed: check the brief's rules |
+| 8 | Push without asking | D (MEDIUM) | Tier 1, LOW (AGENTS.md rule is scoped to skills) | Read | Fixed (Frank) |
+| 9 | Description doesn't say when to use desktop-polish / voice-brief instead | D (MEDIUM) | Tier 2 → checked against both descriptions, LOW | Read | Fixed: one sentence |
+| 10 | No pointer from USING.md to desktop-polish's one design file | D (MEDIUM) | Tier 1, MEDIUM | Read desktop-polish line 14 | Fixed |
+| 11 | Decisions recorded in office and docs drift | D (LOW) | Tier 2, LOW | Read AGENTS "progress chatter" | Fixed: docs are the source, office says where |
+| 12 | Scratch work has no stated home | D (LOW) | Tier 1, LOW | Read | Fixed: two places name the scratch folder |
+| 13 | "retry about a third" vs 6 of 14 | C (LOW) | Tier 1, LOW | Arithmetic | Fixed: nearly half (also in evidence.md) |
+| 14 | evidence: fixes "now in the prompt patterns", but they aren't | C (MEDIUM) | Tier 1, LOW (the generic patterns were there; the "what is happening" kind was missing) | Read | Fixed: evidence reworded; prompt gains "what must visibly be happening" |
+| 15 | `photography/PROMPTS.md` vs `PROMPTS.md` | C (LOW) | Tier 1, LOW | Read | Fixed |
+| 16 | Sheet contents in SKILL vs template | C (LOW) | Tier 1, LOW | Read | Fixed |
+| 17 | Build script / folder layout missing from checklist | C (LOW) | Tier 1, LOW | Read | Declined: "Done means" requires one build command; layout is a phase-3 plan item, not a deliverable |
+| 18 | Base prompt hard-codes "no people, no hands", "calm, minimal" | A | Tier 2, LOW (single reader, but checkable: a food brand needs hands) | Read | Fixed: bracketed |
+| 19 | Human loses track over phases 4-7 | A | Tier 3 | — | Put to Frank: added as rule 9 |
+| 20 | "deep teal" example may be copied as a palette | C (LOW) | Tier 3 | — | Declined: it is an e.g. inside a bracket |
+| 21 | Checklist "decisions recorded in the office" vs new rule 5 | me, while counting | Tier 1, LOW | grep | Fixed |
+
+What happened against the predictions:
+- 4-8 verified findings: wrong, 18 verified (most LOW). Coherence SKILL vs checklist: right (5, 7, 15, 16, 17).
+- Refine path thin: right. Push flagged: right.
+- Overlap reader finds no real contradiction: wrong. It found the round's only HIGH.
+- No personal names: right.
+Believed, and wrong: "brand-kit fits the office's rules; it is a procedure inside one project." It
+starts by making a second repository, which is exactly what one agent, one repository forbids.

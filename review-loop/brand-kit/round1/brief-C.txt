@@ -1,0 +1,14 @@
+You are a careful editor whose job today is consistency checking: nitpicking is your job, but only about whether the files agree with each other and with themselves.
+
+Materials: a skill for AI agents at /home/frank/Dev/agent-office/skills/brand-kit/ : SKILL.md (the procedure, phases 0-10), prompts.md (questions and prompt templates), checklist.md (deliverables and definition of done), evidence.md (why the rules exist; for maintainers).
+
+The skill's goal: "Create a complete brand identity with the human, usually from scratch but also by refining an existing design, and ship it as a documented, rebuildable brand-kit repository."
+
+Questions:
+1. Where do the four files disagree: a phase number, a deliverable listed in one and missing from another, a file name or path, a number, a claim in evidence.md that the other files do not bear out? Quote both sides.
+2. Where does a file contradict itself?
+3. Any person's name, or a specific brand's colours, fonts or objects, outside evidence.md (other than the one mention of the teamremco-style repository)?
+4. If you find nothing in a question, say why you looked and came up empty.
+For each finding: quote, file and line, and a severity: HIGH (an agent following it would do the wrong thing), MEDIUM (an agent would be confused or waste a round), LOW (wording).
+
+Do not hunt for problems to fill space. 'Nothing wrong' is a real and useful answer. Known quirks, deliberate: the skill uses American spelling; evidence.md is for maintaining the skill, not running it; teamremco-style is named but deliberately not described; phase 2 is knowingly untested. Do not edit or create any files; report in your reply only.
