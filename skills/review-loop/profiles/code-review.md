@@ -67,7 +67,8 @@ what the step is for. A LOW fix doesn't need it.
   a test database, a scratch folder. A reader who can run the code reproduces
   its own findings. The copy links the dependency folders rather than copying
   them, and goes when the round's reports are saved (SKILL.md step 3).
-- The project's review notes, so settled points aren't re-reported.
+- The project's review notes, so settled points aren't re-reported, including
+  old bugs already filed.
 - What is intended and not a finding (e.g. "anyone can edit anything").
 
 ## Cast
@@ -90,9 +91,10 @@ Retired readers: none yet.
 ## When to stop
 
 This replaces SKILL.md's stop rules for code: **stop after a round that has no
-HIGH, by ratings the disposition auditor has checked, and needed no HIGH or
-MEDIUM fixes.** A round that ended with such fixes has a round after it, with a
-fix auditor on them: the fixes are new code.
+HIGH that is not *old*, by ratings the disposition auditor has checked, and
+needed no HIGH or MEDIUM fixes.** A round that ended with such fixes has a round
+after it, with a fix auditor on them: the fixes are new code. An old HIGH is
+filed, and an old bug that blocks stops the review (SKILL.md step 4).
 
 ## Out of scope
 

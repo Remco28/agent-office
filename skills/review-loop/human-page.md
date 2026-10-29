@@ -28,6 +28,7 @@ choose the diagrams and layout that fit the thing under review.
    nothing left could lose money or work in normal use").
 2. **The trend across rounds**: serious and medium counts per round (after the
    disposition audit), so progress, a plateau or a slide is visible at a glance.
+   Old bugs are their own line, not part of the trend.
 3. **One tab per round**, the latest open. Earlier rounds can be one line each.
 4. **Diagrams first.** At least:
    - **A map of the thing** (screens, parts, data, and what connects to what),
@@ -42,8 +43,11 @@ choose the diagrams and layout that fit the thing under review.
    (in plain frequency: "most trips", "two phones in the same second"), what they
    would see, what's at risk (money, work, or nothing), and what fixing it costs.
    Not the code, not the reader's wording. Label each **how you use it now** or
-   **a setup you don't use**, so the human can see at a glance what matters.
-6. **The decisions, in one box**: each a choice with your recommendation.
+   **a setup you don't use**, so the human can see at a glance what matters,
+   and say where it came from: **in this change**, **already there** (and where
+   it was filed), or **from a fix made earlier in this review**.
+6. **The decisions, in one box**: each a choice with your recommendation. A
+   block (an old bug that stopped the review) comes first.
 7. **Low findings folded away**, one line each.
 8. **A short glossary** of every word the page uses that the human might not know.
 

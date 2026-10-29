@@ -87,14 +87,18 @@ been worth reusing.)
 artifact. For each change: GONE / STILL THERE / REPLACED BY A NEW PROBLEM, with a
 quote. Then the two questions that matter: *"Did any of these changes make it
 worse in a way the change did not intend?"* and *"Is there any change applied in
-one place and missed in another?"* It has never run without finding a fix that
+one place and missed in another?"* For each problem it reports, it says whether
+the fix made it or it was there before the fix. It has never run without finding a fix that
 did not land, including one the author had written up and never made.
 
 **The disposition auditor.** Materials: *every finding and what the author did
 with it*, plus the triage rules the author claims to follow. Asks which declines
 do not hold, whether the stated reasons are real or convenient, and whether the
 expensive and self-authored items were treated more gently than the checkable
-ones. It is the only reader that audits the instrument instead of the artifact.
+ones. Give it too the version before the change and each round's fix commits,
+and have it check every *where it came from* label against them: a soft *old*
+takes a finding out of the count. It is the only reader that audits the
+instrument instead of the artifact.
 Tell it plainly: *"Finding nothing is a real answer, but it is the answer that
 should make us trust YOU less rather than the author more."*
 

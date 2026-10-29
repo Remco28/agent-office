@@ -144,6 +144,19 @@ rules: "rare timing is MEDIUM" kept forcing another round. The changed code
 roughly tripled, mostly for those setups. About 60% of all findings were in the
 original code, 40% from fixes.
 
+That split was counted by hand afterwards, and only partly: rounds were frozen
+as hashes of an uncommitted tree, so for about half of round 3 nobody can now
+tell a fault in the original change from one a fix wrote. Anthropic's account
+of how the Claude Code team reviews code (October 2026) reports the same shape
+from the other side: about 59% of what its reviewer kept flagging across rounds
+was code older than the reviewer's first pass, and it tags such findings
+*pre-existing* so they aren't charged to the change. Hence *where it came from*
+in step 4, the commit-per-round freeze in step 3, and (Frank, 2026-10-29) old
+bugs filed in the repository rather than fixed inside the review. **A
+hypothesis**: the next review should record whether the label made the
+direction test a count, and whether any filed old bug turned out to matter to
+the change.
+
 The human's diagnosis: they could not have set the stakes accurately at the
 start, and will usually not be able to; their job is to say what matters once
 they are shown. Hence the stakes drafted from how the thing is really used, the
