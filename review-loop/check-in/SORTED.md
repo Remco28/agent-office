@@ -25,3 +25,19 @@ after both runs.
 | "If none remain, use the profile's stop rule for the recommendation" | Codex | The converging branch already proposes stopping; the profile still decides when a review is clean |
 
 The declines go to the fix auditor with the diff (light review, step 5).
+
+## Fix audit (Codex, fresh run, on commit 1d1c43e)
+
+Items 2 to 7 landed; item 1 landed with one MEDIUM, made by this change, taken:
+a round 3 that meets the code profile's stop rule but fails the direction test
+(or has nothing to compare) would have proposed another round. Fixed: "If not,
+propose fixing and another round, unless the stop rule is met: then offer
+stopping." All three declines: AGREE. Nothing it added was judged unneeded
+(decision 4). Nothing of the auditor's was declined.
+
+## Outcome
+
+Built and merged to main. SKILL.md 3,685 words before, 3,738 after (+53; the
+check-in replaces two paragraphs and adds a stop where there was none).
+Cost: two Codex gpt-6-luna runs (solver, fix auditor) and one Grok grok-4.7 run
+(critic).

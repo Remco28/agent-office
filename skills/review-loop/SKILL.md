@@ -242,7 +242,8 @@ these that fits, with the counts (serious means a verified HIGH that is not
   it is converging, and what is left is the cost of fixing: offer stopping, or,
   for findings in setups not in use, *"The last findings are in setups you don't
   use (X, Y). I propose rating those one step lower from now on. Agree?"* If
-  not, propose fixing and another round.
+  not, propose fixing and another round, unless the stop rule is met: then
+  offer stopping.
 
 Record the answer, and any new stakes, in the ledger. Fixes causing new problems
 is normal; what is tolerable is set by whom they reach, not by their count.
