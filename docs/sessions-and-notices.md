@@ -443,7 +443,7 @@ named `begin` writes where it checked in this time, even nowhere. Two notes were
 added: a bare name with no check-in behind it is pointed out, and a `begin` that
 names a project in a folder that is not a repository says later commands need it
 too. Accepted cost: a folder that is not a git repository gives no project.
-Plan, critic and blind solver: review-loop/naming/.
+Plan, critic and blind solver: review-loop/naming/ (removed in the cleanup; `git show b552f6a:review-loop/naming/PLAN.md`).
 
 ## Amendment, 27 Oct 2026: no office manager
 
@@ -470,7 +470,7 @@ stored on each read. Old spellings (plain names from before keys were folders,
 subfolders of a repository) are rewritten once when the daemon starts
 (`src/rekey.ts`; a marker row in `meta` records it; later starts only retry
 plain names). On this machine that renamed 5 keys and left none unmapped.
-Plan, critic, blind solver: review-loop/layouts/.
+Plan, critic, blind solver: review-loop/layouts/ (removed in the cleanup; in git at b552f6a).
 
 ## Amendment, 27 Oct 2026: moved and removed projects
 
@@ -484,4 +484,4 @@ with a known project whose folder is gone gets a note telling the agent to ask
 the human; `office move <old path>` brings the notes over and refuses on a copy,
 a merge or a different history. `office status` lists projects whose folder is
 not found; nothing is deleted. Plan, critics and blind solver:
-review-loop/moved-projects/.
+review-loop/moved-projects/ (removed in the cleanup; in git at b552f6a).
