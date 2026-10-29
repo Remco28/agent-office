@@ -52,4 +52,4 @@ nothing to send back.
 ## Outcome
 
 Built and merged to main. Tests: 175 pass; `office skills` reports no problems.
-Cost: three Codex gpt-6-luna runs and one Grok grok-4.7 run.
+Cost: two Codex gpt-6-luna runs (critic, fix auditor) and one Grok grok-4.7 run (solver).
