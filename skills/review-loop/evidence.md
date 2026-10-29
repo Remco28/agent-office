@@ -171,6 +171,20 @@ The same review copied a 1.4 GB Python environment into every reader's copy and
 never deleted the copies: 29 GB, unnoticed until the human asked. Hence the
 copy and clean-up rules in step 3 and at the stop.
 
+## Readers that checked in
+
+**agent-office, 26 Oct to 29 Oct 2026.** A Codex reader ran `office peek`
+against the live office despite its brief; another reader's check-in pointed the
+office at a throwaway copy under `/tmp`, counted as a project. The only thing
+telling them to was the project's `AGENTS.md`. Tested on 29 Oct: Codex and Grok
+in their read-only sandboxes could not reach the office, Gemini could, a Claude
+subagent of the author's session carried the author's project instructions
+wherever it worked, and a headless `claude -p` in a scratch folder had neither
+the instruction nor the author's memory and was refused every way of running
+`office` it tried. Hence step 3's rule: a stripped copy, every reader started
+from the shell, and only recipes that block the command (Frank's idea, both
+halves).
+
 ## The harness is the unreliable component, not the readers
 
 **Nine false findings across nine rounds, and every one was the author's

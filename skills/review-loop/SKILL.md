@@ -57,7 +57,8 @@ change needs. The light review is:
 2. **If the change alters what is stored or computed**, the peer step (step 5):
    one critic to break the plan, and one blind solver given only the problem
    and the human's decisions, on different models where you can. A plain
-   removal or a change of wording skips this.
+   removal or a change of wording skips this. A decision the human never made,
+   which peers often find, goes to the human (step 5).
 3. **Build it, run the tests, and use it once** the way its audience will.
 4. **One fix auditor on the diff**, as in the cast.
 5. **Every finding you decline gets a second opinion.** Put the critic's and
@@ -71,9 +72,11 @@ change needs. The light review is:
    human in the chat what was found and what was done. No rounds, no page.
 
 It stops being light when the human has not made the decisions, when a
-critic, solver or auditor finds a HIGH that is not *old*, or when the plan grows
-as the peers see it. Say so, and run the loop. An old bug that blocks (step 4)
-stops the light review instead; it does not start the loop.
+critic, solver or auditor finds a HIGH that is not *old*, or when the design
+grows as the peers see it (more parts, more state). Say so, and run the loop.
+Places the plan forgot to bring in line with its own change are coverage, not
+design: fold them in; unsure which, ask the human. An old bug that blocks
+(step 4) stops the light review instead; it does not start the loop.
 
 ---
 
@@ -144,6 +147,13 @@ audience is your cast and its style rules are house rules.
   copying them: one review copied a 1.4 GB `.venv` into every copy and left
   29 GB behind. Once a round's reports are saved in the ledger folder, delete
   its copies: the reports are the record, not the copies.
+- **Readers never use the office, and it is not left to them.** Start every
+  reader, peers and auditors too, from the shell in its copy, materials
+  included; Claude as `claude -p`, since a subagent of your session carries your
+  instructions and memory. Unless they are part of the work, the copy leaves out
+  `AGENTS.md`, `CLAUDE.md`, `.claude` and `.agents` at every level (quote in the
+  brief what a reader needs from them), and every reader's recipe blocks the
+  `office` command (the office's tool notes).
 - **Run readers in parallel, blind to each other.** Spread them across models
   where you can and write the model beside each finding: readers from one model
   share blind spots, so their agreement is weaker than it looks.
@@ -366,8 +376,9 @@ none of them (step 4); a block ends the review, and is not a clean stop.
 - What's left is rare-timing edge cases the stakes don't justify chasing: say so,
   in one line, and stop.
 
-Then clean up: delete every scratch copy and temporary file the review made, and
-say in the closing note what was removed and what was left. Leave the filed old
+Then clean up: delete every scratch copy and temporary file the review made,
+and whatever a reader's tool left behind (the tool notes say what), and say in
+the closing note what was removed and what was left. Leave the filed old
 bugs: they outlive the review. Then hand it to the
 human. That was always the point.
 
