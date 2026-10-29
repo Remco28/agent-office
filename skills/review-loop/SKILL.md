@@ -41,7 +41,7 @@ The human usually can't foresee the stakes in full, so don't ask them to: draft
 them yourself and have them confirm. **Check how the thing is really used**
 (what is installed, which setups and data exist, who runs it) and write it down;
 that evidence feeds every rating ("can this happen in the way it is actually
-used?"). **The stakes are revisited, not set once** (the stakes check, step 4).
+used?"). **The stakes are revisited, not set once** (the check-in, step 4).
 
 Everything else (how many readers, which specialists, how many rounds) scales
 with how big and how important the thing is.
@@ -227,20 +227,25 @@ reason to one fresh agent told to kill the reason (as in tier 2). If the reason
 dies, file the bug and carry on. If it survives, stop without fixing it: the
 ledger says *blocked by <the bug>: <why>*, and both go to the human.
 
-**The stakes check, every two or three rounds**, and sooner when the direction
-test below says the findings have moved into rare ground. Put one item in the
-round's decision box, with the evidence: *"The last findings are in setups you
-don't use (X, Y). I propose rating those one step lower from now on. Agree?"*
-It is not a separate stop: the loop carries on with the proposal, and the
-human's answer, when it comes, decides. Record the answer in the ledger as the
-new stakes.
+**The check-in, every third round: stop and wait for the human.** It comes
+after the round's sorting and disposition audit, before its fixes; nothing runs
+until they answer, and a yes runs to the next check-in. Propose the first of
+these that fits, with the counts (serious means a verified HIGH that is not
+*old*):
 
-**The direction test, every round from round 3**: compared with the last round,
-are the findings that are not *old* (1) less severe, (2) in rarer situations,
-and (3) mostly *from a fix* (count them)? Yes to all three means the work is
-converging and what is left is the cost of fixing: bring the stakes check
-forward rather than chase it. Fixes causing new problems is normal; what is
-tolerable is set by whom they reach, not by their count.
+- **Serious findings *from a fix***: the fixes are the problem. Propose stepping
+  back to rethink the approach, as the peer step does when a plan grows.
+- **Other serious findings**: earlier rounds missed them. Propose fixing them
+  and another round, perhaps with different readers.
+- **The direction test**: compared with the last round, are the findings that
+  are not *old* less severe, in rarer situations, and mostly *from a fix*? Then
+  it is converging, and what is left is the cost of fixing: offer stopping, or,
+  for findings in setups not in use, *"The last findings are in setups you don't
+  use (X, Y). I propose rating those one step lower from now on. Agree?"* If
+  not, propose fixing and another round.
+
+Record the answer, and any new stakes, in the ledger. Fixes causing new problems
+is normal; what is tolerable is set by whom they reach, not by their count.
 
 ## Step 5: fix, then predict
 
@@ -347,7 +352,8 @@ the ledger and count from there.
 ## When to stop
 
 Judged on ratings the disposition auditor has checked, never on your own. A
-profile's stop rule replaces these for its genre. *Old* findings count toward
+profile's stop rule replaces these for its genre, but not the check-in (step
+4). *Old* findings count toward
 none of them (step 4); a block ends the review, and is not a clean stop.
 
 - Two rounds in a row with no tier-1 finding.

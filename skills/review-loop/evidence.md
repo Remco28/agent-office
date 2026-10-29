@@ -160,10 +160,11 @@ the change.
 The human's diagnosis: they could not have set the stakes accurately at the
 start, and will usually not be able to; their job is to say what matters once
 they are shown. Hence the stakes drafted from how the thing is really used, the
-*whom it reaches* split, the stakes check every two or three rounds, the
-direction test, and in the code profile one step down for a setup not in use.
+*whom it reaches* split, the check-in every third round (then "the stakes
+check" every two or three rounds, and the direction test), and in the code
+profile one step down for a setup not in use.
 **These are a hypothesis from one review**: the next code review should record
-whether the stakes check ended it sooner without letting through a failure in
+whether the check-in ended it sooner without letting through a failure in
 real use.
 
 The same review copied a 1.4 GB Python environment into every reader's copy and

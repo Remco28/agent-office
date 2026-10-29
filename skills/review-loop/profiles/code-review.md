@@ -46,7 +46,7 @@ Rating rules, because your ratings drift soft:
 - **A setup not in use is one step lower.** A failure that needs a setup the
   stakes record as not in use (a git layout nobody here has, an OS nobody runs)
   is rated one step down, HIGH to MEDIUM or MEDIUM to LOW, and labelled
-  *not in use*. Only from the stakes check on: until the human has agreed, rate
+  *not in use*. Only from the check-in on: until the human has agreed, rate
   it in full and propose the step down there.
 - **"Visible" or "recoverable" alone never makes a finding LOW.**
 - **A reason for a rating, or for not fixing, is a claim.** Check it against the
@@ -93,8 +93,9 @@ Retired readers: none yet.
 This replaces SKILL.md's stop rules for code: **stop after a round that has no
 HIGH that is not *old*, by ratings the disposition auditor has checked, and
 needed no HIGH or MEDIUM fixes.** A round that ended with such fixes has a round
-after it, with a fix auditor on them: the fixes are new code. An old HIGH is
-filed, and an old bug that blocks stops the review (SKILL.md step 4).
+after it, with a fix auditor on them: the fixes are new code, and SKILL.md's
+check-in still applies. An old HIGH is filed, and an old bug that blocks stops
+the review (SKILL.md step 4).
 
 ## Out of scope
 

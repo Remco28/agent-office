@@ -23,7 +23,7 @@ choose the diagrams and layout that fit the thing under review.
 ## What it must show
 
 1. **The stakes, at the top**, agreed with the human at the start and updated at
-   each stakes check: what the thing is, who relies on it, how it is really used,
+   each check-in: what the thing is, who relies on it, how it is really used,
    what a failure costs, and the stop condition in their terms ("stop when
    nothing left could lose money or work in normal use").
 2. **The trend across rounds**: serious and medium counts per round (after the
