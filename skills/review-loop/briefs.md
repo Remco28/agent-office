@@ -14,7 +14,7 @@ Every brief has six parts, in this order:
 1. **Who they are**, in one or two sentences. Concrete, not a job title. *"You
    read English well as a second language, at about B2 level. You are educated
    but have no science background."*
-2. **The materials**, by absolute path, with what each one is.
+2. **The materials**, by absolute path in the reader's copy, with what each one is.
 3. **The artifact's stated goal**, quoted. They are measuring against this, not
    against their taste.
 4. **Their questions**, numbered. Comprehension readers get the four questions;

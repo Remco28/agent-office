@@ -50,7 +50,7 @@ with how big and how important the thing is.
 
 For a small, contained change whose decisions the human has already made (a
 removal they asked for, a rule they chose), the full loop is more than the
-change needs. The light review is:
+change needs. The light review is (every reader started as in step 3):
 
 1. **Write the plan plainly and commit it** before anyone reads it, in
    `review-loop/<change>/PLAN.md`.
@@ -142,7 +142,7 @@ audience is your cast and its style rules are house rules.
   comparison. Reviewing a change, record the version before it too, and commit
   each round's fixes on their own, never squashed into the change.
 - **Keep the copies small and short-lived.** Readers' runnable copies go in one
-  scratch folder per round, never inside the project or the home folder. Link
+  scratch folder per round under `~/.cache`, never inside the project. Link
   large dependency folders (`node_modules`, `.venv`) into each copy instead of
   copying them: one review copied a 1.4 GB `.venv` into every copy and left
   29 GB behind. Once a round's reports are saved in the ledger folder, delete
@@ -158,8 +158,8 @@ audience is your cast and its style rules are house rules.
   where you can and write the model beside each finding: readers from one model
   share blind spots, so their agreement is weaker than it looks.
 - **Brief them in six parts**, kept short ([`briefs.md`](briefs.md) has worked
-  examples): who they are; the materials, by absolute path; the artifact's goal,
-  quoted; their questions, numbered; *"Do not hunt for problems to fill space.
+  examples): who they are; the materials, by absolute path in its copy; the
+  artifact's goal, quoted; their questions, numbered; *"Do not hunt for problems to fill space.
   'Nothing wrong' is a real and useful answer"*; and the known quirks. **Don't
   let briefs grow.** The temptation is to add, each round, where to look and
   what to skip, until the brief decides the answer. Keep it to the role and the
