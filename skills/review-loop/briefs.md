@@ -95,7 +95,8 @@ did not land, including one the author had written up and never made.
 with it*, plus the triage rules the author claims to follow. Asks which declines
 do not hold, whether the stated reasons are real or convenient, and whether the
 expensive and self-authored items were treated more gently than the checkable
-ones. Give it too the version before the change and each round's fix commits,
+ones. Give it too each round's fix commits and, reviewing a change, the version
+before it (reviewing a whole thing, the history behind each commit you named),
 and have it check every *where it came from* label against them: a soft *old*
 takes a finding out of the count. It is the only reader that audits the
 instrument instead of the artifact.

@@ -36,3 +36,20 @@ same label, carried into the places it touches. So it stays a light review
 | The "Reviewing:" / "Previous version:" header lines as three separate lines | Grok | Kept as one line |
 
 The declines go to the fix auditor with the diff (light review, step 5).
+
+## Fix audit (Codex, fresh run, on commit 3eab0f3)
+
+All 14 taken items landed. All four declines: AGREE.
+
+One MEDIUM, made by this change, taken: the ledger template's "old bugs filed
+in", the disposition auditor's "version before the change" and the human page's
+three labels assumed a change review. Fixed: the ledger line puts "old bugs
+filed in" inside the change branch; the auditor gets the history behind each
+named commit for a whole-thing review; the human page says only *from a fix*
+applies to a whole thing. Nothing of the auditor's was declined, so there was
+nothing to send back.
+
+## Outcome
+
+Built and merged to main. Tests: 175 pass; `office skills` reports no problems.
+Cost: three Codex gpt-6-luna runs and one Grok grok-4.7 run.

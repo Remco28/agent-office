@@ -323,7 +323,7 @@ and following this shape:
 
 Success question: <one sentence>
 Rules confirmed with: <who, when>
-Reviewing: <a change, from <version before> | a whole thing>; old bugs filed in: <where>
+Reviewing: <a change, from <version before>; old bugs filed in: <where> | a whole thing>
 
 ## Round <n>, <date>, <version reviewed>
 Predictions (written before the round): <per fix; per round>

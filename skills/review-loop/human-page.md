@@ -45,7 +45,8 @@ choose the diagrams and layout that fit the thing under review.
    Not the code, not the reader's wording. Label each **how you use it now** or
    **a setup you don't use**, so the human can see at a glance what matters,
    and say where it came from: **in this change**, **already there** (and where
-   it was filed), or **from a fix made earlier in this review**.
+   it was filed), or **from a fix made earlier in this review**. Reviewing a
+   whole thing, only the last applies.
 6. **The decisions, in one box**: each a choice with your recommendation. A
    block (an old bug that stopped the review) comes first.
 7. **Low findings folded away**, one line each.
