@@ -198,6 +198,19 @@ the frozen version is what must not change, checked by checksum), and output
 that survives a kill. Whether the probe catches a bad computer is untested: only
 one computer has run it so far.
 
+**Then the first readers started from those recipes broke them.** Gemini's
+auditor, fenced by a profile the author had called proven the day before, showed
+a saved rule making it run a script; re-testing showed `python3` ran too, because
+session settings add to saved ones. The author's note saying *replace* had never
+been tested with a command outside the deny list. Grok's auditor showed it could
+write its own skills folder, and that Claude's recipe still read the user's
+settings; Claude was also being handed the user's mail and drive connectors. And
+every recipe could read the office's database, which the author had declined to
+fence because nothing pointed there, in a file that named the path. A fence per
+CLI kept failing at its edges, so `bwrap` now goes around each reader's whole
+process. **A fence is tested by what it is meant to refuse and also by what no
+list thought to name.**
+
 ## The harness is the unreliable component, not the readers
 
 **Nine false findings across nine rounds, and every one was the author's
