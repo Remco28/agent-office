@@ -137,5 +137,23 @@ Believed, and wrong: "nothing on the computer but the copy" (Docker's socket isn
 Predictions (written before the round): fix auditor: no HIGH or MEDIUM; LOW on probe.sh wording. Disposition auditor: no HIGH, says this could stop if Frank answers on CLI logs. Then the check-in: stop for Frank.
 Cast: fix auditor Grok (running-code recipe), disposition auditor Codex (reading recipe).
 
+| Finding | Reader (their rating) | Ours | From | How checked | Done |
+|---|---|---|---|---|---|
+| Backup mount still writable through run | Grok (HIGH) | rejected: it read an evidence sentence about the earlier script, and bwrap's man page on --remount-ro | - | live CIFS mount; inside run it is ro and touch gives EROFS | none |
+| First-time pass rule doesn't require `copy` to succeed under a running-code recipe | Grok (MEDIUM) | MEDIUM | from a fix (5) | read | open: wording |
+| Brief's command isn't Claude's allowed prefix, so the check can't be run as written | Grok (MEDIUM) | MEDIUM; fails closed | from a fix (5) | read | open: wording |
+| probe.sh's relative path doesn't exist in another project's copy | Grok (LOW) | MEDIUM: other projects leave skills out, so the check can't start | from a fix (5) | read | open: copy it in |
+| Outer fence writes "not validated" | Codex (MEDIUM) | rejected: that is the fix auditor's own run; the author's runs under each recipe and the disk are in round 5 | - | ledger; re-read | none |
+| Hooks on the other laptop | Codex (unverified) | LOW; probe.sh would not show one; Frank's | - | - | Frank |
+| Gemini redirect | Codex (unverified) | unverified: a third run was blocked by Gemini's own filter; nothing written in any | - | three runs | stated |
+| CLI logs and settings; peer step and whole-code reader absent | Codex, Claude | for Frank | - | - | Frank |
+
+The declined "permitted shell write" was put back to Grok: it holds for that finding (Grok reproduced denial for home, the mount, /var/crash, /opt, /usr/local/bin/spf).
+What happened against the predictions: fix auditor found one claimed HIGH, rejected, and three MEDIUM against none; all in one section. Disposition auditor: no verified HIGH as predicted; it did not say this could stop.
+Believed, and wrong: none this round; the author's measured claim held against the auditor's reading.
+
+## Check-in, round 6 (stop for the human, before fixes)
+Serious, verified, not old, per round: 7, 2, 1, 1, 1, 0. What is left is the wording of one section. Proposed: offer stopping: fix that wording, run the check once as written on this computer, merge, push. Departures to accept: no peer step for fixes, no whole-code reader, stop rule not literally met (the wording fixes are MEDIUM). Answer: awaited.
+
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.

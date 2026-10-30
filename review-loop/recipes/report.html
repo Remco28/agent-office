@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Reader recipes: round 3 check-in</title>
+<title>Reader recipes: round 6 check-in</title>
 <style>
 :root{--bg:#fcfcfb;--ink:#1a1a19;--muted:#5f5f5b;--line:#d9d9d4;--card:#f3f3f0;--crit:#d03b3b;--warn:#fab219;--good:#0ca30c}
 @media(prefers-color-scheme:dark){:root{--bg:#1a1a19;--ink:#f1f1ec;--muted:#adada6;--line:#3b3b38;--card:#262624}}
@@ -9,79 +9,53 @@ main{max-width:860px;margin:auto;padding:20px 16px 48px}h1{font-size:1.5rem;marg
 p{margin:6px 0}.m{color:var(--muted)}.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0}
 .dec{border:2px solid var(--ink)}.dec ol{margin:6px 0;padding-left:22px}.dec li{margin:9px 0}
 .bars{display:grid;grid-template-columns:70px 1fr;gap:6px 10px;align-items:center}.row{display:flex;flex-direction:column;gap:3px}
-.bar{display:flex;align-items:center;gap:8px;font-size:.9rem}.bar i{display:block;height:14px;border-radius:0 4px 4px 0;min-width:4px}
+.bar{display:flex;align-items:center;gap:8px;font-size:.9rem}.bar i{display:block;height:13px;border-radius:0 4px 4px 0}
 .hi i{background:var(--crit)}.me i{background:var(--warn)}
-.layers{display:flex;flex-direction:column;gap:0}.l{border:2px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px}
-.l b{display:block}.tag{display:inline-block;font-size:.78rem;font-weight:600;padding:1px 7px;border-radius:9px;border:1px solid var(--line);margin:3px 4px 0 0}
-.t-h::before{content:"● ";color:var(--crit)}.t-m::before{content:"● ";color:var(--warn)}.t-g::before{content:"● ";color:var(--good)}
-.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}.step{flex:1 1 130px;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:.9rem}.step.bad{border:2px solid var(--crit)}
-.f{border-top:1px solid var(--line);padding:9px 0}.f:first-child{border-top:0}details{margin:8px 0}summary{cursor:pointer;font-weight:600}
-dl{margin:0}dt{font-weight:600;margin-top:6px}dd{margin:0}
+.l{border:2px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px}.l b{display:block}
+.tag{display:inline-block;font-size:.78rem;font-weight:600;padding:1px 7px;border-radius:9px;border:1px solid var(--line);margin:3px 4px 0 0}
+.t-m::before{content:"● ";color:var(--warn)}.t-g::before{content:"● ";color:var(--good)}
+.flow{display:flex;flex-wrap:wrap;gap:6px}.step{flex:1 1 130px;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:.9rem}.step.bad{border:2px solid var(--warn)}
+.f{border-top:1px solid var(--line);padding:9px 0}.f:first-child{border-top:0}details{margin:8px 0}summary{cursor:pointer;font-weight:600}dt{font-weight:600;margin-top:6px}dd{margin:0}dl{margin:0}
 </style></head><body><main>
-<h1>Reader recipes: stop and decide</h1>
-<p class="m">Round 3 of 3, the check-in. Nothing else changes, and nothing merges, until you answer.</p>
-
+<h1>Reader recipes: ready to stop?</h1>
+<p class="m">Round 6, the check-in. Nothing else changes, and nothing merges, until you answer.</p>
 <div class="card dec"><b>Your decisions</b>
 <ol>
-<li><b>What are we fencing against?</b> I recommend: <b>an honest reader that follows a file's instructions or its habits.</b> It must not reach the office by any ordinary route, but we stop chasing a reader that sets out to break its sandbox. I had written the goal as "whatever they decide", which sent the last critic hunting escapes. Your words were "not relying on the agent's judgement". The other choice is a clean-room design, a larger rebuild.</li>
-<li><b>Other files in the home folder.</b> Three readers can still read them, passwords and keys included, and what they read goes to their model's company. They always could. I recommend accepting this for now and saying so in the recipes.</li>
-<li><b>Keep Gemini as a reader?</b> The critic says drop it, because it needs the most special handling. I recommend keeping it for reading only: it is a different model, and readers on one model share blind spots.</li>
-<li><b>Linux only.</b> The fence works only on Linux. I recommend accepting that, if your other computer runs Linux. Please confirm that it does. Its first review would run a short check first, as nothing has been tested there.</li>
-<li><b>Then:</b> I recommend the small fixes below, one more check of them, then merge and push.</li>
+<li><b>Stop here?</b> I recommend yes: I fix one section's wording, run the first-time check once as written on this computer, then merge and push. By the book this would get another round, because those fixes are medium. They are wording, so I don't think it would earn its cost.</li>
+<li><b>Each tool's own logs and settings.</b> Codex, Grok, Claude and Gemini still update their own files when a reader runs, such as logs and caches. Nothing else on the machine changed. I recommend accepting this: it is the tools' bookkeeping, not an agent's act.</li>
+<li><b>Two steps I skipped.</b> The review rules ask for a critic before each serious fix and a reader of all the code every round. Neither happened; this is one instructions file, and each fix was tested instead. I recommend accepting that.</li>
 </ol></div>
-
 <h2>The stakes</h2>
-<p>Every agent running a review, on both computers, uses these instructions. A bad one wastes a review or lets a reader into your shared memory. <b>Stop when</b> nothing left could put a reader in the office, or lose a review, in normal use.</p>
-
+<p>You said: agents must not change the repository. Less important: changes elsewhere, tools left installed or running, temp files everywhere. <b>Stop when</b> a reader finishing leaves the machine as it was, in normal use.</p>
 <h2>Serious and medium problems, by round</h2>
-<div class="bars" role="img" aria-label="Round 1: 7 serious, 6 medium. Round 2: 2 serious, 3 medium. Round 3: 1 serious, 3 medium.">
-<b>Round 1</b><div class="row"><div class="bar hi" title="Round 1: 7 serious"><i style="width:70%"></i>7 serious</div><div class="bar me" title="Round 1: 6 medium"><i style="width:60%"></i>6 medium</div></div>
-<b>Round 2</b><div class="row"><div class="bar hi" title="Round 2: 2 serious"><i style="width:20%"></i>2 serious</div><div class="bar me" title="Round 2: 3 medium"><i style="width:30%"></i>3 medium</div></div>
-<b>Round 3</b><div class="row"><div class="bar hi" title="Round 3: 1 serious"><i style="width:10%"></i>1 serious</div><div class="bar me" title="Round 3: 3 medium"><i style="width:30%"></i>3 medium</div></div>
+<div class="bars" role="img" aria-label="Serious per round: 7, 2, 1, 1, 1, 0. Medium per round: 6, 3, 3, 3, 3, 3.">
+<b>Round 1</b><div class="row"><div class="bar hi"><i style="width:60%"></i>7 serious</div><div class="bar me"><i style="width:52%"></i>6 medium</div></div>
+<b>Round 2</b><div class="row"><div class="bar hi"><i style="width:18%"></i>2 serious</div><div class="bar me"><i style="width:26%"></i>3 medium</div></div>
+<b>Round 3</b><div class="row"><div class="bar hi"><i style="width:9%"></i>1 serious</div><div class="bar me"><i style="width:26%"></i>3 medium</div></div>
+<b>Round 4</b><div class="row"><div class="bar hi"><i style="width:9%"></i>1 serious</div><div class="bar me"><i style="width:26%"></i>3 medium</div></div>
+<b>Round 5</b><div class="row"><div class="bar hi"><i style="width:9%"></i>1 serious</div><div class="bar me"><i style="width:26%"></i>3 medium</div></div>
+<b>Round 6</b><div class="row"><div class="bar hi"><i style="width:0"></i>0 serious</div><div class="bar me"><i style="width:26%"></i>3 medium</div></div>
 </div>
-<p class="m">It is falling, and what is left is rarer. No old bugs were filed. Round 3 has four more medium claims I have not checked yet.</p>
-
-<h2>How a reader is fenced now</h2>
-<div class="layers">
-<div class="l"><b>The reader's throwaway copy of the work</b>No instructions about the office in it. A reader that runs code may write here. Your real work stays untouched.
-<div><span class="tag t-g">Good: holds</span></div></div>
-<div class="l"><b>Around each reader's whole program</b>Hides the shared memory's files and other agents' session records, and makes your real project read-only.
-<div><span class="tag t-h">Serious: a side door remains, flow below</span><span class="tag t-m">Medium: three history files are still visible</span></div></div>
-<div class="l"><b>Around the commands it runs</b>No network, so the shared memory's address can't be reached. Only Claude can start a test server, inside its own private network.
-<div><span class="tag t-g">Good: tested on all three</span></div></div>
-</div>
-
-<h2>The one serious problem</h2>
-<div class="flow">
-<div class="step">A reader decides to break out</div>
-<div class="step bad"><b>Goes wrong here:</b> it asks the computer's own service manager to run a command for it</div>
-<div class="step">That command runs outside every fence</div>
-<div class="step">It could reach the shared memory, or write anywhere</div>
-</div>
-<div class="card"><p><b>Serious. How you use it now. From a fix made earlier in this review.</b></p>
-<p><b>Who it hits:</b> no one by accident. It takes a reader deliberately trying to escape, which none has done. <b>What's at risk:</b> your shared memory and your files. <b>Fixing it:</b> two small additions, already tested. All four readers still work with them.</p></div>
-
-<h2>Medium problems</h2>
+<p class="m">No serious problems are left. You reset the goal after round 3. All three mediums now are in one section of wording.</p>
+<h2>What holds now</h2>
+<div class="l"><b>Your repository</b>Read-only to every reader. <div><span class="tag t-g">Good: refused under every recipe</span></div></div>
+<div class="l"><b>Everything else on the machine</b>Home folder, system folders and the backup drive: refused. Nothing installed. <div><span class="tag t-g">Good: disk checked afterwards</span></div></div>
+<div class="l"><b>Left running</b>Background programs, services and containers: stopped or refused. <div><span class="tag t-g">Good: none found afterwards</span></div></div>
+<div class="l"><b>Temp files</b>They vanish when the reader ends. <div><span class="tag t-g">Good: none left</span></div></div>
+<div class="l"><b>The first-time check on a new computer</b>The same test, now part of the skill. <div><span class="tag t-m">Medium: three wording faults, below</span></div></div>
+<h2>The medium problems, all in the first-time check</h2>
+<div class="flow"><div class="step">Your laptop's first review runs the check</div><div class="step bad"><b>Goes wrong here:</b> the instructions don't quite fit</div><div class="step">It fails to run, or passes a reader that can't write its copy</div><div class="step">You'd find out when the reader's tests fail</div></div>
 <div class="card">
-<div class="f"><b>Old command histories are readable.</b> How you use it now. In this change. A reader that looks would see earlier text about the office, though not the live memory. Fix: hide three more files, or accept it under decision 1.</div>
-<div class="f"><b>A sentence about Grok is untrue.</b> How you use it now. From a fix. The recipes say Grok reads only its copy, but it can also read its own folder, including its memory of other projects. Fix: correct the sentence, and hide that memory again.</div>
-<div class="f"><b>The first-time check gives wrong answers.</b> A setup you don't use for one half, how you use it now for the other. From a fix. It can look in the wrong folder, and it fails a Grok that is working correctly. Fix: reword it.</div>
-<div class="f m"><b>Not yet checked:</b> a stray empty settings file on a computer that never ran Gemini; a very long brief being refused; tools outside this project's kind (Python, Go, Rust) that expect to write to the home folder; plug-ins and start-up scripts that Codex or Gemini may load outside the fence on the commands they run.</div>
+<div class="f"><b>The check can pass a reader that can't write to its copy.</b> A setup you use. From a fix. Nothing is at risk; you'd lose a review. Fix: one sentence.</div>
+<div class="f"><b>Claude can't run the check as written.</b> A setup you use. From a fix. It refuses, so the check fails safely. Fix: one sentence.</div>
+<div class="f"><b>The check can't start in other projects.</b> A setup you use. From a fix. The test file isn't in their copies. Fix: copy it in.</div>
 </div>
-
-<details class="card"><summary>Small problems (2)</summary>
-<p>The note on Claude's writes omits one more writable place. The check of your real project has no "before" to compare against.</p></details>
-<details class="card"><summary>Two serious claims that turned out false</summary>
-<p>The critic said a reader could read the hidden memory through a system path, and could run anything through Gemini's file search. I tried both. Both were refused.</p></details>
-<details class="card"><summary>Where the record is still weak</summary>
-<p>Both disposition auditors say each finding's origin was argued rather than checked against the earlier version. I am leaving that as is, and saying so here, since the earlier recipes were not in git. I also said "verified" about Gemini's settings yesterday without testing it properly, and that was wrong: it could run Python.</p></details>
-
+<details class="card"><summary>Small or unproven (3)</summary>
+<p>Plug-ins on your laptop aren't checked; none here matter. A test of Gemini writing through a shell trick was blocked by Gemini's own filter, and nothing was written in three tries. The check on your real project misses files git ignores; the read-only protection is what actually guards them.</p></details>
+<details class="card"><summary>A serious claim that turned out false</summary>
+<p>An auditor said the backup drive was still writable. I checked with the drive connected: it is read-only to the reader, and the write is refused.</p></details>
 <h2>Words on this page</h2>
-<dl>
-<dt>Reader</dt><dd>A separate AI agent that checks the work and knows nothing of how it was made.</dd>
-<dt>Critic</dt><dd>A reader asked to break a plan.</dd>
-<dt>Disposition auditor</dt><dd>A reader that checks how the author rated the findings, not the work itself.</dd>
-<dt>Shared memory / the office</dt><dd>What the agents who work here use to pick up from each other.</dd>
-<dt>Clean-room design</dt><dd>Start each reader with nothing visible, then add back only what it needs, rather than hiding things one by one.</dd>
-</dl>
+<dl><dt>Reader</dt><dd>A separate AI agent that checks the work and knows nothing of how it was made.</dd>
+<dt>Recipe</dt><dd>The exact command that starts a reader.</dd>
+<dt>Auditor</dt><dd>A reader that checks a fix, or how the author rated the findings.</dd></dl>
 </main></body></html>
