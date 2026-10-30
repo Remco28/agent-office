@@ -209,7 +209,11 @@ every recipe could read the office's database, which the author had declined to
 fence because nothing pointed there, in a file that named the path. A fence per
 CLI kept failing at its edges, so `bwrap` now goes around each reader's whole
 process. **A fence is tested by what it is meant to refuse and also by what no
-list thought to name.**
+list thought to name.** The disposition auditor then called the author's *limits*
+what they were: code a Claude reader ran reached the office and wrote to home, and
+228 Claude transcripts quoted the office. Both were fixed by tightening a layer
+rather than adding one (Claude's only shell became a script with no network, Grok
+moved to `strict`), and the design got smaller.
 
 ## The harness is the unreliable component, not the readers
 
