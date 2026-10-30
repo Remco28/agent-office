@@ -66,7 +66,10 @@ what the step is for. A LOW fix doesn't need it.
 - The repository at a named commit, **and a copy they may run**: a local server,
   a test database, a scratch folder. A reader who can run the code reproduces
   its own findings. The copy links the dependency folders rather than copying
-  them, and goes when the round's reports are saved (SKILL.md step 3).
+  them, and goes when the round's reports are saved (SKILL.md step 3). Start
+  these readers with the running-code recipes in [`readers.md`](../readers.md);
+  only one of them can start a local server, so you reproduce what the others
+  can't.
 - The project's review notes, so settled points aren't re-reported, including
   old bugs already filed.
 - What is intended and not a finding (e.g. "anyone can edit anything").

@@ -52,8 +52,9 @@ For a small, contained change whose decisions the human has already made (a
 removal they asked for, a rule they chose), the full loop is more than the
 change needs. The light review is (every reader started as in step 3):
 
-1. **Write the plan plainly and commit it** before anyone reads it, in
-   `review-loop/<change>/PLAN.md`.
+1. **Write the plan plainly and freeze it** (step 3) before anyone reads it, in
+   `review-loop/<change>/PLAN.md`. Work already built gets a plan too, saying so
+   and describing what was built; the steps below still run.
 2. **If the change alters what is stored or computed**, the peer step (step 5):
    one critic to break the plan, and one blind solver given only the problem
    and the human's decisions, on different models where you can. A plain
@@ -139,8 +140,9 @@ audience is your cast and its style rules are house rules.
 - **Freeze it.** Commit what readers get, or keep it as a patch in the ledger
   folder, and record the version. A hash of an uncommitted tree proves what was
   read but cannot be compared later, and step 4's *where it came from* needs the
-  comparison. Reviewing a change, record the version before it too, and commit
-  each round's fixes on their own, never squashed into the change.
+  comparison. Reviewing a change, record the version before it too, and keep
+  each round's fixes on their own, as commits or patches, never squashed into
+  the change.
 - **Keep the copies small and short-lived.** Readers' runnable copies go in one
   scratch folder per round under `~/.cache`, never inside the project. Link
   large dependency folders (`node_modules`, `.venv`) into each copy instead of
@@ -152,8 +154,9 @@ audience is your cast and its style rules are house rules.
   included; Claude as `claude -p`, since a subagent of your session carries your
   instructions and memory. Unless they are part of the work, the copy leaves out
   `AGENTS.md`, `CLAUDE.md`, `.claude` and `.agents` at every level (quote in the
-  brief what a reader needs from them), and every reader's recipe blocks the
-  `office` command (the office's tool notes).
+  brief what a reader needs from them). Use the recipes in
+  [`readers.md`](readers.md), which keep it out of the office, let it run code
+  where it must, and leave a report if it fails; don't improvise one.
 - **Run readers in parallel, blind to each other.** Spread them across models
   where you can and write the model beside each finding: readers from one model
   share blind spots, so their agreement is weaker than it looks.
@@ -377,7 +380,7 @@ none of them (step 4); a block ends the review, and is not a clean stop.
   in one line, and stop.
 
 Then clean up: delete every scratch copy and temporary file the review made,
-and whatever a reader's tool left behind (the tool notes say what), and say in
+and whatever a reader's tool left behind (`readers.md` says what), and say in
 the closing note what was removed and what was left. Leave the filed old
 bugs: they outlive the review. Then hand it to the
 human. That was always the point.

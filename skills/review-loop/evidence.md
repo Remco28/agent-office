@@ -185,6 +185,19 @@ the instruction nor the author's memory and was refused every way of running
 from the shell, and only recipes that block the command (Frank's idea, both
 halves).
 
+**The next day, the first real review with that rule broke on it**, probably on
+the second computer. The fences had been tested only for what they kept out;
+nobody had run a test suite through one. Readers' test runs failed for lack of
+anywhere to write; read-only Codex, measured afterwards, fails 161 tests of this
+repository's suite and passes 10. The skill
+pointed at tool notes, which stay on the computer they were written on, so the
+agent improvised a fake `office` and lost a run to a flag that swallowed its
+prompt. Grok ran 25 minutes and left nothing. Hence `readers.md`: recipes in git,
+tested with a real suite, a throwaway copy a code reader may write to (Frank:
+the frozen version is what must not change, checked by checksum), and output
+that survives a kill. Whether the probe catches a bad computer is untested: only
+one computer has run it so far.
+
 ## The harness is the unreliable component, not the readers
 
 **Nine false findings across nine rounds, and every one was the author's
