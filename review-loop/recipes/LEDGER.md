@@ -59,5 +59,28 @@ Believed, and wrong: "Code Claude runs is unfenced" as an acceptable note. "Need
 Predictions (written before the round): critic: at least one MEDIUM in the run script or in hiding folders on another computer; no HIGH. Fix auditor: no HIGH, one or two MEDIUM. Disposition auditor: raises one rating or label, finds the ledger's OFFICE_HOME rating muddled.
 Cast: critic Gemini (reading recipe, on the fence), fix auditor Grok (running-code recipe), disposition auditor Codex (reading recipe). Then the check-in: stop for Frank before fixing.
 
+Critic's claims:
+| Finding | Reader (their rating) | Ours | From | How checked | Done |
+|---|---|---|---|---|---|
+| systemd-run --user escapes fence and run script | Gemini (HIGH) | HIGH, how it is used now; needs a reader that sets out to escape | from a fix (1): the fence claims what it can't do | reproduced: exit 0 in both | open; flags tested, all four CLIs work: --unshare-pid --proc /proc --tmpfs /run/user/UID |
+| /proc/pid/root reads hidden data | Gemini (HIGH) | rejected | - | reproduced: permission denied | none |
+| find -exec python3 under Gemini's allow list | Gemini (HIGH) | rejected | - | reproduced: refused. -fprintf not tried | none |
+| ~/.claude, ~/.codex, ~/.gemini history.jsonl readable, quote the office | Grok (MEDIUM), Gemini (HIGH) | MEDIUM | from a fix (2): fence says transcripts are hidden | ls here; Grok grepped them | open |
+| "Grok under strict can read only the copy" false; memory reads back | Grok (MEDIUM) | MEDIUM | from a fix (2) | Grok reproduced; docs | open |
+| Probe: ls uses wrong path with OFFICE_HOME; Grok strict's ls is denied, not empty | Grok (MEDIUM x2) | MEDIUM, one row | from a fix (2) | read | open |
+| 0-byte settings.json where Gemini never ran | Gemini (HIGH) | MEDIUM, unverified; a visible failure | from a fix (1) | not reproduced | open |
+| Brief over 128 KB in argv; timeout without -k; unquoted paths | Gemini (MEDIUM) | MEDIUM, unverified | from a fix (2) | kernel fact, not reproduced | open |
+| Other toolchains write ~/.cache; editable venvs import the repo | Gemini (MEDIUM) | MEDIUM, unverified; none in use here checked | old in part | not reproduced | open |
+| Hooks, MCP, global instructions in Codex and Gemini; live repo readable by path | Gemini (HIGH) | MEDIUM, unverified; depends on Decision 1 | new | read; no MCP or office hook here checked | open, for Frank |
+| Remove Gemini; remove .git from copies; one Grok profile | Gemini (HIGH, MEDIUM, LOW) | design suggestions, not faults; .git removal likely taken | - | read | for Frank / next fixes |
+| Claude note omits /var/tmp; git status has no before | Grok (LOW x2) | LOW | from a fix (2) | read | open |
+
+Disposition (Codex): repeated round 2's points; right that origin labels are argued, not checked per row. Left as is: the earlier recipes are in tool notes, outside git, so step 4's comparison isn't available; said on the page. Right that "any computer" became "Linux only" and home reads are a behaviour assumption: both for Frank. Its "whose test run" note answered: the author's, in final form, one added probe test.
+What happened against the predictions: critic claimed five HIGH; I'd predicted none and one held. Fix auditor: no HIGH as predicted, four MEDIUM against one or two. Disposition: raised no new rating, which I hadn't predicted; OFFICE_HOME went unremarked.
+Believed, and wrong: that hiding four folders hid the transcripts; history.jsonl sits beside them. That the goal's "whatever they decide" was Frank's: it was the author's wording, and it steered the briefs.
+
+## Check-in, round 3 (stop for the human, before fixes)
+Counts, serious = verified HIGH not old: round 1, 7; round 2, 2; round 3, 1, from a fix. Proposed: step back on what the fence is for (the page's decision 1), since each round's serious finding has come from the last fix and each is rarer. Answer: awaited. Nothing merged; branch review-loop-reader-recipes, unpushed.
+
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.
