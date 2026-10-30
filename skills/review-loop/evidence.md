@@ -220,8 +220,10 @@ use the office" into a goal of "cannot reach the office whatever they decide", p
 that in every brief, and a critic duly found an escape through the service manager.
 Asked, the human named a plainer fear: agents changing the repository, and after
 that changing other things, installing tools, leaving things running, leaving
-temporary files. That is measurable: a script tried all of it under every reader,
-and the machine was compared before and after. Read access was accepted. **Three
+temporary files. That is measurable: a script (now `probe.sh`) tried all of it under
+every recipe that runs code, Gemini's file tool was tried too, and the machine was
+compared before and after. It found Claude's script could still write to a backup mount
+and start Docker. Read access was accepted. **Three
 rounds went to a goal the human hadn't set; ask what the fence is for first.**
 
 ## The harness is the unreliable component, not the readers

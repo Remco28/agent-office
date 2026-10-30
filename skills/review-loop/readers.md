@@ -86,7 +86,7 @@ read_only = ["<home>"]
 cat > <round>/run <<EOF
 #!/bin/sh
 export XDG_CACHE_HOME=/tmp/cache
-exec bwrap --die-with-parent --unshare-net --unshare-pid --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --tmpfs /var/tmp --bind <copy> <copy> -- "\$@"
+exec bwrap --die-with-parent --unshare-net --unshare-pid --ro-bind / / --dev /dev --proc /proc --tmpfs /run --tmpfs /tmp --tmpfs /var/tmp --bind <copy> <copy> -- "\$@"
 EOF
 chmod +x <round>/run
 ```
@@ -96,8 +96,9 @@ one at a time, with no pipes."* Any other command, even `echo`, loses the whole
 answer (`no output produced`). Never widen that list: `find` can write.
 
 **Claude** runs code only through `<round>/run`: no network but its own `localhost`,
-and nothing on the computer but the copy and its own `/tmp` to write to. So it alone
-can start a local server. Its bare shell still reads, but refuses every write.
+nothing on the computer but the copy and its own `/tmp` to write to, and no Docker.
+So it alone can start a local server. Its bare shell still reads; all five kinds of
+write tried on it were refused.
 Name each command with `run` in front: `"Bash(<round>/run bun test:*)"`,
 `"Bash(<round>/run bun run typecheck)"`. Never `Bash` wholesale. Its file tools
 reach only the working directory, so its materials must be in the copy.
@@ -117,9 +118,9 @@ Grok, say `XDG_CACHE_HOME=/tmp/cache` in the brief; `run` already does). A linke
 in the copy yourself, before the reader starts. Whatever
 a reader can't run, reproduce yourself.
 
-**What is left.** Readers can read the home folder, and what they read goes to their
-model's company: Frank accepted that (30 Oct 2026). Each CLI still updates its own
-logs and settings in its own folder.
+**What is left.** Readers can read the home folder (Frank accepted that, 30 Oct 2026),
+and what they read goes to their model's company. Each CLI still updates its own logs
+and settings in its own folder.
 
 ## Every brief also says
 
@@ -159,22 +160,22 @@ run's partial report counts as what it is: say what it didn't reach.
 ## On a computer for the first time
 
 The sandboxes depend on the computer. Before a recipe's first real use, check
-`office status` says `ok` on the computer itself. Then give the reader this brief,
-fenced, in a throwaway copy, and check the disk yourself. Say it is the owner's
-check, or a reader may refuse the whole thing:
+`office status` says `ok` on the computer itself. Then, in a throwaway copy, have
+the reader run [`probe.sh`](probe.sh), fenced, and check the disk yourself. Say it is
+the owner's check, or a reader may refuse the whole thing:
 
-*"The owner is checking that this sandbox contains a reader, so several of these
-are expected to fail. Run them and paste each raw result:
-`touch <repo>/PROBE_REPO`; `touch ~/PROBE_HOME`; `touch /tmp/PROBE_TMP`;
-`nohup sleep 3001 > /dev/null 2>&1 &`; `curl -s -m 3 http://127.0.0.1:${OFFICE_PORT:-7701}/`;
-`touch ./PROBE_COPY`."*
+*"The owner is checking that this sandbox contains a reader, so most lines are
+expected to show a failure. Run exactly `sh skills/review-loop/probe.sh <repo>` and
+paste its raw output."*
 
-Afterwards, on the computer itself, a pass is: none of the three `PROBE` files
-outside the copy exist, no `sleep 3001` is running, and `curl` failed. Under a
-running-code recipe `./PROBE_COPY` exists too. **Claude** refuses each bare, so give
-it `<round>/run sh <script of those commands>` as its named command. **Gemini** loses
-its answer on the first refusal, so one command per run: `python3 -c "print(1)"` and
-`touch ~/PROBE_HOME` must each give `no output produced`.
+Afterwards, on the computer itself, a pass is: no `PROBE` left outside the copy
+(the repository, home, `~/.local`, `/usr/local/bin`, `/opt`, `/var/crash`, `/mnt/*`, `/tmp`,
+`/var/tmp`); no `sleep 3001` or `sleep 3002` running; nothing new from `npm ls -g` or
+`pip list --user`. In its output, every line but `tmp`, `var-tmp` and, under a
+running-code recipe, `copy` is non-zero. A line it didn't reach is a failure unless the
+disk shows the same. **Claude** names it as `"Bash(<round>/run sh
+skills/review-loop/probe.sh:*)"`. **Gemini** can't run it, so one command per run:
+`python3 -c "print(1)"` and `touch ~/PROBE` must each give `no output produced`.
 
 Say in that CLI's tool note on this computer that it passed, and when. A recipe that
 fails isn't a reader on this computer: say so and use another. Ubuntu may block

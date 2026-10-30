@@ -85,10 +85,10 @@ Counts, serious = verified HIGH not old: round 1, 7; round 2, 2; round 3, 1, fro
 By that goal: systemd-run closed (the point is nothing left running; fence flags). History files, reads of ~/.grok memory, hooks and MCP in the CLI's parent, the live repo readable by path: closed as accepted reads, except that a parent-process hook can write. Not chased: it isn't a reader's act, and the machines have none that matter here; said on the page. Probe rewritten around the goal, which removes both probe rows. 0-byte settings file and missing folders: leave out targets that don't exist. Long briefs, -k, toolchains, editable venvs: stated or taken. Two earlier claims rejected stay rejected.
 
 ## Round 4, 2026-10-30
-Measured first, by a script run by every recipe, then the machine compared: repository, home and tool folder refused; npm, pip and bun installs failed; nothing left running; /tmp, /var/tmp and /dev/shm gone with the fence. Suite: Codex 165/10, Grok 163/12, Claude 174/1. Gemini's file tool refused everywhere but the fence's /tmp. Left on disk: each CLI's own logs and settings, and unrelated services.
+Measured first, by a script run by every running-code recipe, then the machine compared: repository, home and tool folder refused; npm, pip and bun installs failed; nothing left running; /tmp, /var/tmp and /dev/shm gone with the fence. Suite: Codex 165/10, Grok 163/12, Claude 174/1. Gemini's file tool refused everywhere but the fence's /tmp. Left on disk: each CLI's own logs and settings, and unrelated services.
 Predictions (written before the round): fix auditor: no HIGH by the new goal; one or two MEDIUM, in wording about which flags to leave out or the probe's Claude case. Disposition auditor: one rating or label challenged, likely closing the history-file and hooks rows by decision rather than by test.
 Cast: fix auditor Claude (running-code recipe, Opus), disposition auditor Grok (reading recipe).
-The script is containment-probe.sh, here. The suite figures above are the author's runs, each in that recipe's final form then; systemd-run under them: "Failed to connect to bus", and no unit listed.
+The script is now skills/review-loop/probe.sh. The suite figures above are the author's runs, each in that recipe's final form then; systemd-run under them: "Failed to connect to bus", and no unit listed.
 
 | Finding | Reader (their rating) | Ours | From | How checked | Done |
 |---|---|---|---|---|---|
@@ -113,6 +113,29 @@ Believed, and wrong: "Nothing but the copy to write to" for Claude's script (it 
 ## Round 5, 2026-10-30
 Predictions (written before the round): fix auditor: no HIGH, no MEDIUM; LOWs in wording. Disposition auditor: no new HIGH, disputes at least one LOW, says Round 3's unverified MEDIUMs are thinly closed. If no HIGH or MEDIUM: stop.
 Cast: fix auditor Codex (running-code recipe), disposition auditor Claude (reading recipe).
+
+| Finding | Reader (their rating) | Ours | From | How checked | Done |
+|---|---|---|---|---|---|
+| Claude's run reaches Docker: a test could start a container and leave it running | Claude (unverified; asked for the test) | HIGH, how it is used now: Frank is in the docker group | from a fix (2) | reproduced: docker=0; docker=1 after | fixed: --tmpfs /run inside run |
+| The check that travels is weaker than the one measured | Claude (MEDIUM) | MEDIUM | from a fix (3) | counted | fixed: probe.sh in the skill, run under all recipes |
+| Writes outside home untested for Codex and Grok | Claude (HIGH if it fails) | none: refused | - | probe.sh, disk checked | none |
+| Gemini redirect | Claude | none: nothing written; run hung until the timeout | - | one run | none |
+| Fix auditor: outer fence writable, permitted shell write persists | Codex (MEDIUM) | none as stated: its example needs a shell the recipes don't give; tested under each | - | probe.sh under each; bare Claude refused | none; put back to its reader in round 6 |
+| Status 124/137 can be the reader's own; ignored or untracked files in the repo check; Gemini probe wording | Codex and Claude (LOW) | LOW | from a fix (4) | read; Codex ran the first two | declined: backstops, ro-bind is the guard. Probe section rewritten |
+| Claude's bare shell rated LOW | Claude (MEDIUM) | MEDIUM, same mechanism as find; fixed: named five forms in ledger: find -delete, find -fprintf, redirect, git init, sed -i | from a fix (3) | reproduced | wording narrowed |
+| Editable .venv rated LOW; was MEDIUM | Claude | MEDIUM, restored; a review-quality fault. SKILL and profile link in general; readers.md carries the exception | new | read, not run | stated |
+| Worktree main checkout | Claude | LOW holds: main checkout in home is refused by the inner layers, tested as repo and home | new | probe | stated |
+| Hooks on the other laptop | Claude | unverified; probe.sh would not show them. Accepted: not a reader's act | - | - | told to Frank |
+| CLI logs and settings | Claude | not rated; for Frank | - | listed: each CLI's own folder, ~/.claude.json and backups | Frank |
+| Peer step and whole-code reader absent | Claude | true; departure, put to Frank | - | - | Frank |
+| Label on run script should be from a fix (2) | Claude | taken, here | - | - | - |
+
+What happened against the predictions: fix auditor: one MEDIUM against none, not held up. Disposition auditor: no new verified HIGH, as predicted, but it asked for the test that found one.
+Believed, and wrong: "nothing on the computer but the copy" (Docker's socket isn't a file write). That Docker was out of scope because no one had named it.
+
+## Round 6, 2026-10-30
+Predictions (written before the round): fix auditor: no HIGH or MEDIUM; LOW on probe.sh wording. Disposition auditor: no HIGH, says this could stop if Frank answers on CLI logs. Then the check-in: stop for Frank.
+Cast: fix auditor Grok (running-code recipe), disposition auditor Codex (reading recipe).
 
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.
