@@ -17,15 +17,15 @@ outside it, `<round>` the round's scratch folder, which holds the copies.
 rsync -a --exclude=AGENTS.md --exclude=CLAUDE.md --exclude=GEMINI.md --exclude=.claude \
   --exclude=.agents --exclude=.grok --exclude=.gemini --exclude=.codex --exclude=/review-loop \
   --exclude=node_modules --exclude=.venv <repo>/ <copy>/
-ln -s <repo>/node_modules <copy>/node_modules   # if it exists and the reader runs code; .venv the same
+ln -s <repo>/node_modules <copy>/node_modules   # if it exists and the reader runs code; .venv the same, unless editable (below)
 ```
 
 Then copy the reader's materials in. Keep a file the excludes drop when it is
 part of the work. If `<repo>/.git` is a file (a linked worktree), exclude it too:
 it points back into the live repository. Readers then have no history, so give
-them the diff. Put copies under `~/.cache`: Grok may write to `/tmp` and
-`/var/tmp`, and Codex can't see `/dev/shm`. Never a git worktree of the live
-repository, which the office counts as the same project.
+them the diff. Put copies and `<round>` under `~/.cache`: the fence replaces `/tmp`
+and its like. Never a git worktree of the live repository, which the office counts
+as the same project. Paths with spaces break the lines below.
 
 **A blind solver's copy comes from the version before the change**, so it holds
 no plan and no built work. Make it with `git -C <repo> archive <version before> |
@@ -35,9 +35,8 @@ tar -x -C <tmp>`, then the rsync above from `<tmp>/`, and copy the problem in.
 
 Every reader runs inside this, so that when it finishes the machine is as it was:
 the repository unchanged, nothing installed, nothing left running, no temporary
-files about. It applies to the reader's whole process, whatever the reader
-decides. `/tmp` and its like vanish with it, as does anything it left running, and
-the live repository can't be written. Hiding the office's data and the CLIs'
+files about. `/tmp` and its like vanish with it, as does anything it left running,
+and the live repository can't be written. Hiding the office's data and the CLIs'
 session logs keeps those from growing too.
 
 ```bash
@@ -49,8 +48,9 @@ cd <copy> && timeout -k 30s 20m bwrap $FENCE <extras> <recipe> > <round>/<reader
 ```
 
 Leave out any `--tmpfs` or `--ro-bind` whose target doesn't exist on this computer:
-`bwrap` would create it on the real disk. Twenty minutes is a starting point; 124
-in the status file means time ran out. The fence can't take the network away,
+`bwrap` would create it on the real disk. In a linked worktree, `--ro-bind` the main
+checkout too. Twenty minutes is a starting point; 124 or 137 in the status file
+means time ran out. The fence can't take the network away,
 because the CLI needs its model, so the recipes below do that for the commands a
 reader runs.
 
@@ -67,7 +67,7 @@ also tells it to run a script on its first turn, which loses the whole answer.
 | Codex | `codex exec -m gpt-6-luna -s read-only --skip-git-repo-check -C <copy> -o <round>/<reader>.report - < <brief>` |
 | Grok | `grok -m grok-4.7 --sandbox strict --always-approve --no-subagents --disable-web-search --output-format streaming-json -p "$(cat <brief>)" < /dev/null` |
 | Claude | `claude -p --restricted --strict-mcp-config --tools Read Grep Glob --permission-prompts none --model claude-opus-5-5 --no-session-persistence --output-format stream-json --verbose < <brief>` |
-| Gemini | `agy --model gemini-4-argon-high --settings '{"permissions":{"allow":["command(ls)","command(cat)","command(grep)","command(head)","command(tail)","command(find)","command(wc)"],"deny":["command(office)","command(curl)","command(sudo)"]}}' --output-format stream-json --print="$(cat <brief>)" < /dev/null` |
+| Gemini | `agy --model gemini-4-argon-high --settings '{"permissions":{"allow":["command(ls)","command(cat)","command(grep)","command(head)","command(tail)","command(wc)"],"deny":["command(find)","command(office)","command(curl)","command(sudo)"]}}' --output-format stream-json --print="$(cat <brief>)" < /dev/null` |
 
 | Reader | Running code |
 |---|---|
@@ -85,18 +85,19 @@ read_only = ["<home>"]
 ```bash
 cat > <round>/run <<EOF
 #!/bin/sh
-exec bwrap --die-with-parent --unshare-net --dev-bind / / --ro-bind $HOME $HOME --bind <copy> <copy> -- "\$@"
+export XDG_CACHE_HOME=/tmp/cache
+exec bwrap --die-with-parent --unshare-net --unshare-pid --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --tmpfs /var/tmp --bind <copy> <copy> -- "\$@"
 EOF
 chmod +x <round>/run
 ```
 
-**Gemini's brief must say**: *"You may use only ls, cat, grep, head, tail, find and
-wc, one at a time, with no pipes."* Any other command, even `echo`, loses the whole
-answer (`no output produced`). Never widen that list.
+**Gemini's brief must say**: *"You may use only ls, cat, grep, head, tail and wc,
+one at a time, with no pipes."* Any other command, even `echo`, loses the whole
+answer (`no output produced`). Never widen that list: `find` can write.
 
-**Claude** has no shell but `<round>/run`: no network but its own `localhost`,
-and nothing in the home folder but the copy to write to. So it alone can start a
-local server.
+**Claude** runs code only through `<round>/run`: no network but its own `localhost`,
+and nothing on the computer but the copy and its own `/tmp` to write to. So it alone
+can start a local server. Its bare shell still reads, but refuses every write.
 Name each command with `run` in front: `"Bash(<round>/run bun test:*)"`,
 `"Bash(<round>/run bun run typecheck)"`. Never `Bash` wholesale. Its file tools
 reach only the working directory, so its materials must be in the copy.
@@ -110,14 +111,15 @@ the copy.
 
 Run the suite yourself first, in a copy, and put the result in the brief with
 those quirks, so a sandbox failure isn't reported as a finding. The home folder
-is read-only, so a tool that caches there needs pointing at `/tmp` (say
-`XDG_CACHE_HOME=/tmp/cache` in the brief). A linked `.venv` with an editable install
-imports the live repository, not the copy: install into the copy instead. Whatever
+is read-only, so a tool that caches there needs pointing at `/tmp` (for Codex and
+Grok, say `XDG_CACHE_HOME=/tmp/cache` in the brief; `run` already does). A linked
+`.venv` with an editable install imports the live repository, not the copy: make one
+in the copy yourself, before the reader starts. Whatever
 a reader can't run, reproduce yourself.
 
-**Accepted (Frank, 30 Oct 2026).** Readers can read the home folder, and what they
-read goes to their model's company. Each CLI still updates its own logs and
-settings in its own folder. Neither is what this fence is for.
+**What is left.** Readers can read the home folder, and what they read goes to their
+model's company: Frank accepted that (30 Oct 2026). Each CLI still updates its own
+logs and settings in its own folder.
 
 ## Every brief also says
 
@@ -130,14 +132,15 @@ check."*
 
 Before the run, record the copy and the repository; after it, check them. A changed
 or missing file in the copy (new ones are fine) means look at what changed before
-believing the report: a reader may have edited what it was judging. A changed
-repository means the fence failed: stop and tell the human.
+believing the report: a reader may have edited what it was judging. Check the
+repository after every reader has finished and before you save anything there. A
+change you can't account for means the fence failed: stop and tell the human.
 
 ```bash
 cd <copy> && find . -path ./.git -prune -o -type f -print0 | xargs -0 sha256sum > <round>/<reader>.sha
-git -C <repo> status --short > <round>/<reader>.repo
+(git -C <repo> rev-parse HEAD; git -C <repo> status --short; git -C <repo> diff HEAD | sha256sum) > <round>/repo.before
 cd <copy> && sha256sum -c --quiet <round>/<reader>.sha
-git -C <repo> status --short | diff <round>/<reader>.repo -
+(git -C <repo> rev-parse HEAD; git -C <repo> status --short; git -C <repo> diff HEAD | sha256sum) | diff <round>/repo.before -
 ```
 
 ## Getting the report
@@ -161,7 +164,7 @@ fenced, in a throwaway copy, and check the disk yourself. Say it is the owner's
 check, or a reader may refuse the whole thing:
 
 *"The owner is checking that this sandbox contains a reader, so several of these
-are expected to fail. Run them one at a time and paste each raw result:
+are expected to fail. Run them and paste each raw result:
 `touch <repo>/PROBE_REPO`; `touch ~/PROBE_HOME`; `touch /tmp/PROBE_TMP`;
 `nohup sleep 3001 > /dev/null 2>&1 &`; `curl -s -m 3 http://127.0.0.1:${OFFICE_PORT:-7701}/`;
 `touch ./PROBE_COPY`."*

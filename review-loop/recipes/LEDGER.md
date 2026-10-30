@@ -1,7 +1,7 @@
 # Review-loop ledger: reader recipes
 *Kept by the review-loop skill. Safe to delete this folder once the work is done.*
 
-Success question: can an agent on any computer start readers that run code, that cannot reach the office whatever they decide, and that leave a usable report even when they fail?
+Success question (rewritten at round 3's check-in; the earlier wording was the author's): when a reader finishes, is the machine as it was: repository unchanged, nothing else changed, nothing installed or left running, no temporary files? And can it run code and leave a usable report?
 Rules confirmed with: Frank, 2026-10-30 (PROBLEM.md).
 Reviewing: a change, from d86cd1e; old bugs filed in: BUGS.md if any (none so far: the change's goal is that the recipes hold, so a fault they leave in place is new, step 4)
 
@@ -88,6 +88,31 @@ By that goal: systemd-run closed (the point is nothing left running; fence flags
 Measured first, by a script run by every recipe, then the machine compared: repository, home and tool folder refused; npm, pip and bun installs failed; nothing left running; /tmp, /var/tmp and /dev/shm gone with the fence. Suite: Codex 165/10, Grok 163/12, Claude 174/1. Gemini's file tool refused everywhere but the fence's /tmp. Left on disk: each CLI's own logs and settings, and unrelated services.
 Predictions (written before the round): fix auditor: no HIGH by the new goal; one or two MEDIUM, in wording about which flags to leave out or the probe's Claude case. Disposition auditor: one rating or label challenged, likely closing the history-file and hooks rows by decision rather than by test.
 Cast: fix auditor Claude (running-code recipe, Opus), disposition auditor Grok (reading recipe).
+The script is containment-probe.sh, here. The suite figures above are the author's runs, each in that recipe's final form then; systemd-run under them: "Failed to connect to bus", and no unit listed.
+
+| Finding | Reader (their rating) | Ours | From | How checked | Done |
+|---|---|---|---|---|---|
+| Claude's run script could write anything else the user owns: /mnt/synology-401k-backups, /usr/local/bin/spf, /var/crash | Grok (a general claim; author found the paths) | HIGH, how it is used now | new | find across /, then writes refused after | fixed: whole system read-only in run; suite 174/1, server ok |
+| Gemini's find can write (-fprintf, -delete) | Grok (open) | MEDIUM: two tries hung until the timeout and wrote nothing, so not proven; removal is cheap | new | two runs: no file, nothing deleted; both "Terminated" | fixed: find removed, denied; grep -r still reads |
+| XDG_CACHE_HOME prefix refused for Claude | Claude (MEDIUM) | MEDIUM | from a fix (3) | Claude reproduced | fixed: set in run |
+| "Stop" on any repo change: false alarm during parallel runs | Claude (MEDIUM) | MEDIUM | from a fix (3) | read | fixed: account for it, check after all readers, before saving |
+| Repo check misses further edits to a dirty file, and commits | Claude (LOW) | LOW | new | read | fixed: HEAD, status, diff hash |
+| 137 not mentioned; .venv warning in one place; Claude "no shell"; stale reason for ~/.cache | Claude (LOW x4) | LOW | from a fix (3) | read; bare writes refused, five forms tested | fixed |
+| Hooks and plug-ins, closed without looking | Grok | not a fault here; the author's close was unjustified when written | - | looked: Gemini's hook off, its plug-in list empty, Codex's only in one project. Grok's global Callum hook: nothing in that folder changed with it visible, control quiet | none |
+| Live repo by worktree path | Grok | LOW | new | inner sandboxes hold home; Gemini doesn't write | stated: ro-bind main checkout |
+| 0-byte file on a missing bind | Gemini earlier | MEDIUM | from a fix (1) | reproduced: 0 bytes | "leave out" stands |
+| Session history growth claim | Grok | none | - | history.jsonl for all three unchanged since 22 to 27 Oct | none |
+| Unquoted paths | Grok | LOW | new | read | stated |
+| "Accepted (Frank)" covered CLI logs, which he did not say | Grok | correct: the author overreached | from a fix (3) | read his words | reworded; told to Frank |
+| Office data not named in the probe | Grok | LOW: the probe tests what Frank fears; other routes tested once on this computer | from a fix (3) | read | none |
+| 128 KB brief; -k with a child ignoring TERM | Grok | LOW, kernel fact and a flag; not reproduced | new | - | stated, flag kept |
+
+What happened against the predictions: fix auditor: right on no HIGH and on one or two MEDIUM; both elsewhere than predicted. Disposition auditor: challenged closes by decision, as predicted, and pointed at the one real hole: writes outside home.
+Believed, and wrong: "Nothing but the copy to write to" for Claude's script (it had every path the user owns). "The machines have none that matter" about hooks, written without looking.
+
+## Round 5, 2026-10-30
+Predictions (written before the round): fix auditor: no HIGH, no MEDIUM; LOWs in wording. Disposition auditor: no new HIGH, disputes at least one LOW, says Round 3's unverified MEDIUMs are thinly closed. If no HIGH or MEDIUM: stop.
+Cast: fix auditor Codex (running-code recipe), disposition auditor Claude (reading recipe).
 
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.
