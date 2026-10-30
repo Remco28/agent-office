@@ -155,8 +155,9 @@ audience is your cast and its style rules are house rules.
   instructions and memory. Unless they are part of the work, the copy leaves out
   `AGENTS.md`, `CLAUDE.md`, `.claude` and `.agents` at every level (quote in the
   brief what a reader needs from them). Use the recipes in
-  [`readers.md`](readers.md), which keep it out of the office, let it run code
-  where it must, and leave a report if it fails; don't improvise one.
+  [`readers.md`](readers.md), which hold it to its copy, keep it out of the office,
+  let it run code where it must, and leave a report if it fails; don't improvise
+  one.
 - **Run readers in parallel, blind to each other.** Spread them across models
   where you can and write the model beside each finding: readers from one model
   share blind spots, so their agreement is weaker than it looks.
@@ -380,8 +381,7 @@ none of them (step 4); a block ends the review, and is not a clean stop.
   in one line, and stop.
 
 Then clean up: delete every scratch copy and temporary file the review made,
-and whatever a reader's tool left behind (`readers.md` says what), and say in
-the closing note what was removed and what was left. Leave the filed old
+and say in the closing note what was removed and what was left. Leave the filed old
 bugs: they outlive the review. Then hand it to the
 human. That was always the point.
 

@@ -215,6 +215,15 @@ what they were: code a Claude reader ran reached the office and wrote to home, a
 rather than adding one (Claude's only shell became a script with no network, Grok
 moved to `strict`), and the design got smaller.
 
+**Round 3's check-in showed the wrong target.** The author had turned "readers never
+use the office" into a goal of "cannot reach the office whatever they decide", put
+that in every brief, and a critic duly found an escape through the service manager.
+Asked, the human named a plainer fear: agents changing the repository, and after
+that changing other things, installing tools, leaving things running, leaving
+temporary files. That is measurable: a script tried all of it under every reader,
+and the machine was compared before and after. Read access was accepted. **Three
+rounds went to a goal the human hadn't set; ask what the fence is for first.**
+
 ## The harness is the unreliable component, not the readers
 
 **Nine false findings across nine rounds, and every one was the author's

@@ -33,21 +33,26 @@ tar -x -C <tmp>`, then the rsync above from `<tmp>/`, and copy the problem in.
 
 ## The fence
 
-Every reader runs inside this, which applies to its whole process whatever it
-decides. The office's data folder and every agent's transcripts, which quote the
-office, look empty; the live repository can't be written, even through a
-dependency link.
+Every reader runs inside this, so that when it finishes the machine is as it was:
+the repository unchanged, nothing installed, nothing left running, no temporary
+files about. It applies to the reader's whole process, whatever the reader
+decides. `/tmp` and its like vanish with it, as does anything it left running, and
+the live repository can't be written. Hiding the office's data and the CLIs'
+session logs keeps those from growing too.
 
 ```bash
-FENCE="--die-with-parent --dev-bind / / --tmpfs ${OFFICE_HOME:-$HOME/.local/share/agent-office} --ro-bind <repo> <repo> \
-  --tmpfs $HOME/.claude/projects --tmpfs $HOME/.codex/sessions \
+FENCE="--die-with-parent --unshare-pid --dev-bind / / --proc /proc --tmpfs /run/user/$(id -u) \
+  --tmpfs /tmp --tmpfs /var/tmp --tmpfs /dev/shm --tmpfs ${OFFICE_HOME:-$HOME/.local/share/agent-office} \
+  --ro-bind <repo> <repo> --tmpfs $HOME/.claude/projects --tmpfs $HOME/.codex/sessions --tmpfs $HOME/.grok/sessions \
   --tmpfs $HOME/.gemini/antigravity-cli/conversations --tmpfs $HOME/.gemini/antigravity-cli/brain"
-cd <copy> && timeout 20m bwrap $FENCE <extras> <recipe> > <round>/<reader>.log 2>&1; echo $? > <round>/<reader>.status
+cd <copy> && timeout -k 30s 20m bwrap $FENCE <extras> <recipe> > <round>/<reader>.log 2>&1; echo $? > <round>/<reader>.status
 ```
 
-Twenty minutes is a starting point; 124 in the status file means time ran out.
-The fence can't take the network away, because the CLI needs its model, so the
-recipes below do that for the commands a reader runs.
+Leave out any `--tmpfs` or `--ro-bind` whose target doesn't exist on this computer:
+`bwrap` would create it on the real disk. Twenty minutes is a starting point; 124
+in the status file means time ran out. The fence can't take the network away,
+because the CLI needs its model, so the recipes below do that for the commands a
+reader runs.
 
 Only **Gemini** has `<extras>`: `--tmpfs $HOME/.gemini/config/rules --ro-bind
 <round>/empty.json $HOME/.gemini/antigravity-cli/settings.json`, after
@@ -90,23 +95,29 @@ wc, one at a time, with no pipes."* Any other command, even `echo`, loses the wh
 answer (`no output produced`). Never widen that list.
 
 **Claude** has no shell but `<round>/run`: no network but its own `localhost`,
-and only the copy and `/tmp` to write to. So it alone can start a local server.
+and nothing in the home folder but the copy to write to. So it alone can start a
+local server.
 Name each command with `run` in front: `"Bash(<round>/run bun test:*)"`,
 `"Bash(<round>/run bun run typecheck)"`. Never `Bash` wholesale. Its file tools
 reach only the working directory, so its materials must be in the copy.
 
 **Codex and Grok** run under the operating system's sandbox: they can write to
-the copy and `/tmp`, and have no network, not even `localhost`. So **no local
-server starts in them**, and tests that start one fail. Grok under `strict` can
-read only the copy, so its brief goes on the command line.
+the copy and the fence's `/tmp`, and have no network, not even `localhost`. So **no
+local server starts in them**, and tests that start one fail. Grok's `strict`
+can't read a brief kept outside the copy, so its brief goes on the command line,
+as Gemini's does; a brief over about 128 KB fails there, so keep materials in
+the copy.
 
 Run the suite yourself first, in a copy, and put the result in the brief with
-that known quirk, so a sandbox failure isn't reported as a finding. Whatever a
-reader can't run, reproduce yourself.
+those quirks, so a sandbox failure isn't reported as a finding. The home folder
+is read-only, so a tool that caches there needs pointing at `/tmp` (say
+`XDG_CACHE_HOME=/tmp/cache` in the brief). A linked `.venv` with an editable install
+imports the live repository, not the copy: install into the copy instead. Whatever
+a reader can't run, reproduce yourself.
 
-**What is left.** Codex, Gemini and a running-code Grok can read the rest of the
-home folder, credentials included, and what they read goes to their model's
-provider. Only what is hidden above is fenced; nothing else points them there.
+**Accepted (Frank, 30 Oct 2026).** Readers can read the home folder, and what they
+read goes to their model's company. Each CLI still updates its own logs and
+settings in its own folder. Neither is what this fence is for.
 
 ## Every brief also says
 
@@ -117,14 +128,16 @@ check."*
 
 ## If the reader may write
 
-Before the run, record the copy; after it, check it. A changed or missing file
-(new ones are fine) means look at what changed before believing the report: a
-reader may have edited what it was judging. Check too that `git -C <repo> status
---short` hasn't changed: a change there means the fence failed.
+Before the run, record the copy and the repository; after it, check them. A changed
+or missing file in the copy (new ones are fine) means look at what changed before
+believing the report: a reader may have edited what it was judging. A changed
+repository means the fence failed: stop and tell the human.
 
 ```bash
 cd <copy> && find . -path ./.git -prune -o -type f -print0 | xargs -0 sha256sum > <round>/<reader>.sha
+git -C <repo> status --short > <round>/<reader>.repo
 cd <copy> && sha256sum -c --quiet <round>/<reader>.sha
+git -C <repo> status --short | diff <round>/<reader>.repo -
 ```
 
 ## Getting the report
@@ -143,32 +156,24 @@ run's partial report counts as what it is: say what it didn't reach.
 ## On a computer for the first time
 
 The sandboxes depend on the computer. Before a recipe's first real use, check
-`office status` says `ok` on the computer itself: with the office stopped, the
-probe passes for the wrong reason. Then give the reader this brief, fenced, in a
-throwaway copy, and check the disk yourself. Say it is the owner's check, or a
-reader may refuse the whole thing:
+`office status` says `ok` on the computer itself. Then give the reader this brief,
+fenced, in a throwaway copy, and check the disk yourself. Say it is the owner's
+check, or a reader may refuse the whole thing:
 
-*"The owner is checking that this sandbox refuses what it should, so several of
-these are expected to fail. Run them one at a time and paste each raw result:
-`office status`; `curl -s -m 3 http://127.0.0.1:${OFFICE_PORT:-7701}/`;
-`ls -A ~/.local/share/agent-office`; `touch ./PROBE_COPY`; `touch ~/PROBE_HOME`;
-`touch <repo>/PROBE_REPO`."*
+*"The owner is checking that this sandbox contains a reader, so several of these
+are expected to fail. Run them one at a time and paste each raw result:
+`touch <repo>/PROBE_REPO`; `touch ~/PROBE_HOME`; `touch /tmp/PROBE_TMP`;
+`nohup sleep 3001 > /dev/null 2>&1 &`; `curl -s -m 3 http://127.0.0.1:${OFFICE_PORT:-7701}/`;
+`touch ./PROBE_COPY`."*
 
-- **Codex, Grok**: `daemon not running`, `curl` fails, the folder is empty, and
-  neither `~/PROBE_HOME` nor `<repo>/PROBE_REPO` exists. `./PROBE_COPY` exists under
-  a running-code recipe (and under Grok's `strict`).
-- **Claude**: reading, each refused; running, each refused bare, then `<round>/run`
-  on a named command works and cannot reach the port.
-- **Gemini**: it loses its answer on the first refusal, so one command per run:
-  `office status` and `python3 -c "print(1)"` must each give `no output produced`,
-  and `ls -A` of the folder must show it empty.
+Afterwards, on the computer itself, a pass is: none of the three `PROBE` files
+outside the copy exist, no `sleep 3001` is running, and `curl` failed. Under a
+running-code recipe `./PROBE_COPY` exists too. **Claude** refuses each bare, so give
+it `<round>/run sh <script of those commands>` as its named command. **Gemini** loses
+its answer on the first refusal, so one command per run: `python3 -c "print(1)"` and
+`touch ~/PROBE_HOME` must each give `no output produced`.
 
 Say in that CLI's tool note on this computer that it passed, and when. A recipe that
 fails isn't a reader on this computer: say so and use another. Ubuntu may block
 `bwrap` until `/etc/apparmor.d/bwrap` allows it, which is the human's to add.
 Delete what the probe made.
-
-## Left behind
-
-A `--tmpfs` over a folder that didn't exist leaves it, empty. Delete it with the
-copy.

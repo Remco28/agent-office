@@ -28,6 +28,15 @@ it, probably on a second computer, and reported four gaps.
 - Standing rules: readers never use the office, and this must not rest on the
   reader's judgement. Reviewers do not write to what they review.
 
+# The goal, as the human set it (Frank, round 3's check-in, 2026-10-30)
+
+"We are fencing against the agents making changes to the repo code directly. A
+lesser concern is that the agent we spawn makes changes outside of the repo as
+well. Or install some random tool they needed and leave them installed, running,
+or whatever. Same with temp files everywhere on the machine." Readers seeing the
+home folder is accepted. Gemini stays. The other laptop runs Linux. This replaces the
+earlier wording "cannot reach the office whatever they decide", which was the author's.
+
 # What is measured (this computer, 2026-10-30, this repo's 175 tests)
 
 | Way of starting | Pass / fail | Local server | Office | Write to home |

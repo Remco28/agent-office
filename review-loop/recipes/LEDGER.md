@@ -80,7 +80,14 @@ What happened against the predictions: critic claimed five HIGH; I'd predicted n
 Believed, and wrong: that hiding four folders hid the transcripts; history.jsonl sits beside them. That the goal's "whatever they decide" was Frank's: it was the author's wording, and it steered the briefs.
 
 ## Check-in, round 3 (stop for the human, before fixes)
-Counts, serious = verified HIGH not old: round 1, 7; round 2, 2; round 3, 1, from a fix. Proposed: step back on what the fence is for (the page's decision 1), since each round's serious finding has come from the last fix and each is rarer. Answer: awaited. Nothing merged; branch review-loop-reader-recipes, unpushed.
+Counts, serious = verified HIGH not old: round 1, 7; round 2, 2; round 3, 1, from a fix. Proposed: step back on what the fence is for (the page's decision 1), since each round's serious finding has come from the last fix and each is rarer. Answer (Frank): fence against agents changing the repo, then against changes outside it, tools left installed or running, and temp files. Home reads accepted. Gemini stays. Other laptop is Linux. Goal rewritten in PROBLEM.md.
+
+By that goal: systemd-run closed (the point is nothing left running; fence flags). History files, reads of ~/.grok memory, hooks and MCP in the CLI's parent, the live repo readable by path: closed as accepted reads, except that a parent-process hook can write. Not chased: it isn't a reader's act, and the machines have none that matter here; said on the page. Probe rewritten around the goal, which removes both probe rows. 0-byte settings file and missing folders: leave out targets that don't exist. Long briefs, -k, toolchains, editable venvs: stated or taken. Two earlier claims rejected stay rejected.
+
+## Round 4, 2026-10-30
+Measured first, by a script run by every recipe, then the machine compared: repository, home and tool folder refused; npm, pip and bun installs failed; nothing left running; /tmp, /var/tmp and /dev/shm gone with the fence. Suite: Codex 165/10, Grok 163/12, Claude 174/1. Gemini's file tool refused everywhere but the fence's /tmp. Left on disk: each CLI's own logs and settings, and unrelated services.
+Predictions (written before the round): fix auditor: no HIGH by the new goal; one or two MEDIUM, in wording about which flags to leave out or the probe's Claude case. Disposition auditor: one rating or label challenged, likely closing the history-file and hooks rows by decision rather than by test.
+Cast: fix auditor Claude (running-code recipe, Opus), disposition auditor Grok (reading recipe).
 
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.
