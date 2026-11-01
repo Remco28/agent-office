@@ -160,22 +160,24 @@ run's partial report counts as what it is: say what it didn't reach.
 ## On a computer for the first time
 
 The sandboxes depend on the computer. Before a recipe's first real use, check
-`office status` says `ok` on the computer itself. Then, in a throwaway copy, have
-the reader run [`probe.sh`](probe.sh), fenced, and check the disk yourself. Say it is
-the owner's check, or a reader may refuse the whole thing:
+`office status` says `ok` on the computer itself. Then copy [`probe.sh`](probe.sh) into
+a throwaway copy, have the reader run it, fenced, and check the disk yourself. Say it
+is the owner's check, or a reader may refuse the whole thing:
 
 *"The owner is checking that this sandbox contains a reader, so most lines are
-expected to show a failure. Run exactly `sh skills/review-loop/probe.sh <repo>` and
-paste its raw output."*
+expected to show a failure. Run exactly `sh <copy>/probe.sh <repo>` and paste its raw
+output."*
+
+**Claude**'s command has `<round>/run` in front, allowed as `"Bash(<round>/run sh
+<copy>/probe.sh:*)"`. **Gemini** can't run it, so one command per run:
+`python3 -c "print(1)"` and `touch ~/PROBE` must each give `no output produced`.
 
 Afterwards, on the computer itself, a pass is: no `PROBE` left outside the copy
 (the repository, home, `~/.local`, `/usr/local/bin`, `/opt`, `/var/crash`, `/mnt/*`, `/tmp`,
 `/var/tmp`); no `sleep 3001` or `sleep 3002` running; nothing new from `npm ls -g` or
-`pip list --user`. In its output, every line but `tmp`, `var-tmp` and, under a
-running-code recipe, `copy` is non-zero. A line it didn't reach is a failure unless the
-disk shows the same. **Claude** names it as `"Bash(<round>/run sh
-skills/review-loop/probe.sh:*)"`. **Gemini** can't run it, so one command per run:
-`python3 -c "print(1)"` and `touch ~/PROBE` must each give `no output produced`.
+`pip list --user`. In its output, every line but `tmp`, `var-tmp` and `copy` is non-zero,
+and under a running-code recipe `copy` is zero. A line it didn't reach is a failure unless
+the disk shows the same.
 
 Say in that CLI's tool note on this computer that it passed, and when. A recipe that
 fails isn't a reader on this computer: say so and use another. Ubuntu may block
