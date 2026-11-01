@@ -153,7 +153,15 @@ What happened against the predictions: fix auditor found one claimed HIGH, rejec
 Believed, and wrong: none this round; the author's measured claim held against the auditor's reading.
 
 ## Check-in, round 6 (stop for the human, before fixes)
-Serious, verified, not old, per round: 7, 2, 1, 1, 1, 0. What is left is the wording of one section. Proposed: offer stopping: fix that wording, run the check once as written on this computer, merge, push. Departures to accept: no peer step for fixes, no whole-code reader, stop rule not literally met (the wording fixes are MEDIUM). Answer: awaited.
+Serious, verified, not old, per round: 7, 2, 1, 1, 1, 0. What is left is the wording of one section. Proposed: offer stopping: fix that wording, run the check once as written on this computer, merge, push. Departures to accept: no peer step for fixes, no whole-code reader, stop rule not literally met (the wording fixes are MEDIUM). Answer, Frank, 1 Nov 2026: stop here; accept the CLIs' own logs and settings; accept the two skipped steps.
+
+## Closing, 2026-11-01
+Round 6's three wording faults fixed (f10cc81). No further audit, by Frank's answer. Instead the first-time check was run once as the section now reads, on this computer, under seven recipes side by side: Codex reading and running, Grok reading and running, Claude running, and Gemini's two commands.
+
+- Output: every line but `tmp`, `var-tmp` and `copy` non-zero under all five. `copy` zero under all three running-code recipes (and Grok strict; refused under Codex read-only). Grok's sandbox hides `/mnt`, so it printed no line for the backup mount; the disk shows nothing there.
+- Gemini: both commands gave `no output produced`, with the command in `denied_actions`.
+- Disk, checked outside the fence: no PROBE outside the copies; no `sleep 3001` or `3002`; `npm ls -g` and `pip list --user` unchanged; repository unchanged.
+- Not tested: the other laptop. Its first review runs this check first.
 
 ## Mistakes the next author will make
 Testing a fence only with the command it names. Saying *verified* about a thing tried once, with the variable you meant to test held fixed.
