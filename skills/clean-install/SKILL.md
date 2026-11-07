@@ -14,7 +14,8 @@ clean removal is designed in at install time.
 The rules are in [`principles.md`](principles.md). How to prove an uninstall
 leaves no trace, in tests and on a real computer, is in
 [`testing.md`](testing.md). [`snapshot.py`](snapshot.py) records a computer's
-state and compares two records.
+state and compares two records; [`test-snapshot.sh`](test-snapshot.sh) tests
+it.
 
 ## The skill holds the method; the project holds the details
 
@@ -58,3 +59,5 @@ review of the whole installer.
 When a project finds a kind of trace these rules do not cover, add the general
 lesson to `principles.md` (in agent-office, where this skill is kept): the
 lesson only, never the project's specifics.
+When `snapshot.py` misses a trace or reports a false one, add the case to
+`test-snapshot.sh` before fixing the script.

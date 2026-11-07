@@ -14,7 +14,8 @@ save    DIR must be new (or empty) and its parent must exist, so a save
         --file records a file's lines (a shell profile, a settings file),
         repeats included, so a line left behind shows up, even a second
         copy of one that was already there. Its permissions and owner are
-        recorded, and a checksum of the whole file: if only the checksum
+        recorded, the target if it is a link, and a checksum of the whole
+        file: if only the checksum
         differs, the lines are the same but their order, line endings or
         final newline changed.
         --command saves the output of CMD as NAME.txt; NAME is letters,
@@ -27,10 +28,11 @@ save    DIR must be new (or empty) and its parent must exist, so a save
         left out.
 compare prints what is in A and not in B (-) and in B and not in A (+),
         counting repeated lines. For listed paths and file lines: what was
-        added inside a --keep folder is the person's kept data and counted
-        apart, as are the folders that hold kept data present in B; what
-        was removed from a --keep folder is a difference ("kept data
-        removed"). Paths inside A or B themselves are ignored. A kind of
+        added inside a --keep folder, and any change to a kept file's
+        content, is the person's kept data and counted apart, as are the
+        added folders that hold something real inside a kept folder in B;
+        a path or file gone from a --keep folder is a difference ("kept
+        data removed"). Paths inside A or B themselves are ignored. A kind of
         record found in only one snapshot is a difference, and a path that
         could not be read in either leaves the result unproven. Exit
         status: 0 nothing else differs, 1 differences or unproven, 2 a
@@ -77,7 +79,10 @@ MARKS = (" (missing)", " (not a folder)", " (cannot read)")
 
 
 def esc(path):
-    """One record per line: a newline in a file name must not split it."""
+    """One record per line: a newline in a file name must not split it. (On
+    Windows the backslash is the separator and stays as it is.)"""
+    if SEP == "/":
+        path = path.replace("\\", "\\\\")
     return path.replace("\n", "\\n").replace("\r", "\\r")
 
 
@@ -98,6 +103,17 @@ def under(line, folders, kind):
     return False
 
 
+def has_data(line, kind, folder):
+    """True when a record in B is something real inside the kept folder: not
+    the folder itself, and not a note that something is missing or unreadable."""
+    inside = os.path.normcase(as_folder(esc(folder)))
+    if not os.path.normcase(line).startswith(inside) or os.path.normcase(line) == inside:
+        return False
+    if kind == "files":
+        return not line.endswith(MARKS)
+    return not line.endswith(GONE) and ": (cannot read: " not in line
+
+
 def holds(line, folders):
     """True when the line is a folder ("path/" or "path (missing)") that
     contains one of the folders."""
@@ -109,8 +125,14 @@ def holds(line, folders):
     return any(os.path.normcase(as_folder(esc(f))).startswith(p) for f in folders)
 
 
+GONE = (": (no such file)", ": (link target missing)")
+
+
 def judge(sign, line, kind, keep, present):
     """Is a changed path record kept data, kept data removed, or a trace?"""
+    if kind == "contents" and under(line, keep, kind):
+        # a kept file's content is the person's to change; only losing it counts
+        return "removed" if sign == "+" and line.endswith(GONE) else "kept"
     appeared = sign == "+" or line.endswith(" (missing)")   # "- x (missing)": x now exists
     if under(line, keep, kind):
         return "kept" if appeared else "removed"
@@ -125,6 +147,9 @@ def folder_lines(spec, skip):
     if m:
         path, depth = m.group(1), max(1, int(m.group(2)))
     top = full(path)
+    if os.path.islink(top) and not os.path.isdir(top):
+        print(f"warning: {top} is a link to no folder", file=sys.stderr)
+        return {esc(f"{top} -> {os.readlink(top)}")}
     if not os.path.isdir(top):
         kind = "not a folder" if os.path.lexists(top) else "missing"
         print(f"warning: {top} is {kind}{' (use --file)' if kind != 'missing' else ''}", file=sys.stderr)
@@ -156,15 +181,20 @@ def file_lines(path):
     name = esc(p)
     if not os.path.lexists(p):
         return [f"{name}: (no such file)"]
+    link = []
+    if os.path.islink(p):     # a link replaced by a copy (sed -i does that) is a trace
+        link = [f"{name}: (link -> {esc(os.readlink(p))})"]
+        if not os.path.exists(p):
+            return link + [f"{name}: (link target missing)"]
     try:
         st = os.stat(p)
         with open(p, "rb") as f:
             raw = f.read()
     except OSError as e:
         print(f"warning: cannot read {p}; changes to it will not be seen", file=sys.stderr)
-        return [f"{name}: (cannot read: {e.strerror})"]
+        return link + [f"{name}: (cannot read: {e.strerror})"]
     text = raw.decode(**ENC)
-    return [f"{name}: {line}" for line in text.splitlines()] + [
+    return link + [f"{name}: {line}" for line in text.splitlines()] + [
         f"{name}: (mode {stat.filemode(st.st_mode)}, owner {st.st_uid}:{st.st_gid})",
         f"{name}: (checksum of the whole file {hashlib.sha256(raw).hexdigest()[:16]})"]
 
@@ -250,7 +280,7 @@ def compare(a, b, keep):
     records = {n: (read(a, n), read(b, n)) for n in sorted(names)}
     # kept folders that hold something in B: only their parents count as kept
     present = [k for k in keep if any(
-        under(x, (as_folder(k),), n[:-4]) for n, (_, after) in records.items()
+        has_data(x, n[:-4], k) for n, (_, after) in records.items()
         if n[:-4] in PATH_KINDS for x in after or [])]
     differ, unreadable = 0, set()
     for name, (before, after) in records.items():

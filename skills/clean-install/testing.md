@@ -16,8 +16,10 @@ three kinds of record, and a trace can hide in any of them:
 - **What is inside files the install edits** (`--file`): shell profiles,
   `~/.gitconfig`, editor settings files, shared config files. A folder
   listing proves a file exists, not that its content or permissions are
-  back; `--file` records the lines, the permissions and owner, and a
-  checksum, so record with it every file that must come back unchanged.
+  back; `--file` records the lines, the permissions and owner, a link's
+  target, and a checksum, so record with it every file that must come back
+  unchanged. (Inside a kept folder, only a file's disappearing counts;
+  changes to its content are the person's.)
   Repeated lines are counted, so a second copy of a line the person
   already had is caught.
 - **What managers report** (`--command`): settings stores, services,
@@ -27,7 +29,11 @@ three kinds of record, and a trace can hide in any of them:
 
 A path the snapshot cannot read leaves the result unproven, not clean: run
 it with the rights to read what the installer touches, and `--skip` a
-folder you cannot read and the installer does not touch.
+folder you cannot read and the installer does not touch. Under `sudo`, `~`
+and `$HOME` usually mean root's home, and `systemctl --user`, `dconf` and
+`crontab -l` read root's settings, which compare equal and prove nothing:
+give the person's paths in full, and run their per-person commands as
+them.
 
 Common places:
 
@@ -116,7 +122,8 @@ available, packages this as a test guide).
 
 ```
 python3 snapshot.py save A --folder /usr/local --folder ~/.config:1 \
-    --folder ~/.local/state:2 --file ~/.bashrc --command settings="dconf dump /"
+    --folder ~/.config/myapp --folder ~/.local/state:1 \
+    --folder ~/.local/state/myapp --file ~/.bashrc --command settings="dconf dump /"
 python3 snapshot.py compare A B --keep ~/.local/state/myapp/history \
     --keep ~/.config/myapp
 ```
@@ -124,9 +131,14 @@ python3 snapshot.py compare A B --keep ~/.local/state/myapp/history \
 `--keep` names each folder that holds the person's kept data (history,
 preferences, the backups of their settings), not the app's whole folder:
 keeping all of `~/.local/state/myapp` would also hide a ledger left in
-`myapp/install/`. What is added inside a kept folder, and the folders that
-hold it, count as kept; what was there before and is gone is reported as
-"kept data removed".
+`myapp/install/`. What is added inside a kept folder, and the new folders
+that hold it, count as kept; what was there before and is gone is reported
+as "kept data removed". Record each kept folder in full, as above: a
+listing that stops at the kept folder cannot see what was removed from
+it.
+
+[`test-snapshot.sh`](test-snapshot.sh) holds every case a review has found
+in `snapshot.py`; run it after changing the script.
 
 Save each snapshot to a new folder, outside the folders you record: in the
 test's own temporary folder, or a named one on a real computer. `save`
