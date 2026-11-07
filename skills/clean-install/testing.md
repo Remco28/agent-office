@@ -15,8 +15,10 @@ three kinds of record, and a trace can hide in any of them:
   the app's own folders, one level under shared ones like `~/.config`.
 - **What is inside files the install edits** (`--file`): shell profiles,
   `~/.gitconfig`, editor settings files, shared config files. A folder
-  listing proves a file exists, not that its content is back. Repeated lines
-  are counted, so a second copy of a line the person already had is caught.
+  listing proves a file exists, not that its content or permissions are
+  back; record with `--file` (or a checksum command) every file that must
+  come back unchanged. Repeated lines are counted, so a second copy of a
+  line the person already had is caught.
 - **What managers report** (`--command`): settings stores, services,
   scheduled jobs, installed packages.
 
@@ -24,7 +26,7 @@ Common places:
 
 | Platform | Folders | Files and managers |
 |---|---|---|
-| Linux | `/usr/local`, `/opt`, the parts of `/etc` you touch, the package's paths, `~/.config`, `~/.local/share`, `~/.local/state`, `~/.cache`, `~/.config/autostart`, `~/.config/systemd/user` | `dconf dump /` (GNOME), `systemctl list-unit-files` (and `--user`), `crontab -l`, `dpkg -l` or `rpm -qa` |
+| Linux | `/usr/local`, `/opt`, the parts of `/etc` you touch, the package's paths, `~/.config`, `~/.local/share`, `~/.local/state`, `~/.cache`, `~/.config/autostart`, `~/.config/systemd/user` | `dconf dump /` (GNOME), `systemctl list-unit-files` (and `--user`) for unit files, `systemctl list-units --all '<app>*'` for units still loaded or running without one, `crontab -l`, `dpkg -l` or `rpm -qa` |
 | macOS | `/Applications`, `/usr/local` or `/opt/homebrew`, `~/Library/Application Support`, `~/Library/Preferences`, `~/Library/Caches`, `~/Library/LaunchAgents` | `defaults read <domain>`, `brew list`, `launchctl list` (its PIDs change between runs; compare only the labels) |
 | Windows | `Program Files`, `%APPDATA%`, `%LOCALAPPDATA%`, the Start menu and Startup folders | `reg query <key> /s` for the keys you touch (`reg export` cannot print to the screen), scheduled tasks, services |
 | Any | editor extension folders, global package folders (npm, pip, cargo) | shell profiles, `~/.gitconfig`, editor `settings.json`, `npm ls -g`, `pip list` |
@@ -58,9 +60,10 @@ temporary computer:
 - **Stubs for outside programs** the installer calls (services, daemons,
   package tools), whose answers each test sets.
 - **Only the folders a new account has:** create the base folders every real
-  home has (on Linux `~/.config`, `~/.cache`, `~/.local/state`) so the test
-  does not flag them, but never a folder the installer itself might create:
-  that would hide a leftover empty folder.
+  home has (on a Linux desktop `~/.config` and `~/.cache`) so the test does
+  not flag them, but never one a home may lack (a new account often has no
+  `~/.local/state` yet) or the installer itself might create: that would
+  hide a leftover empty folder.
 
 Tests worth having for every project:
 
@@ -106,13 +109,19 @@ available, packages this as a test guide).
 ```
 python3 snapshot.py save A --folder /usr/local --folder ~/.config:1 \
     --file ~/.bashrc --command settings="dconf dump /"
-python3 snapshot.py compare A B --keep ~/.local/state/myapp
+python3 snapshot.py compare A B --keep ~/.local/state/myapp/history
 ```
 
-Save snapshots outside the folders you record, in the test's own temporary
-folder or a named one on a real computer. (`snapshot.py` leaves its own
-snapshot folders out of a compare, so one saved in a recorded folder is not
-reported as a trace.)
+`--keep` names the folders that hold the person's kept data, not the app's
+whole folder: keeping all of `~/.local/state/myapp` would also hide a
+ledger left in `myapp/install/`. The folders that hold a kept one count as
+kept too.
+
+Save each snapshot to a new folder, outside the folders you record: in the
+test's own temporary folder, or a named one on a real computer. `save`
+refuses a folder that already holds a snapshot and does not create missing
+parent folders. (A snapshot saved inside a recorded folder is still left out
+of a compare, as long as it is named by the same path or its real one.)
 
 Copy it into the project's `tools/` and wrap it in the project's folders,
 files and commands, so each step is one short command.
