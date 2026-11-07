@@ -21,6 +21,8 @@ This repository (`agent-office`) uses **Agent Office**, the shared working memor
 
 ### Start
 
+If another agent started you to do one narrow task (research, a review, a single file), skip all of this: do the task, report back to it, and do not check in.
+
 1. Check in from inside this repository (any git worktree of it counts):
    ```bash
    office begin --by <your-tool>        # for example --by codex
@@ -35,7 +37,7 @@ This repository (`agent-office`) uses **Agent Office**, the shared working memor
 
 **Write while you still know it.** You will not know when your session ends.
 
-- **Work log, the handoff:** `office work open "<title>"`, then `office work note <id> "<where you got to>"` as you go, and `office work close <id> "<outcome>"` once the work is finished, not when one step of it is. A note says where you stopped and what you would check next, not every file you touched.
+- **Work log, the handoff:** `office work open "<title>"`, then `office work note <id> "<where you got to>"` as you go, and `office work close <id> "<outcome>"` once the work is finished, not when one step of it is. A note says where you stopped and what you would check next, not every file you touched. Write one note per stopping point (a piece finished, a decision, a dead end), not one per step: a log of hundreds of notes on one item is never read again.
 - **Memories:** `office remember "<fact>"` for decisions and why, conventions, dead ends, and facts the next agent would otherwise rediscover. Add `--global` only for a rule that holds in every project. Never store secrets, `.env` contents, source dumps or progress chatter. If a memory is wrong, correct it and say why (`office forget <id>` removes it).
 - **Finding things:** `office context "<task>"` before you start something, `office search "<words>"` for one fact. An empty result is real: nothing relevant is recorded.
 - **Tools:** `office tools add <name> --use "<command>" "<what it is>"` for anything installed here that you would want again.
