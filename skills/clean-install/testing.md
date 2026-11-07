@@ -16,17 +16,24 @@ three kinds of record, and a trace can hide in any of them:
 - **What is inside files the install edits** (`--file`): shell profiles,
   `~/.gitconfig`, editor settings files, shared config files. A folder
   listing proves a file exists, not that its content or permissions are
-  back; record with `--file` (or a checksum command) every file that must
-  come back unchanged. Repeated lines are counted, so a second copy of a
-  line the person already had is caught.
+  back; `--file` records the lines, the permissions and owner, and a
+  checksum, so record with it every file that must come back unchanged.
+  Repeated lines are counted, so a second copy of a line the person
+  already had is caught.
 - **What managers report** (`--command`): settings stores, services,
-  scheduled jobs, installed packages.
+  scheduled jobs, installed packages. Output is compared ignoring line
+  order; where order matters (`PATH`), print one entry per line with its
+  position, for example `echo "$PATH" | tr : '\n' | nl`.
+
+A path the snapshot cannot read leaves the result unproven, not clean: run
+it with the rights to read what the installer touches, and `--skip` a
+folder you cannot read and the installer does not touch.
 
 Common places:
 
 | Platform | Folders | Files and managers |
 |---|---|---|
-| Linux | `/usr/local`, `/opt`, the parts of `/etc` you touch, the package's paths, `~/.config`, `~/.local/share`, `~/.local/state`, `~/.cache`, `~/.config/autostart`, `~/.config/systemd/user` | `dconf dump /` (GNOME), `systemctl list-unit-files` (and `--user`) for unit files, `systemctl list-units --all '<app>*'` for units still loaded or running without one, `crontab -l`, `dpkg -l` or `rpm -qa` |
+| Linux | `/usr/local`, `/opt`, the parts of `/etc` you touch, the package's paths, `~/.config`, `~/.local/share`, `~/.local/state`, `~/.cache`, `~/.config/autostart`, `~/.config/systemd/user` | `dconf dump /` (GNOME), `systemctl list-unit-files` (and `--user`) for unit files, `systemctl list-units --all '<app>*'` (and `--user`) for units still loaded or running without one, `crontab -l`, `dpkg -l` or `rpm -qa` |
 | macOS | `/Applications`, `/usr/local` or `/opt/homebrew`, `~/Library/Application Support`, `~/Library/Preferences`, `~/Library/Caches`, `~/Library/LaunchAgents` | `defaults read <domain>`, `brew list`, `launchctl list` (its PIDs change between runs; compare only the labels) |
 | Windows | `Program Files`, `%APPDATA%`, `%LOCALAPPDATA%`, the Start menu and Startup folders | `reg query <key> /s` for the keys you touch (`reg export` cannot print to the screen), scheduled tasks, services |
 | Any | editor extension folders, global package folders (npm, pip, cargo) | shell profiles, `~/.gitconfig`, editor `settings.json`, `npm ls -g`, `pip list` |
@@ -59,9 +66,10 @@ temporary computer:
   setting definitions.
 - **Stubs for outside programs** the installer calls (services, daemons,
   package tools), whose answers each test sets.
-- **Only the folders a new account has:** create the base folders every real
-  home has (on a Linux desktop `~/.config` and `~/.cache`) so the test does
-  not flag them, but never one a home may lack (a new account often has no
+- **Only the folders a new account has:** create the base folders the
+  accounts you install for already have (on a Linux desktop, `~/.config`
+  and `~/.cache` exist after the first login) so the test does not flag
+  them, but never one an account may lack (a new one often has no
   `~/.local/state` yet) or the installer itself might create: that would
   hide a leftover empty folder.
 
@@ -108,20 +116,23 @@ available, packages this as a test guide).
 
 ```
 python3 snapshot.py save A --folder /usr/local --folder ~/.config:1 \
-    --file ~/.bashrc --command settings="dconf dump /"
-python3 snapshot.py compare A B --keep ~/.local/state/myapp/history
+    --folder ~/.local/state:2 --file ~/.bashrc --command settings="dconf dump /"
+python3 snapshot.py compare A B --keep ~/.local/state/myapp/history \
+    --keep ~/.config/myapp
 ```
 
-`--keep` names the folders that hold the person's kept data, not the app's
-whole folder: keeping all of `~/.local/state/myapp` would also hide a
-ledger left in `myapp/install/`. The folders that hold a kept one count as
-kept too.
+`--keep` names each folder that holds the person's kept data (history,
+preferences, the backups of their settings), not the app's whole folder:
+keeping all of `~/.local/state/myapp` would also hide a ledger left in
+`myapp/install/`. What is added inside a kept folder, and the folders that
+hold it, count as kept; what was there before and is gone is reported as
+"kept data removed".
 
 Save each snapshot to a new folder, outside the folders you record: in the
 test's own temporary folder, or a named one on a real computer. `save`
 refuses a folder that already holds a snapshot and does not create missing
-parent folders. (A snapshot saved inside a recorded folder is still left out
-of a compare, as long as it is named by the same path or its real one.)
+parent folders. A compare ignores A and B themselves, but not another
+snapshot saved in a recorded folder between them.
 
 Copy it into the project's `tools/` and wrap it in the project's folders,
 files and commands, so each step is one short command.

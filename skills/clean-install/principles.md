@@ -52,10 +52,10 @@ settings are their data and stay, so the two never share a folder.
 
 - **Let a package manager own the files it installs** when there is one (apt,
   rpm, Homebrew, MSI, pip, npm). It removes the package's own files, and
-  only those: not what the app creates later, not first-run changes, and
-  not the dependencies it pulled in (apt and Homebrew leave them until
-  `apt autoremove` or `brew autoremove`; pip never removes them, so install
-  a pip tool in its own environment, such as pipx or a venv, and the
+  only those: not what the app creates later, not first-run changes, and,
+  depending on the manager, not the dependencies it pulled in (apt leaves
+  them until `apt autoremove`; pip never removes them, so install a pip
+  tool in its own environment, such as pipx or a venv, and the
   dependencies go with it). The package's own install and removal scripts
   are your code: what they change goes in the footprint like any other
   change. On Debian and Ubuntu, `remove` keeps a package's config files in `/etc`;
