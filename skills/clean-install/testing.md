@@ -15,7 +15,8 @@ three kinds of record, and a trace can hide in any of them:
   the app's own folders, one level under shared ones like `~/.config`.
 - **What is inside files the install edits** (`--file`): shell profiles,
   `~/.gitconfig`, editor settings files, shared config files. A folder
-  listing proves a file exists, not that its content is back.
+  listing proves a file exists, not that its content is back. Repeated lines
+  are counted, so a second copy of a line the person already had is caught.
 - **What managers report** (`--command`): settings stores, services,
   scheduled jobs, installed packages.
 
@@ -107,6 +108,11 @@ python3 snapshot.py save A --folder /usr/local --folder ~/.config:1 \
     --file ~/.bashrc --command settings="dconf dump /"
 python3 snapshot.py compare A B --keep ~/.local/state/myapp
 ```
+
+Save snapshots outside the folders you record, in the test's own temporary
+folder or a named one on a real computer. (`snapshot.py` leaves its own
+snapshot folders out of a compare, so one saved in a recorded folder is not
+reported as a trace.)
 
 Copy it into the project's `tools/` and wrap it in the project's folders,
 files and commands, so each step is one short command.

@@ -8,20 +8,26 @@ save    --folder lists every file and folder under PATH, to DEPTH levels
         (1 = only what is directly in it), or all of it. Links are listed
         with their target. This shows what exists, not what is inside.
         --file records a file's lines (a shell profile, a settings file), so
-        a line left behind shows up.
-        --command saves the output of CMD as NAME.txt. Output in INI form
+        a line left behind shows up. A repeated line is counted ("(copy 2)"),
+        so a second copy of a line that was already there shows up too.
+        --command saves the output of CMD as NAME.txt; NAME is letters,
+        digits, - or _, and not "files" or "contents". Output in INI form
         (`[group]` then `key=value`, as `dconf dump /` prints) is saved one
-        `group/key=value` per line. A command that fails is recorded as such.
-        --skip leaves out a folder and everything in it.
+        `group/key=value` per line, and repeated lines are counted. A command
+        that fails is recorded as such.
+        --skip leaves out a folder and everything in it. DIR itself is
+        always left out.
 compare prints what is in A and not in B (-) and in B and not in A (+).
         Changes inside a --keep folder (the person's kept data) are counted
-        apart. Exit status: 0 nothing else differs, 1 differences, 2 a
-        snapshot is missing or empty.
+        apart. Paths inside A or B themselves are ignored, in case a
+        snapshot was saved inside a recorded folder. Exit status: 0 nothing
+        else differs, 1 differences, 2 a snapshot is missing or empty, or the
+        arguments are wrong.
 
 Check the check: before trusting "no trace left", make one deliberate change
 (touch a file, set a setting) and see that compare reports it.
 
-Snapshots stay where you save them and can hold personal settings and file
+Paths are recorded absolute. Snapshots stay where you save them and can hold personal settings and file
 contents; look over a compare before sharing it. Copy this file into a
 project's tools/ and wrap it in that project's folders, files and commands.
 Python 3 standard library only.
@@ -32,6 +38,8 @@ import subprocess
 import sys
 
 GROUP = re.compile(r"^\[(.*)\]$")
+NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+RESERVED = ("files", "contents")
 ENC = dict(encoding="utf-8", errors="surrogateescape")   # odd file names must not crash a save
 
 
@@ -39,17 +47,30 @@ def under(path, folders):
     return any(path == f or path.startswith(f.rstrip("/") + "/") for f in folders)
 
 
+def full(path):
+    return os.path.abspath(os.path.expanduser(path))
+
+
+def counted(lines):
+    """Number repeats, so a second copy of a line is a difference, not a no-op."""
+    seen, out = {}, []
+    for line in lines:
+        seen[line] = seen.get(line, 0) + 1
+        out.append(line if seen[line] == 1 else f"{line} (copy {seen[line]})")
+    return out
+
+
 def folder_lines(spec, skip):
     path, depth = spec, None
     m = re.match(r"^(.*):(\d+)$", spec)
     if m:
         path, depth = m.group(1), max(1, int(m.group(2)))
-    top = os.path.expanduser(path).rstrip("/") or "/"
+    top = full(path)
     if not os.path.isdir(top):
         print(f"warning: {top} is not a folder ({'use --file' if os.path.isfile(top) else 'missing'})",
               file=sys.stderr)
         return set()
-    lines, base = set(), top.count("/")
+    lines, base = set(), top.rstrip("/").count("/")
 
     def unreadable(err):
         print(f"warning: cannot read {err.filename}", file=sys.stderr)
@@ -70,12 +91,12 @@ def folder_lines(spec, skip):
 
 
 def file_lines(path):
-    p = os.path.expanduser(path)
+    p = full(path)
     if not os.path.lexists(p):
         return {f"{p}: (no such file)"}
     try:
         with open(p, **ENC) as f:
-            return {f"{p}: {line}" for line in f.read().splitlines()} or {f"{p}: (empty)"}
+            return {f"{p}: {line}" for line in counted(f.read().splitlines())} or {f"{p}: (empty)"}
     except OSError as e:
         return {f"{p}: (cannot read: {e.strerror})"}
 
@@ -98,25 +119,33 @@ def command_lines(cmd):
         lines.append(f"(exit {r.returncode}: {r.stderr.strip()[:200]})")
     if not lines:
         print(f"warning: `{cmd}` printed nothing", file=sys.stderr)
-    return sorted(set(lines))
+    return sorted(counted(lines))
 
 
 def save(out, opts):
-    skip = tuple(os.path.expanduser(p) for p in opts["--skip"])
+    commands = {}
+    for spec in opts["--command"]:
+        name, eq, cmd = spec.partition("=")
+        if not eq or not cmd.strip() or not NAME.match(name) or name in RESERVED or name in commands:
+            print(f"error: --command {spec!r}: give NAME=CMD, with NAME made of letters, digits, - or _, "
+                  f"used once, and not {' or '.join(RESERVED)}", file=sys.stderr)
+            return 2
+        commands[name] = cmd
+    skip = tuple(full(p) for p in opts["--skip"]) + (full(out),)
     files = set()
     for spec in opts["--folder"]:
         files |= folder_lines(spec, skip)
     parts = {"files": sorted(files)}
     if opts["--file"]:
         parts["contents"] = sorted(set().union(*(file_lines(p) for p in opts["--file"])))
-    for spec in opts["--command"]:
-        name, _, cmd = spec.partition("=")
+    for name, cmd in commands.items():
         parts[name] = command_lines(cmd)
     os.makedirs(out, exist_ok=True)
     for name, lines in parts.items():
         with open(os.path.join(out, f"{name}.txt"), "w", **ENC) as f:
             f.write("".join(x + "\n" for x in lines))
     print(f"saved {out}: " + ", ".join(f"{len(v)} {k}" for k, v in parts.items()))
+    return 0
 
 
 def read(folder, name):
@@ -125,6 +154,10 @@ def read(folder, name):
             return [x for x in f.read().splitlines() if x]
     except OSError:
         return []
+
+
+def path_of(line):
+    return re.split(r" -> |: ", line)[0].rstrip("/")
 
 
 def compare(a, b, keep):
@@ -140,8 +173,10 @@ def compare(a, b, keep):
         before, after = read(a, name), read(b, name)
         sb, sa = set(before), set(after)
         changed = [("-", x) for x in before if x not in sa] + [("+", x) for x in after if x not in sb]
-        # a path, "path -> target" or "path: line" inside a kept folder is kept data
-        kept = [c for c in changed if under(re.split(r" -> |: ", c[1])[0], keep)]
+        # a path, "path -> target" or "path: line": the snapshots themselves are
+        # ignored, and anything inside a kept folder is kept data
+        changed = [c for c in changed if not under(path_of(c[1]), (full(a), full(b)))]
+        kept = [c for c in changed if under(path_of(c[1]), keep)]
         changed = [c for c in changed if c not in kept]
         print(f"== {name[:-4]}: " + ("no change" if not changed else f"{len(changed)} changed"))
         for sign, x in changed:
@@ -167,10 +202,9 @@ def main(argv):
             i += 1
     cmd = argv[1] if len(argv) > 1 else ""
     if cmd == "save" and len(pos) == 1:
-        save(pos[0], opts)
-        return 0
+        return save(pos[0], opts)
     if cmd == "compare" and len(pos) == 2:
-        return compare(pos[0], pos[1], tuple(os.path.expanduser(p) for p in opts["--keep"]))
+        return compare(pos[0], pos[1], tuple(full(p) for p in opts["--keep"]))
     print(__doc__, file=sys.stderr)
     return 2
 

@@ -38,6 +38,16 @@ Keep each kind in its own place, one folder per app: on Linux
 `%LOCALAPPDATA%\<app>`; in an editor or browser, the extension's own storage.
 Then each kind is removed or kept as a whole.
 
+These folders do not line up with the four kinds by themselves: an app's
+config folder holds the person's preferences, which are their data, and
+`~/.local/state` can hold both their history and the installer's own records.
+Write in the footprint which kind each folder holds. Where one folder has to
+hold two kinds, give each its own subfolder (the ledger in
+`~/.local/state/<app>/install/`, the history beside it), so uninstall removes
+or keeps whole folders and never picks files out of one. In particular the
+ledger is the app's and goes, while the backups of the person's original
+settings are their data and stay, so the two never share a folder.
+
 ## 3. Prefer changes that undo themselves
 
 - **Let a package manager own the files it installs** when there is one (apt,
