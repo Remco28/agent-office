@@ -344,6 +344,9 @@ export type Briefing = {
    * for other computers are counted in `skills_elsewhere`, not listed.
    */
   skills: Skill[];
+  /** Skills only the human starts. Named so an agent can follow one when the
+   *  human asks for it by name; never to be used unasked. */
+  skills_manual: Skill[];
   skills_elsewhere: number;
   /** SKILL.md files that could not be read; empty when all is well. */
   skills_problems: SkillProblem[];
@@ -520,6 +523,7 @@ export async function briefing(
         .join(" · ") || null,
     tools: listTools(db),
     skills: skills.skills,
+    skills_manual: skills.manual,
     skills_elsewhere: skills.elsewhere,
     skills_problems: skills.problems,
     preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),

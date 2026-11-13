@@ -8,6 +8,12 @@ import { join } from "node:path";
  * code, and git is what carries it to every computer. The office only reads
  * the folder, so there is never a second copy to go stale.
  *
+ * A skill whose frontmatter says `disable-model-invocation: true` is one the
+ * human starts by name. Claude Code honours that key itself; Codex reads
+ * `agents/openai.yaml` (`policy.allow_implicit_invocation: false`) instead;
+ * the office keeps such skills out of briefings and searches, so no agent is
+ * told to use one because its description matched the task.
+ *
  * The format is the one Claude Code and Codex already load natively
  * (`skills/<name>/SKILL.md`, YAML frontmatter with `name` and `description`),
  * so the same folder serves the agents that load skills themselves and, via
@@ -20,6 +26,9 @@ export type Skill = {
   path: string;
   /** Hostnames this skill is for, or null when it applies on every computer. */
   machines: string[] | null;
+  /** Started only by the human (`disable-model-invocation: true`), never by
+   *  an agent because a task looks like it matches. */
+  manual: boolean;
 };
 
 export type SkillProblem = { path: string; problem: string };
@@ -27,6 +36,10 @@ export type SkillProblem = { path: string; problem: string };
 export type SkillListing = {
   /** Skills for this computer: every unmarked one, plus those marked for it. */
   skills: Skill[];
+  /** Skills for this computer that only the human starts (`/name` in Claude
+   *  Code, `$name` in Codex), kept out of `skills` so no agent picks one up
+   *  from a briefing or a search. */
+  manual: Skill[];
   /** Skills marked for other computers, counted rather than listed. */
   elsewhere: number;
   /** SKILL.md files that could not be read, named so they get fixed. */
@@ -71,11 +84,17 @@ export function readSkill(dir: string): Skill {
   const description = typeof data.description === "string" ? data.description.trim() : "";
   if (!name) throw new Error("frontmatter has no name");
   if (!description) throw new Error("frontmatter has no description");
-  return { name, description, path, machines: machinesOf(data.metadata) };
+  return {
+    name,
+    description,
+    path,
+    machines: machinesOf(data.metadata),
+    manual: data["disable-model-invocation"] === true,
+  };
 }
 
 export function listSkills(dir: string, host: string = thisMachine()): SkillListing {
-  const listing: SkillListing = { skills: [], elsewhere: 0, problems: [], host };
+  const listing: SkillListing = { skills: [], manual: [], elsewhere: 0, problems: [], host };
   if (!existsSync(dir)) return listing;
   const here = host.toLowerCase();
   for (const entry of readdirSync(dir).sort()) {
@@ -104,6 +123,7 @@ export function listSkills(dir: string, host: string = thisMachine()): SkillList
       });
     }
     if (skill.machines && !skill.machines.includes(here)) listing.elsewhere += 1;
+    else if (skill.manual) listing.manual.push(skill);
     else listing.skills.push(skill);
   }
   return listing;

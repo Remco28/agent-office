@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { listSkills } from "../src/skills";
+import { createSkillSearch } from "../src/skill-search";
 import { briefing } from "../src/session";
 import { ROOT } from "../src/paths";
 import { tempDb } from "./helpers";
@@ -51,6 +52,40 @@ describe("skills", () => {
     expect(there.elsewhere).toBe(0);
   });
 
+  test("a skill only the human starts is kept apart, never offered to agents", () => {
+    const dir = skillsFolder({
+      deploy: skill("deploy", "Ship it."),
+      unslop: skill("unslop", "Cut AI tells.", "disable-model-invocation: true\n"),
+      off: skill("off", "Explicitly automatic.", "disable-model-invocation: false\n"),
+      "manual-elsewhere": skill(
+        "manual-elsewhere",
+        "Other box, by hand.",
+        "disable-model-invocation: true\nmetadata:\n  machine: other\n",
+      ),
+    });
+    const listing = listSkills(dir, "here");
+    expect(listing.skills.map((s) => s.name)).toEqual(["deploy", "off"]);
+    expect(listing.manual.map((s) => s.name)).toEqual(["unslop"]);
+    expect(listing.manual[0].manual).toBe(true);
+    // A manual skill for another computer is still just counted there.
+    expect(listing.elsewhere).toBe(1);
+  });
+
+  test("a manual skill is named in the briefing apart, and never found by a search", async () => {
+    const db = tempDb();
+    const dir = skillsFolder({
+      deploy: skill("deploy", "Ship it."),
+      unslop: skill("unslop", "Cut AI tells from any writing.", "disable-model-invocation: true\n"),
+    });
+    const brief = await briefing(db, null, { skillsDir: dir });
+    expect(brief.skills.map((s) => s.name)).toEqual(["deploy"]);
+    expect(brief.skills_manual.map((s) => s.name)).toEqual(["unslop"]);
+    const search = createSkillSearch(null);
+    const found = await search(dir, "cut AI tells from writing");
+    expect(found.skill_hits).toEqual([]);
+    db.close();
+  });
+
   test("a SKILL.md that cannot be read is named, not dropped quietly", () => {
     const dir = skillsFolder({
       empty: "",
@@ -95,5 +130,6 @@ describe("skills", () => {
     const listing = listSkills(join(ROOT, "skills"), "any-host");
     expect(listing.problems).toEqual([]);
     expect(listing.skills.map((s) => s.name)).toContain("human-feedback");
+    expect(listing.manual.map((s) => s.name)).toEqual(["unslop"]);
   });
 });

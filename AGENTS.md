@@ -79,6 +79,7 @@ Skills live in this repository under `skills/<name>/`, so git is what carries th
 ---
 name: release-notes            # must match the folder name
 description: What it does and when to use it — this line is all an agent sees until it reads the file.
+disable-model-invocation: true  # only for a skill the human starts by name; see below
 metadata:
   machine: frank-thinkpad-x1-yoga-gen-6   # only for a skill tied to one computer; hostname, comma-separated for several
 ---
@@ -88,6 +89,7 @@ metadata:
 
 - Write a skill when you have done the same multi-step task twice, or the human has had to explain it twice. One fact is a memory; one command is a tool.
 - A skill that only makes sense on one computer (a local service, a path that exists only there) gets `metadata.machine` set to that computer's `hostname`. Other computers count it but do not list it.
+- A skill the human starts by name, never an agent on its own (`unslop`), gets `disable-model-invocation: true`, and `agents/openai.yaml` with `policy: allow_implicit_invocation: false` because Codex reads only that. The office then leaves it out of `skills` and `skill_hits` and lists it under `skills_manual`. Claude Code starts it with `/<name>`, Codex with `$<name>`; any other agent reads the `SKILL.md` when the human asks for it by name.
 - Commit it. A skill that is only in your working tree is on one computer, and is lost to every other one. Pushing and pulling is the human's call; say in your work note that a skill was added.
 - If `begin` reports `skills_problems`, the folder has a `SKILL.md` that cannot be read. Fix it while you are here.
 

@@ -1,0 +1,4 @@
+# Codex reads this, not the SKILL.md frontmatter, to decide whether a skill is
+# started only by the human. Codex starts it with $unslop.
+policy:
+  allow_implicit_invocation: false
