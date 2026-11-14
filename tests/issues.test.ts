@@ -105,6 +105,18 @@ describe("issues", () => {
     expect(result.issues.map((i) => i.title)).not.toContain("issue 1");
   });
 
+  test("the briefing lists an issue by its title, and the notes stay behind `office issues`", async () => {
+    const db = fresh();
+    const issue = openIssue(db, { title: "begin is too long", author: "a-1111" });
+    noteIssue(db, issue.id, { text: "a long account of what happened", author: "a-1111" });
+
+    const result = await briefing(db, fakeEmbedder());
+    expect(Object.keys(result.issues[0]).sort()).toEqual(["author", "id", "last_at", "title"]);
+    expect(JSON.stringify(result.issues)).not.toContain("a long account");
+    // the full record is still one command away
+    expect(listIssues(db)[0].last_note).toBe("a long account of what happened");
+  });
+
   test("the filer is told when someone else closed what they raised", async () => {
     const db = fresh();
     const mine = openIssue(db, { title: "mine, closed by someone", author: "a-1111" });

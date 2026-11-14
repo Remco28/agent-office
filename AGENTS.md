@@ -48,6 +48,7 @@ If another agent started you to do one narrow task (research, a review, a single
 - **Issues:** when the office itself is in your way (not a bug in this repository), check `office issues`, then `office issue open "<what>"`, or add a note to the one already there.
 
 `office help` lists every command.
+<!-- /agent-office -->
 
 ## Design rules
 
@@ -66,6 +67,7 @@ This section lists what a change to the office must not break, and why each rule
 - **The tools list is the truth, and lives only in the database.** It is per machine, and the office never copies it into a file that could go out of date.
 - **Reads never write.** `peek` and every plain read leave the record and the caller's check-in mark untouched. So an agent told not to change anything can still use the office. Only `begin`, `remember`, `forget`, `work open|note|close`, `issue open|note|close` and `tools add|remove` change the record. A new command must be one kind or the other.
 - **`office init` looks before it writes.** It refuses a folder inside another repository, and a folder that holds repositories. It never edits or replaces a link, never writes outside the project or into git's config, and never hides anything from git. It reports on stderr whatever it leaves alone.
+- **The startup section is a copy, and only `office init` changes it.** A project's AGENTS.md carries the section as it was worded when init wrote it. When the wording changes here, `begin` tells an agent whose copy is older, and `office init` replaces the text between its two markers and returns the old text. It changes nothing else in the file. A section a person wrote under their own heading has no marker, and init never touches it.
 
 ## Skills
 

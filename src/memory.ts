@@ -146,9 +146,26 @@ export async function remember(
 }
 
 export function forget(db: Database, id: number): boolean {
-  const result = db.query("DELETE FROM memories WHERE id = ?").run(id);
-  return result.changes > 0;
+  return forgetMemory(db, id) !== null;
 }
+
+/**
+ * Delete a memory and hand back what it said. The delete is final and leaves
+ * no trace in the store, so the reply is the last place the old text, its
+ * author and its date exist. An agent correcting a wrong memory needs them to
+ * say in the new one what was believed before.
+ */
+export function forgetMemory(db: Database, id: number): Memory | null {
+  const row = db
+    .query(`DELETE FROM memories WHERE id = ? RETURNING ${COLUMNS}`)
+    .get(id) as MemoryRow | null;
+  return row ? publicMemory(row) : null;
+}
+
+/** What `forget` answers with, so a correction keeps its reason. */
+export const FORGOTTEN_NOTE =
+  "deleted for good; `forgotten` is the last copy. If it was wrong rather than out of date, " +
+  "remember the corrected fact now, and say in it what was believed before, who recorded it and why it changed";
 
 /**
  * Every memory, newest first, whatever it belongs to. This is the human's view
@@ -201,6 +218,24 @@ export function listGlobalMemories(db: Database, limit = 20): Memory[] {
     )
     .all(clampLimit(limit, 20, 100)) as MemoryRow[];
   return rows.map(publicMemory);
+}
+
+/**
+ * What `remember --global` answers with. A global memory is handed to every
+ * agent at every check-in, in every project. The store filled with lessons
+ * from single projects marked global, and nothing told the writer what the
+ * flag costs, so the reply now says it.
+ */
+export function globalMemoryNote(db: Database, id: number): string {
+  const row = db
+    .query(`SELECT COUNT(*) AS n FROM memories WHERE scope = '${SCOPE_GLOBAL}'`)
+    .get() as { n: number };
+  return (
+    `saved for every project: every agent that checks in, in any project, is handed this memory ` +
+    `(${row.n} are marked this way now). Keep it global only if it is a rule that holds in every project. ` +
+    `If it is a lesson from one project or about one skill, run \`office forget ${id}\` and save it ` +
+    "in that project without --global, or put it in the skill"
+  );
 }
 
 export function countMemories(db: Database): number {

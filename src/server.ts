@@ -5,7 +5,9 @@ import { startSidecar, type Embedder } from "./embed";
 import {
   backfillEmbeddings,
   countMemories,
-  forget,
+  FORGOTTEN_NOTE,
+  forgetMemory,
+  globalMemoryNote,
   listMemories,
   listMemoriesInScope,
   remember,
@@ -234,8 +236,13 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         projectBefore: previous?.project ?? null,
         readonly,
         minted: identity.minted,
+        // Looked at by the caller, in the folder it runs in; see the CLI.
+        sectionStale: body.section_stale === true,
       });
-      return json({ ...result, warnings: warnings() });
+      // Warnings go near the top: a reader that cuts a long briefing short
+      // must still learn that the embedder is down.
+      const { ok, banner, ...rest } = result;
+      return json({ ok, banner, warnings: warnings(), ...rest });
     }
 
     // Projects whose folder is not found. Its own route, not part of /health:
@@ -287,6 +294,9 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
         return json({
           ok: true,
           memory,
+          // Said at the moment of writing, because nothing else pushes back:
+          // every check-in in every project is handed this memory.
+          note: memory.scope === "global" ? globalMemoryNote(db, memory.id) : null,
           project_source: scope.project_source,
           scope_note: scope.scope_note,
           author_source: scope.author_source,
@@ -323,7 +333,8 @@ export function serve(opts?: { embedder?: Embedder; port?: number }): Office {
       const body = await readBody(req);
       const id = Number(body.id);
       if (!Number.isInteger(id) || id <= 0) return json({ error: "id required" }, 400);
-      return json({ ok: forget(db, id), id });
+      const forgotten = forgetMemory(db, id);
+      return json({ ok: forgotten !== null, id, forgotten, note: forgotten ? FORGOTTEN_NOTE : null });
     }
 
     if (req.method === "GET" && path === "/tools") {

@@ -3,6 +3,7 @@ import {
   constants,
   existsSync,
   fstatSync,
+  ftruncateSync,
   lstatSync,
   mkdirSync,
   openSync,
@@ -28,10 +29,24 @@ export type InitResult = {
   actions: string[];
   /** What init found and deliberately left alone, and why. Printed on stderr. */
   warnings: string[];
+  /**
+   * The old Agent Office section, when init replaced it with the current
+   * wording. Git has it too if AGENTS.md was committed; when it was not, this
+   * is the only copy left.
+   */
+  replaced_section: string | null;
   message: string;
 };
 
 const OFFICE_MARKER = "<!-- agent-office -->";
+/** Where init's section stops, so init can replace its own text and nothing else. */
+const OFFICE_END = "<!-- /agent-office -->";
+/**
+ * Sections written before the end marker existed all stop at this line. It is
+ * only used to find the end of such a section; the current wording may end
+ * differently.
+ */
+const LEGACY_LAST_LINE = "`office help` lists every command.";
 
 /** Exported so the office's own AGENTS.md can be checked against it. */
 export function buildOfficeSection(projectName: string): string {
@@ -71,7 +86,59 @@ If another agent started you to do one narrow task (research, a review, a single
 - **Issues:** when the office itself is in your way (not a bug in this repository), check \`office issues\`, then \`office issue open "<what>"\`, or add a note to the one already there.
 
 \`office help\` lists every command.
+${OFFICE_END}
 `;
+}
+
+/** How a file's Agent Office section compares with the current wording. */
+export type SectionState =
+  /** No section of init's: none at all, or one a person wrote under their own heading. */
+  | "none"
+  | "current"
+  /** Init's section, in older wording (or edited). Init can replace it. */
+  | "stale"
+  /** Init's marker with no end to be found, so init cannot tell what is its own. */
+  | "unbounded";
+
+/** Where init's own section sits in a file: from its marker to its end. */
+function sectionSpan(content: string): { start: number; end: number } | null {
+  const start = content.indexOf(OFFICE_MARKER);
+  if (start < 0) return null;
+  const endMarker = content.indexOf(OFFICE_END, start);
+  if (endMarker >= 0) return { start, end: endMarker + OFFICE_END.length };
+  const last = content.indexOf(LEGACY_LAST_LINE, start);
+  return last < 0 ? null : { start, end: last + LEGACY_LAST_LINE.length };
+}
+
+export function sectionState(content: string, projectName: string): SectionState {
+  if (!content.includes(OFFICE_MARKER)) return "none";
+  const span = sectionSpan(content);
+  if (!span) return "unbounded";
+  const current = buildOfficeSection(projectName).trimEnd();
+  const found = content.slice(span.start, span.end);
+  // A section written before the end marker existed, with today's wording, is
+  // current: adding the marker alone is not worth a change in every project.
+  return found === current || `${found}\n${OFFICE_END}` === current ? "current" : "stale";
+}
+
+/**
+ * Whether the repository `cwd` is in carries init's section in older wording.
+ * `begin` asks this so an agent learns its instructions are behind; only
+ * `office init` changes the file. Anything init would leave alone (a link, a
+ * file with another name elsewhere, a section a person wrote) is not reported,
+ * because there would be nothing the agent could run to fix it.
+ */
+export function startupSectionStale(cwd = process.cwd()): boolean {
+  try {
+    const git = resolveGitProject(realPath(cwd));
+    if (!git) return false;
+    const path = join(git.worktreeRoot, "AGENTS.md");
+    if (inspect(path).kind !== "file") return false;
+    if (sharedElsewhere(path, join(git.worktreeRoot, "CLAUDE.md"))) return false;
+    return sectionState(readFileSync(path, "utf8"), displayName(git.repoRoot)) === "stale";
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -258,6 +325,45 @@ function appendSection(path: string, claudePath: string, section: string): "appe
   }
 }
 
+/**
+ * Replace init's own section with the current wording, in place, through one
+ * descriptor that refuses to follow a link. Everything outside the section
+ * keeps its bytes. Returns the text that was replaced, "current" when another
+ * init got there first, or "changed" when the file is no longer one init may
+ * write to.
+ */
+function replaceSection(
+  path: string,
+  claudePath: string,
+  projectName: string,
+): { replaced: string } | "current" | "changed" {
+  let fd: number;
+  try {
+    fd = openSync(path, constants.O_RDWR | constants.O_NOFOLLOW);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ELOOP") return "changed";
+    throw err;
+  }
+  try {
+    const stat = fstatSync(fd);
+    if (stat.nlink > 1 && sharedElsewhere(path, claudePath)) return "changed";
+    const existing = readFileSync(fd).toString("utf8");
+    const state = sectionState(existing, projectName);
+    if (state === "current") return "current";
+    const span = sectionSpan(existing);
+    if (state !== "stale" || !span) return "changed";
+    const next = Buffer.from(
+      existing.slice(0, span.start) + buildOfficeSection(projectName).trimEnd() + existing.slice(span.end),
+      "utf8",
+    );
+    writeSync(fd, next, 0, next.length, 0);
+    ftruncateSync(fd, next.length);
+    return { replaced: existing.slice(span.start, span.end) };
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /** Which of `names` git would ignore in `dir`. */
 function ignoredByGit(dir: string, names: string[]): string[] {
   const present = names.filter((name) => inspect(join(dir, name)).kind !== "missing");
@@ -289,6 +395,9 @@ function ignoredByGit(dir: string, names: string[]): string[] {
  * 2. Links `.claude/skills` and `.agents/skills` to the office skills folder.
  * 3. Creates or updates `AGENTS.md` with the session startup procedure, and
  *    links `CLAUDE.md -> AGENTS.md` if `CLAUDE.md` is not already present.
+ *    A section init wrote earlier, in older wording, is replaced between its
+ *    markers and handed back in `replaced_section`; nothing else in the file
+ *    changes.
  * 4. Reports `already_initialized: true` when everything is already set up.
  */
 export function initProject(
@@ -328,6 +437,7 @@ export function initProject(
       git_initialized: false,
       actions: [],
       warnings: [],
+      replaced_section: null,
       message: `Agent Office · ${basename(officeRoot)} (${officeRoot}) is the office checkout itself and is already set up.`,
     };
   }
@@ -434,13 +544,33 @@ export function initProject(
 
   const agentsPath = join(worktreeRoot, "AGENTS.md");
   const agents = inspect(agentsPath);
-  let agentsWrite: "create" | "append" | null = null;
+  let agentsWrite: "create" | "append" | "refresh" | null = null;
   let sectionPresent = false;
   if (agents.kind === "missing") {
     agentsWrite = "create";
   } else if (agents.kind === "file") {
-    if (hasOfficeInstructions(readFileSync(agentsPath, "utf8"))) sectionPresent = true;
-    else if (sharedElsewhere(agentsPath, join(worktreeRoot, "CLAUDE.md"))) {
+    const content = readFileSync(agentsPath, "utf8");
+    if (hasOfficeInstructions(content)) {
+      sectionPresent = true;
+      // The one thing init changes in a file it finds: its own section, when
+      // the wording has moved on. A section a person wrote has no marker and
+      // is never touched.
+      const state = sectionState(content, displayName(enclosing?.repoRoot ?? target));
+      if (state === "unbounded") {
+        warnings.push(
+          "AGENTS.md has the Agent Office marker, but the end of the section could not be found " +
+            "(its last line was changed), so init did not replace it. Delete that section and " +
+            "rerun `office init` to get the current wording",
+        );
+      } else if (state === "stale") {
+        if (sharedElsewhere(agentsPath, join(worktreeRoot, "CLAUDE.md"))) {
+          warnings.push(
+            "AGENTS.md has an older Agent Office section, but it is a hard link: the same file " +
+              "also has another name, possibly outside this repository, so init did not change it",
+          );
+        } else agentsWrite = "refresh";
+      }
+    } else if (sharedElsewhere(agentsPath, join(worktreeRoot, "CLAUDE.md"))) {
       warnings.push(
         "AGENTS.md is a hard link: the same file also has another name, possibly outside this " +
           "repository, so init did not change it. Add the Agent Office section yourself, or " +
@@ -569,6 +699,7 @@ export function initProject(
   }
 
   // 2. Ensure `AGENTS.md` has the Agent Office startup procedure.
+  let replacedSection: string | null = null;
   if (agentsWrite === "create") {
     try {
       writeFileSync(agentsPath, `# ${projectName}\n\n${buildOfficeSection(projectName)}`, {
@@ -594,6 +725,17 @@ export function initProject(
           "rerun `office init`",
       );
     } else sectionPresent = true;
+  } else if (agentsWrite === "refresh") {
+    const result = replaceSection(agentsPath, claudePath, projectName);
+    if (result === "changed") {
+      warnings.push(
+        "AGENTS.md changed while init ran and its Agent Office section was left alone; " +
+          "rerun `office init`",
+      );
+    } else if (result !== "current") {
+      replacedSection = result.replaced;
+      actions.push("replaced the Agent Office section in AGENTS.md with the current wording");
+    }
   }
 
   // 3. Point `CLAUDE.md` at `AGENTS.md` if `CLAUDE.md` does not exist yet.
@@ -631,7 +773,11 @@ export function initProject(
       `Office section${actions.length ? ` (done: ${actions.join(", ")})` : ""} — see the warnings.`
     : alreadyInitialized
       ? `Agent Office · ${projectName} (${where}) is already set up and linked.`
-      : `Agent Office · set up ${projectName} (${where}) — ${actions.join(", ")}.${skillsNote}`;
+      : `Agent Office · set up ${projectName} (${where}) — ${actions.join(", ")}.${skillsNote}` +
+        (replacedSection !== null
+          ? " The old section is in `replaced_section`, and in git if AGENTS.md was committed. " +
+            "Read the new one in AGENTS.md: it is what you work by now."
+          : "");
 
   return {
     ok: true,
@@ -642,6 +788,7 @@ export function initProject(
     git_initialized: gitInitialized,
     actions,
     warnings,
+    replaced_section: replacedSection,
     message,
   };
 }

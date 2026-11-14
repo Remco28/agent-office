@@ -13,7 +13,7 @@ import { serve } from "./server";
 import { formatAgo } from "./stats";
 import { runTui } from "./tui";
 import { detectCwdProject, normalizeProject } from "./scope";
-import { initProject } from "./init";
+import { initProject, startupSectionStale } from "./init";
 
 type Opts = {
   tags: string[];
@@ -136,10 +136,13 @@ function help(): string {
                               local git repo if needed, links skills, adds the
                               startup section to AGENTS.md unless it has one,
                               and links CLAUDE.md to it if there is none.
+                              Run again later, it replaces its own section when
+                              the office's wording has changed (begin says when)
+                              and returns the old text.
                               A missing folder is created and set up, unless it
                               is inside an existing repository (init stops and
                               names it) or holds other repositories a few
-                              folders down. Apart from adding that section, it
+                              folders down. Apart from its own section, it
                               changes no file it finds, never edits a link,
                               never writes to git's config and never hides
                               anything from git
@@ -149,8 +152,9 @@ function help(): string {
                               folder. One agent works in one repository. Use
                               --project where the folder gives no project (a
                               folder outside any repo), on every command there.
-                              Returns tools, preferences,
-                              sessions, activity, unfinished work, and memories
+                              Returns unfinished work, recent
+                              activity and this project's memories first, then
+                              issues, everywhere-memories, skills and tools
   office peek [--project <path>] [--by <agent>]
                               the same briefing, read-only: nothing is written
                               and your check-in time does not move. Use this
@@ -160,7 +164,9 @@ function help(): string {
   office search <query>       find facts and relevant skills
   office remember [--tag t] [--global] <text>
   office list [--limit n]     recent memories, newest first
-  office forget <id>          delete a memory
+  office forget <id>          delete a memory for good; the reply carries its
+                              last copy. To correct a wrong one, remember the
+                              right fact and say what was believed before
   office move <old path>      bring a moved project's notes to this folder's
                               project. Only when the human says it moved;
                               refused if the old folder still exists (a copy)
@@ -261,7 +267,8 @@ type BriefingView = {
   author_warnings?: Array<{ level: string; text: string }>;
   sessions_hidden?: number;
   identity_note?: string | null;
-  issues?: IssueView[];
+  section_note?: string | null;
+  issues?: Array<{ id: number; title: string; author: string | null }>;
   issues_open?: number;
   issues_closed?: IssueView[];
   note?: string | null;
@@ -317,6 +324,7 @@ function printBriefing(data: BriefingView): void {
   out.push(`project  ${data.project ?? "(none declared)"}`);
   out.push(`author   ${data.author ?? "(unknown)"}`);
   if (data.identity_note) out.push(`         ${data.identity_note}`);
+  if (data.section_note) out.push("", `AGENTS.md  ${data.section_note}`);
   // One session is already on the author line; more than one is the news.
   if ((data.sessions ?? []).length > 1) {
     out.push("", "sessions");
@@ -326,6 +334,18 @@ function printBriefing(data: BriefingView): void {
       out.push(`  ${who}${you}   last here ${formatAgo(session.since)}`);
     }
     if (data.sessions_hidden) out.push(`  (+${data.sessions_hidden} elsewhere or older, not shown)`);
+  }
+  if (data.readonly_note) out.push("", `read-only   ${data.readonly_note}`);
+  // This project's own material first, then what is the same in every
+  // project. A long briefing is often cut off partway, and the tools list used
+  // to push the handoff out of sight.
+  if (data.open_work.length) {
+    out.push("", "unfinished");
+    for (const item of data.open_work) {
+      const note = item.last_note ? `  — ${item.last_note}${byline(item.last_note_author)}` : "";
+      out.push(`  #${item.id}  ${item.title}${note}`);
+    }
+    if (data.open_work_note) out.push(`  ${data.open_work_note}`);
   }
   const notices = data.notices ?? [];
   if (data.notices_since || notices.length) {
@@ -351,12 +371,21 @@ function printBriefing(data: BriefingView): void {
       `closed, an issue you filed: #${issue.id}  ${issue.title}  — ${issue.resolution ?? ""}${byline(issue.closed_by)}`,
     );
   }
-  if (data.readonly_note) out.push("", `read-only   ${data.readonly_note}`);
-  if (data.tools.length) {
-    out.push("", "tools");
-    for (const tool of data.tools) {
-      out.push(`  ${tool.name}  ${tool.summary}${tool.usage ? `  (${tool.usage})` : ""}`);
-    }
+  out.push("", "memories");
+  if (!data.memories.length) out.push("  (none)");
+  for (const memory of data.memories) {
+    out.push(`  #${memory.id}  ${memory.content}`);
+  }
+  if (data.note) out.push("", `note     ${data.note}`);
+  if (data.issues?.length) {
+    out.push("", "issues (about the office itself; notes: office issues)");
+    for (const issue of data.issues) out.push(`  #${issue.id}  ${issue.title}${byline(issue.author)}`);
+    const more = (data.issues_open ?? 0) - data.issues.length;
+    if (more > 0) out.push(`  (+${more} more: office issues)`);
+  }
+  if (data.preferences.length) {
+    out.push("", "everywhere");
+    for (const memory of data.preferences) out.push(`  #${memory.id}  ${memory.content}`);
   }
   if (
     data.skills?.length ||
@@ -375,33 +404,12 @@ function printBriefing(data: BriefingView): void {
       ),
     );
   }
-  if (data.preferences.length) {
-    out.push("", "everywhere");
-    for (const memory of data.preferences) out.push(`  #${memory.id}  ${memory.content}`);
-  }
-  if (data.open_work.length) {
-    out.push("", "unfinished");
-    for (const item of data.open_work) {
-      const note = item.last_note ? `  — ${item.last_note}${byline(item.last_note_author)}` : "";
-      out.push(`  #${item.id}  ${item.title}${note}`);
+  if (data.tools.length) {
+    out.push("", "tools");
+    for (const tool of data.tools) {
+      out.push(`  ${tool.name}  ${tool.summary}${tool.usage ? `  (${tool.usage})` : ""}`);
     }
-    if (data.open_work_note) out.push(`  ${data.open_work_note}`);
   }
-  if (data.issues?.length) {
-    out.push("", "issues (about the office itself)");
-    for (const issue of data.issues) {
-      const note = issue.last_note ? `  — ${issue.last_note}${byline(issue.last_note_author)}` : "";
-      out.push(`  #${issue.id}  ${issue.title}${byline(issue.author)}${note}`);
-    }
-    const more = (data.issues_open ?? 0) - data.issues.length;
-    if (more > 0) out.push(`  (+${more} more: office issues)`);
-  }
-  out.push("", "memories");
-  if (!data.memories.length) out.push("  (none)");
-  for (const memory of data.memories) {
-    out.push(`  #${memory.id}  ${memory.content}`);
-  }
-  if (data.note) out.push("", `note     ${data.note}`);
   process.stdout.write(out.join("\n") + "\n");
 }
 
@@ -516,14 +524,19 @@ export async function main(argv = process.argv): Promise<number> {
     // `peek` is `begin --readonly`: the friendly name for the door an agent
     // told not to modify state is allowed through.
     const readonly = cmd === "peek" || Boolean(opts.readonly);
+    const project = declaredProject(opts);
+    const cwdProject = detectCwdProject();
     const data = (await api("/begin", {
       method: "POST",
       body: {
-        project: declaredProject(opts),
-        cwd_project: detectCwdProject(),
+        project,
+        cwd_project: cwdProject,
         author: declaredAuthor(opts),
         role: declaredRole(opts),
         readonly,
+        // The startup section is a file in the caller's folder, so the caller
+        // looks at it. Only when this folder is the project being checked in to.
+        section_stale: Boolean(cwdProject) && (!project || project === cwdProject) && startupSectionStale(),
       },
     })) as BriefingView;
     if (asText) {
@@ -534,6 +547,7 @@ export async function main(argv = process.argv): Promise<number> {
     }
     printAuthorWarnings(data.author_warnings);
     printScopeNote(data);
+    if (data.section_note && !asText) process.stderr.write(`note: ${data.section_note}\n`);
     return 0;
   }
 
@@ -555,8 +569,9 @@ export async function main(argv = process.argv): Promise<number> {
         author: declaredAuthor(opts),
         scope: opts.scope ?? null,
       },
-    }));
+    })) as { note?: string | null };
     printJson(data);
+    if (data.note) process.stderr.write(`note: ${data.note}\n`);
     printScopeNote(data);
     return 0;
   }
@@ -607,8 +622,10 @@ export async function main(argv = process.argv): Promise<number> {
     const data = (await api("/forget", { method: "POST", body: { id } })) as {
       ok: boolean;
       id: number;
+      note?: string | null;
     };
     printJson(data);
+    if (data.note) process.stderr.write(`note: ${data.note}\n`);
     if (!data.ok) {
       process.stderr.write(`no memory #${id}\n`);
       return 1;

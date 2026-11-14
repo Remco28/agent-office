@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { serve, type Office } from "../src/server";
@@ -54,6 +54,80 @@ describe("CLI and daemon integration", () => {
     expect((await cli(["remember", "everywhere fact", "--global", "--by", "test-1111"])).memory.scope).toBe("global");
     expect((await cli(["remember", "alpha fact", "--project", "/p/alpha", "--by", "test-1111"])).memory.project)
       .toBe("/p/alpha");
+  });
+
+  test("the briefing puts the project's own material before the tools list", async () => {
+    await cli(["tools", "add", "sometool", "a tool with a long note", "--note", "x".repeat(400)]);
+    await cli(["work", "open", "half-done thing", "--project", "/p/alpha", "--by", "test-1111"]);
+    await cli(["remember", "alpha fact", "--project", "/p/alpha", "--by", "test-1111"]);
+    const keys = Object.keys(await cli(["peek", "--project", "/p/alpha"]));
+    for (const early of ["warnings", "open_work", "notices", "memories"]) {
+      for (const late of ["issues", "preferences", "skills", "tools"]) {
+        expect(keys.indexOf(early)).toBeLessThan(keys.indexOf(late));
+      }
+    }
+    const text: string = await cli(["peek", "--project", "/p/alpha", "--text"]);
+    expect(text.indexOf("half-done thing")).toBeGreaterThan(-1);
+    expect(text.indexOf("alpha fact")).toBeGreaterThan(-1);
+    expect(text.indexOf("half-done thing")).toBeLessThan(text.indexOf("sometool"));
+    expect(text.indexOf("alpha fact")).toBeLessThan(text.indexOf("sometool"));
+  });
+
+  test("remember --global says that every project's check-in will carry it", async () => {
+    const global = await cli(["remember", "no sudo here", "--global", "--by", "test-1111"]);
+    expect(global.note).toContain("every agent that checks in");
+    expect(global.note).toContain(`office forget ${global.memory.id}`);
+    expect(lastStderr).toContain("saved for every project");
+    const local = await cli(["remember", "alpha fact", "--project", "/p/alpha", "--by", "test-1111"]);
+    expect(local.note).toBeNull();
+  });
+
+  test("forget hands back the memory it deleted, so a correction can quote it", async () => {
+    const wrong = await cli(["remember", "the server ends the session", "--project", "/p/alpha", "--by", "test-1111"]);
+    const gone = await cli(["forget", String(wrong.memory.id), "--by", "test-2222"]);
+    expect(gone.ok).toBe(true);
+    expect(gone.forgotten.content).toBe("the server ends the session");
+    expect(gone.forgotten.author).toBe("test-1111");
+    expect(gone.note).toContain("what was believed before");
+    expect(lastStderr).toContain("deleted for good");
+    expect((await cli(["list"])).memories.map((m: any) => m.content))
+      .not.toContain("the server ends the session");
+  });
+
+  test("output longer than a pipe's buffer reaches a reader that is slow to start", async () => {
+    await cli(["remember", "y".repeat(90_000), "--project", "/p/alpha", "--by", "test-1111"]);
+    // A real pipe with a reader that waits: the CLI has finished writing long
+    // before `cat` takes anything. (Bun reads a spawned child's stdout eagerly,
+    // so the wait has to happen in the shell.)
+    const proc = Bun.spawn(
+      ["sh", "-c", '"$0" "$1" list | (sleep 0.4; cat)', process.execPath, join(ROOT, "src/index.ts")],
+      { cwd: dir, env, stdout: "pipe", stderr: "pipe" },
+    );
+    const stdout = await new Response(proc.stdout).text();
+    expect(await proc.exited).toBe(0);
+    expect(stdout.length).toBeGreaterThan(90_000);
+    expect(() => JSON.parse(stdout)).not.toThrow();
+  });
+
+  test("begin says when the repository's startup section is behind, and init brings it up to date", async () => {
+    const repo = gitRepo("behind");
+    await cli(["init"], {}, repo);
+    expect((await cli(["begin", "--by", "test-1111"], {}, repo)).section_note).toBeNull();
+    const path = join(repo, "AGENTS.md");
+    writeFileSync(path, readFileSync(path, "utf8").replace(/^If another agent started you.*\n\n/m, ""));
+
+    const begun = await cli(["begin", "--by", "test-1111"], {}, repo);
+    expect(begun.section_note).toContain("Run `office init` here now");
+    expect(lastStderr).toContain("older than the office's current wording");
+    // a visit told not to change anything reports it and is not told to run init
+    expect((await cli(["peek"], {}, repo)).section_note).toContain("tell the human");
+    // checking in to another project from here says nothing about this folder's file
+    expect((await cli(["begin", "--project", "/p/elsewhere", "--by", "test-1111"], {}, repo)).section_note).toBeNull();
+
+    const fixed = await cli(["init"], {}, repo);
+    expect(fixed.replaced_section).not.toContain("If another agent started you");
+    expect(readFileSync(path, "utf8")).toContain("If another agent started you");
+    expect((await cli(["begin", "--by", "test-1111"], {}, repo)).section_note).toBeNull();
   });
 
   test("a moved repository is noticed at check-in, and `office move` brings its notes", async () => {

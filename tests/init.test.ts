@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildOfficeSection, initProject } from "../src/init";
+import { buildOfficeSection, initProject, sectionState, startupSectionStale } from "../src/init";
 import { ROOT } from "../src/paths";
 import { detectCwdProject, normalizeProject, resolveGitProject } from "../src/scope";
 import { serve, type Office } from "../src/server";
@@ -77,6 +77,81 @@ describe("office init and git/worktree project detection", () => {
     const second = initProject(projectDir);
     expect(second.already_initialized).toBe(true);
     expect(readFileSync(join(projectDir, "AGENTS.md"), "utf8")).toBe(updated);
+  });
+
+  /** The section as init wrote it before 6 November: no end marker, older wording. */
+  function oldSection(name: string): string {
+    return buildOfficeSection(name)
+      .replace("<!-- /agent-office -->\n", "")
+      .replace(/^If another agent started you.*\n\n/m, "");
+  }
+
+  test("replaces its own older section, and nothing else in the file", () => {
+    const projectDir = join(tempRoot, "behind");
+    mkdirSync(projectDir, { recursive: true });
+    const before = "# Behind\n\nKeep tests green.\n\n";
+    const after = "\n## Deploy\n\nAsk first.\n";
+    const old = oldSection("behind");
+    expect(old).not.toContain("If another agent started you");
+    writeFileSync(join(projectDir, "AGENTS.md"), before + old + after, "utf8");
+    expect(sectionState(before + old + after, "behind")).toBe("stale");
+    expect(startupSectionStale(projectDir)).toBe(false); // not a repository yet
+
+    const first = initProject(projectDir);
+    expect(first.actions).toContain("replaced the Agent Office section in AGENTS.md with the current wording");
+    // the old text is handed back: it may not be in git
+    expect(first.replaced_section).toBe(old.trimEnd());
+    const updated = readFileSync(join(projectDir, "AGENTS.md"), "utf8");
+    expect(updated).toBe(before + buildOfficeSection("behind") + after);
+    expect(startupSectionStale(projectDir)).toBe(false);
+
+    const second = initProject(projectDir);
+    expect(second.already_initialized).toBe(true);
+    expect(second.replaced_section).toBeNull();
+    expect(readFileSync(join(projectDir, "AGENTS.md"), "utf8")).toBe(updated);
+  });
+
+  test("an older section is noticed from anywhere inside the repository", async () => {
+    const projectDir = join(tempRoot, "noticed");
+    initProject(projectDir);
+    const path = join(projectDir, "AGENTS.md");
+    expect(startupSectionStale(projectDir)).toBe(false);
+    writeFileSync(path, `# noticed\n\n${oldSection("noticed")}`, "utf8");
+    expect(startupSectionStale(projectDir)).toBe(true);
+    mkdirSync(join(projectDir, "src"));
+    expect(startupSectionStale(join(projectDir, "src"))).toBe(true);
+  });
+
+  test("a section with today's wording and no end marker is current, and is left as it is", () => {
+    const projectDir = join(tempRoot, "unmarked");
+    mkdirSync(projectDir, { recursive: true });
+    const content = `# unmarked\n\n${buildOfficeSection("unmarked").replace("<!-- /agent-office -->\n", "")}`;
+    writeFileSync(join(projectDir, "AGENTS.md"), content, "utf8");
+    expect(sectionState(content, "unmarked")).toBe("current");
+
+    const result = initProject(projectDir);
+    expect(result.actions.join(" ")).not.toContain("replaced");
+    expect(readFileSync(join(projectDir, "AGENTS.md"), "utf8")).toBe(content);
+  });
+
+  test("never replaces a section a person wrote, or one whose end it cannot find", () => {
+    const byHand = join(tempRoot, "by-hand");
+    mkdirSync(byHand, { recursive: true });
+    const own = "# by-hand\n\n## Agent Office\n\nWe check in on Mondays.\n";
+    writeFileSync(join(byHand, "AGENTS.md"), own, "utf8");
+    expect(sectionState(own, "by-hand")).toBe("none");
+    expect(initProject(byHand).replaced_section).toBeNull();
+    expect(readFileSync(join(byHand, "AGENTS.md"), "utf8")).toBe(own);
+
+    const cut = join(tempRoot, "cut-short");
+    mkdirSync(cut, { recursive: true });
+    const noEnd = "# cut-short\n\n<!-- agent-office -->\n## Agent Office\n\nHalf a section.\n\n## Deploy\n\nAsk first.\n";
+    writeFileSync(join(cut, "AGENTS.md"), noEnd, "utf8");
+    expect(sectionState(noEnd, "cut-short")).toBe("unbounded");
+    const result = initProject(cut);
+    expect(result.warnings.join(" ")).toContain("end of the section could not be found");
+    expect(readFileSync(join(cut, "AGENTS.md"), "utf8")).toBe(noEnd);
+    expect(startupSectionStale(cut)).toBe(false);
   });
 
   test("refuses to initialize $HOME", () => {

@@ -328,6 +328,37 @@ export type SessionSummary = {
   is_you: boolean;
 };
 
+/**
+ * What a check-in is told when its repository's startup section is behind.
+ * The agent is in its own repository and AGENTS.md is in git, so it runs the
+ * refresh itself and says so; a visit that may not write only reports it.
+ */
+export const STALE_SECTION_NOTE =
+  "the Agent Office section in this repository's AGENTS.md is older than the office's current wording, " +
+  "so the instructions you were given at the start are behind. Run `office init` here now: it replaces " +
+  "that section and nothing else. Then read the new section in AGENTS.md, work by it, and tell the human " +
+  "in your first reply that you refreshed it (the change shows in `git diff AGENTS.md`)";
+export const STALE_SECTION_READONLY_NOTE =
+  "the Agent Office section in this repository's AGENTS.md is older than the office's current wording. " +
+  "You were told not to change anything, so tell the human: `office init` here replaces that section " +
+  "and nothing else";
+
+/** An open issue as a briefing lists it: enough to recognise it and add to it. */
+export type IssueLine = {
+  id: number;
+  title: string;
+  author: string | null;
+  last_at: string;
+};
+
+/**
+ * The fields come in the order an agent needs them, because a long briefing is
+ * often cut off partway by whatever is reading it. First who and where the
+ * caller is, then what belongs to this project (unfinished work, recent
+ * activity, memories), then what is the same in every project (issues, the
+ * everywhere-memories, skills, tools). Tools used to come first and pushed
+ * the handoff out of sight.
+ */
 export type Briefing = {
   ok: true;
   banner: string;
@@ -337,6 +368,13 @@ export type Briefing = {
   author_source: ScopeSource;
   active_since: string | null;
   scope_note: string | null;
+  /**
+   * Said when this repository's AGENTS.md carries the office's startup section
+   * in older wording. The section is a copy made by `office init`, so it does
+   * not follow the office when the wording changes; this is how an agent
+   * working by an old copy finds out. Null when it is current, or absent.
+   */
+  section_note: string | null;
   tools: Tool[];
   /**
    * Skills for every project, read from the checkout's `skills/` folder: name,
@@ -369,9 +407,11 @@ export type Briefing = {
   /**
    * Open issues about the office itself, most recently touched first, capped.
    * Shown to every session whatever its project, so a problem is added to
-   * rather than filed twice. `issues_open` is the full count.
+   * rather than filed twice. A title is enough for that, and every project's
+   * briefing carries this list, so the notes stay behind `office issues`.
+   * `issues_open` is the full count.
    */
-  issues: Issue[];
+  issues: IssueLine[];
   issues_open: number;
   /** Issues this author filed that someone else closed since their last visit. */
   issues_closed: Issue[];
@@ -429,6 +469,8 @@ export async function briefing(
     readonly?: boolean;
     /** This check-in was given a new numbered name. */
     minted?: boolean;
+    /** The caller found an older startup section in its repository's AGENTS.md. */
+    sectionStale?: boolean;
     now?: number;
     /** Where the skills are read from; the checkout's folder by default. */
     skillsDir?: string;
@@ -521,18 +563,30 @@ export async function briefing(
       ]
         .filter(Boolean)
         .join(" · ") || null,
-    tools: listTools(db),
-    skills: skills.skills,
-    skills_manual: skills.manual,
-    skills_elsewhere: skills.elsewhere,
-    skills_problems: skills.problems,
-    preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),
+    section_note: opts.sectionStale ? (readOnly ? STALE_SECTION_READONLY_NOTE : STALE_SECTION_NOTE) : null,
+    identity_note:
+      opts.minted && scope.author
+        ? `you are ${scope.author} for this run — pass --by ${scope.author} on every call ` +
+          `(or export OFFICE_AUTHOR=${scope.author}); begin with that name again to resume`
+        : null,
+    author_warnings: authorWarnings(scope),
+    readonly: readOnly,
+    readonly_note: readOnly
+      ? watermark
+        ? "nothing was written; your check-in time did not move, so the same notices will be shown again until a begin moves it"
+        : "nothing was written; you have no previous check-in of your own, so the activity listed is this project's most recent rather than a since-you-were-last-here list, and it will read the same until you begin"
+      : null,
     // Unfinished work is project-specific in the same way memories are: with no
     // project named, handing over every project's loose ends is the read the
-    // scope rule exists to prevent. The note above says why it is empty.
+    // scope rule exists to prevent. `open_work_note` says why it is empty.
     open_work: openWork,
     open_work_note: scope.project || !openWork.length ? null : UNCLAIMED_WORK_NOTE,
+    notices,
+    notices_since: watermark,
+    notices_note: !watermark && notices.length ? RECENT_ACTIVITY_NOTE : null,
     memories,
+    note,
+    issues_closed: closedSince(db, { author: scope.author, since: watermark }),
     sessions: shown.map((session) => ({
       author: session.author,
       project: session.project,
@@ -541,24 +595,19 @@ export async function briefing(
       is_you: session.author !== null && session.author === scope.author,
     })),
     sessions_hidden: allSessions.length - shown.length,
-    issues: listIssues(db, { limit: BRIEFING_ISSUES }),
+    issues: listIssues(db, { limit: BRIEFING_ISSUES }).map((issue) => ({
+      id: issue.id,
+      title: issue.title,
+      author: issue.author,
+      last_at: issue.last_at,
+    })),
     issues_open: openIssueCount(db),
-    issues_closed: closedSince(db, { author: scope.author, since: watermark }),
-    identity_note:
-      opts.minted && scope.author
-        ? `you are ${scope.author} for this run — pass --by ${scope.author} on every call ` +
-          `(or export OFFICE_AUTHOR=${scope.author}); begin with that name again to resume`
-        : null,
-    notices,
-    notices_since: watermark,
-    notices_note: !watermark && notices.length ? RECENT_ACTIVITY_NOTE : null,
-    readonly: readOnly,
-    readonly_note: readOnly
-      ? watermark
-        ? "nothing was written; your check-in time did not move, so the notices above will be shown again until a begin moves it"
-        : "nothing was written; you have no previous check-in of your own, so the activity above is this project's most recent rather than a since-you-were-last-here list, and it will read the same until you begin"
-      : null,
-    author_warnings: authorWarnings(scope),
+    preferences: listGlobalMemories(db, BRIEFING_PREFERENCES),
+    skills: skills.skills,
+    skills_manual: skills.manual,
+    skills_elsewhere: skills.elsewhere,
+    skills_problems: skills.problems,
+    tools: listTools(db),
     store: {
       memories: countMemories(db),
       memories_in_scope: countInScope(db, scope.project),
@@ -572,6 +621,5 @@ export async function briefing(
       tools: countTools(db),
       log_chars: logChars(db),
     },
-    note,
   };
 }
