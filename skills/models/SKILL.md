@@ -26,7 +26,7 @@ Reasons, all chosen by Frank on 2026-11-15:
 - Screenshots count as reading. Any model in the table can see images, so a UI reader is a prose reader that is given images.
 - Using the app means driving a browser against a local server. In the review-loop sandbox only Claude can start one (see `../review-loop/readers.md`), so the other columns are empty for that job.
 
-Seeing images depends on the CLI as well as the model. The office's tools list says, as of 2026-10-27, that among the outside CLIs only `agy` sees images. Check that note in `office tools` before you give screenshots to a Codex or Grok reader, and if it still holds, use only Claude and Gemini for screenshots.
+The CLI has to pass the image to the model too. On 2026-11-15, Codex 0.169.0 (read-only sandbox), Grok 1.0.77 (strict sandbox) and agy 1.5.9 each opened a PNG from their folder and read a random code in it correctly. If you add a provider, test it the same way before you give it screenshots.
 
 ## Before you start an agent
 
