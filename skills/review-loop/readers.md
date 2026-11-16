@@ -1,6 +1,6 @@
 # Starting a reader
 
-Use these recipes as written. Only a model name may change, if the computer doesn't offer it. They were tested on 30 Oct 2026 on Linux, and the ones that run code were tested with this repository's own test suite. `bwrap` runs only on Linux, so another operating system has no recipe. Don't improvise one. A fake `office` on `PATH` stops nothing, and some flags take a brief placed after them as their own value. A CLI not listed here, such as OpenCode, is not a reader until it has a recipe that passes the probe below. The office's tools list says which CLIs this computer has.
+Use these recipes as written. Fill in `<model>` from the models skill, [`../models/SKILL.md`](../models/SKILL.md), for the reader's job and provider. That skill also says how to check the model is still offered. They were tested on 30 Oct 2026 on Linux, and the ones that run code were tested with this repository's own test suite. `bwrap` runs only on Linux, so another operating system has no recipe. Don't improvise one. A fake `office` on `PATH` stops nothing, and some flags take a brief placed after them as their own value. A CLI not listed here, such as OpenCode, is not a reader until it has a recipe that passes the probe below. The office's tools list says which CLIs this computer has.
 
 Use absolute paths throughout. `<copy>` is the reader's copy, `<brief>` is a file outside it, and `<round>` is the round's scratch folder, which holds the copies.
 
@@ -37,10 +37,10 @@ Only **Gemini** has `<extras>`. They are `--tmpfs $HOME/.gemini/config/rules --r
 
 | Reader | Reading only |
 |---|---|
-| Codex | `codex exec -m gpt-6-luna -s read-only --skip-git-repo-check -C <copy> -o <round>/<reader>.report - < <brief>` |
-| Grok | `grok -m grok-4.7 --sandbox strict --always-approve --no-subagents --disable-web-search --output-format streaming-json -p "$(cat <brief>)" < /dev/null` |
-| Claude | `claude -p --restricted --strict-mcp-config --tools Read Grep Glob --permission-prompts none --model claude-opus-5-5 --no-session-persistence --output-format stream-json --verbose < <brief>` |
-| Gemini | `agy --model gemini-4-argon-high --settings '{"permissions":{"allow":["command(ls)","command(cat)","command(grep)","command(head)","command(tail)","command(wc)"],"deny":["command(find)","command(office)","command(curl)","command(sudo)"]}}' --output-format stream-json --print="$(cat <brief>)" < /dev/null` |
+| Codex | `codex exec -m <model> -s read-only --skip-git-repo-check -C <copy> -o <round>/<reader>.report - < <brief>` |
+| Grok | `grok -m <model> --sandbox strict --always-approve --no-subagents --disable-web-search --output-format streaming-json -p "$(cat <brief>)" < /dev/null` |
+| Claude | `claude -p --restricted --strict-mcp-config --tools Read Grep Glob --permission-prompts none --model <model> --no-session-persistence --output-format stream-json --verbose < <brief>` |
+| Gemini | `agy --model <model> --settings '{"permissions":{"allow":["command(ls)","command(cat)","command(grep)","command(head)","command(tail)","command(wc)"],"deny":["command(find)","command(office)","command(curl)","command(sudo)"]}}' --output-format stream-json --print="$(cat <brief>)" < /dev/null` |
 
 | Reader | Running code |
 |---|---|
