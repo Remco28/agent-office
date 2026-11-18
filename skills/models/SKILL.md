@@ -14,15 +14,23 @@ The choices are the human's. Models change every few weeks, so the table is chec
 | Job | Codex | Claude | Grok | Gemini |
 |---|---|---|---|---|
 | Read prose or screenshots | `gpt-6.1-terra` | `claude-sonnet-5-5` | `grok-4.7` | `gemini-4-hydrogen-high` |
-| Review code | `gpt-6.1-sol` | `claude-opus-5-5` | `grok-4.7` | `gemini-4-hydrogen-high` |
+| Review code | `gpt-6.2-sol` | `claude-opus-5-5` | `grok-4.7` | `gemini-4-hydrogen-high` |
+| Code a well-specced task | `gpt-6.2-sol` | `claude-opus-5-5` or `claude-sonnet-5-5`, high reasoning | not chosen | `gemini-4-neon-high` |
+| Design (look, layout, taste) | `gpt-6.2-astra` | `claude-fable-5-2` | not chosen | `gemini-4-argon-high` |
 | Use the app in a browser | none | `claude-sonnet-5-5` | none | none |
 
 Reasons, all chosen by Frank on 2026-11-15:
 
 - Reading needs a solid model, not the strongest. `gpt-6-luna` is also fine for it.
 - Code review gets each provider's strongest coding model. For Claude, `claude-sonnet-5-5` is the second choice.
+- `gpt-6.2-sol` is cheap, follows directions very well and is highly intelligent, though below Astra. Frank's early read (2026-11-18, provisional) is that it suits code review and coding a task that is already well specified. Give it a clear spec, not an open problem.
+- `gpt-6.2-astra` is highly intelligent at moderate cost and has good taste, so it is for design. It is erratic, and weaker at coding and at following directions, so do not give it code to write or a strict procedure. Treat what it returns as a proposal to check. Frank's early read (2026-11-18, provisional).
+- For Claude, design gets `claude-fable-5-2`, which Frank chose for sure but which is expensive. Use it where design matters, not for every small tweak. A well-specced coding task gets Opus 5.5 or Sonnet 5.5 at a higher reasoning level (Frank, 2026-11-18).
+- Grok stays as it is until Grok 4.8 arrives, so Grok has no design or coding pick. Use `grok-4.7` only for the jobs it already has (Frank, 2026-11-18).
+- Both 6.2 rows are a gut call from the first days. They need more evaluation. When one is tested, correct the row and say what you saw.
 - Grok has one model worth using, `grok-4.7`.
-- Gemini uses Hydrogen for everything. Argon is weaker.
+- Gemini uses Hydrogen for reading and review. Argon is weaker for that, so it is not used there.
+- Gemini design gets `gemini-4-argon-high`, which is very expensive, so use it sparingly. Well-specced coding gets `gemini-4-neon-high`, a newer model (Frank, 2026-11-18).
 - Screenshots count as reading. Any model in the table can see images, so a UI reader is a prose reader that is given images.
 - Using the app means driving a browser against a local server. In the review-loop sandbox only Claude can start one (see `../review-loop/readers.md`), so the other columns are empty for that job.
 
@@ -48,4 +56,4 @@ When the human says a model is poor, change the table the same way, even if no a
 
 | Model | Why | Date |
 |---|---|---|
-| `gemini-4-argon-high` and the other Argon levels | Weaker than Hydrogen | 2026-11-15 |
+| `gemini-4-argon-*` for reading and review | Weaker than Hydrogen. Still used for design, see the table | 2026-11-15 |
